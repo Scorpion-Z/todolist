@@ -21,6 +21,7 @@ struct ContentView: View {
     @State private var editPriority: TodoItem.Priority = .medium
     @State private var editDueDateEnabled = false
     @State private var editDueDate = Date()
+    @State private var editMode: EditMode = .inactive
 
     private var filteredItems: [TodoItem] {
         viewModel.items.filter { item in
@@ -85,7 +86,18 @@ struct ContentView: View {
             }
 
             if filteredItems.isEmpty {
-                ContentUnavailableView("No todos", systemImage: "checkmark.circle")
+                if #available(macOS 14.0, *) {
+                    ContentUnavailableView("No todos", systemImage: "checkmark.circle")
+                } else {
+                    VStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle")
+                            .font(.largeTitle)
+                            .foregroundStyle(.secondary)
+                        Text("No todos")
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             } else {
                 List {
                     ForEach(filteredItems) { item in
@@ -134,13 +146,17 @@ struct ContentView: View {
                     .onMove(perform: viewModel.moveItems)
                 }
                 .listStyle(.inset)
+                .environment(\.editMode, $editMode)
             }
         }
         .padding(24)
         .frame(minWidth: 520, minHeight: 420)
         .searchable(text: $searchText)
         .toolbar {
-            EditButton()
+            Button(editMode.isEditing ? "Done" : "Edit") {
+                editMode = editMode.isEditing ? .inactive : .active
+            }
+            .keyboardShortcut("e", modifiers: [.command])
         }
         .sheet(item: $editingItem) { item in
             editSheet(for: item)
