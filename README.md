@@ -3,7 +3,11 @@
 A minimal macOS SwiftUI todo list app.
 
 ## Requirements
-- macOS with Xcode 15 or newer.
+- macOS 14 or newer with Xcode 15 or newer (SwiftData-backed storage).
+
+## Data storage & migration
+- The app now uses SwiftData for persistence, with indexed fields on completion status, due date, and creation time to keep future smart lists fast.
+- On first launch after upgrading, the app migrates any legacy `todo_items` JSON stored in `UserDefaults` into SwiftData, then clears the old key to avoid repeated imports.
 
 ## Run in Xcode
 1. Open `Todolist.xcodeproj` in Xcode.

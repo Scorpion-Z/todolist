@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 struct ContentView: View {
@@ -9,7 +10,7 @@ struct ContentView: View {
         var id: String { rawValue }
     }
 
-    @StateObject private var viewModel = TodoListViewModel()
+    @StateObject private var viewModel: TodoListViewModel
     @State private var newTitle = ""
     @State private var newPriority: TodoItem.Priority = .medium
     @State private var newDueDateEnabled = false
@@ -21,6 +22,10 @@ struct ContentView: View {
     @State private var editPriority: TodoItem.Priority = .medium
     @State private var editDueDateEnabled = false
     @State private var editDueDate = Date()
+
+    init(repository: TodoRepository) {
+        _viewModel = StateObject(wrappedValue: TodoListViewModel(repository: repository))
+    }
 
     private var filteredItems: [TodoItem] {
         viewModel.items.filter { item in
@@ -208,5 +213,8 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView()
+    let schema = Schema([TodoEntity.self])
+    let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: schema, configurations: [configuration])
+    ContentView(repository: SwiftDataTodoRepository(modelContext: container.mainContext))
 }

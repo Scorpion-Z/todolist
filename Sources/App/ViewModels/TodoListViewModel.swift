@@ -3,37 +3,45 @@ import Foundation
 final class TodoListViewModel: ObservableObject {
     @Published private(set) var items: [TodoItem]
 
-    private let storageKey = "todo_items"
+    private let repository: TodoRepository
 
-    init(items: [TodoItem] = []) {
-        if items.isEmpty {
-            self.items = Self.loadItems(from: storageKey)
-        } else {
-            self.items = items
-        }
+    init(repository: TodoRepository) {
+        self.repository = repository
+        self.items = (try? repository.fetchItems()) ?? []
     }
 
     func addItem(title: String, priority: TodoItem.Priority, dueDate: Date?) {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        items.append(TodoItem(title: trimmed, priority: priority, dueDate: dueDate))
-        persistItems()
+        let nextSortOrder = (items.map(\.sortOrder).max() ?? -1) + 1
+        let newItem = TodoItem(
+            title: trimmed,
+            priority: priority,
+            dueDate: dueDate,
+            sortOrder: nextSortOrder
+        )
+        items.append(newItem)
+        persist(newItem)
     }
 
     func deleteItems(at offsets: IndexSet) {
+        let ids = offsets.compactMap { index in
+            items.indices.contains(index) ? items[index].id : nil
+        }
         items.remove(atOffsets: offsets)
-        persistItems()
+        persistDeletion(ids)
+        resequenceSortOrder()
     }
 
     func moveItems(from source: IndexSet, to destination: Int) {
         items.move(fromOffsets: source, toOffset: destination)
-        persistItems()
+        resequenceSortOrder()
     }
 
     func toggleCompletion(for item: TodoItem) {
         guard let index = items.firstIndex(of: item) else { return }
         items[index].isCompleted.toggle()
-        persistItems()
+        persistUpdate(items[index])
     }
 
     func updateItem(_ item: TodoItem, title: String, priority: TodoItem.Priority, dueDate: Date?) {
@@ -43,19 +51,26 @@ final class TodoListViewModel: ObservableObject {
         items[index].title = trimmed
         items[index].priority = priority
         items[index].dueDate = dueDate
-        persistItems()
+        persistUpdate(items[index])
     }
 
-    private func persistItems() {
-        guard let data = try? JSONEncoder().encode(items) else { return }
-        UserDefaults.standard.set(data, forKey: storageKey)
+    private func persist(_ item: TodoItem) {
+        try? repository.addItem(item)
     }
 
-    private static func loadItems(from key: String) -> [TodoItem] {
-        guard let data = UserDefaults.standard.data(forKey: key),
-              let decoded = try? JSONDecoder().decode([TodoItem].self, from: data) else {
-            return []
+    private func persistUpdate(_ item: TodoItem) {
+        try? repository.updateItem(item)
+    }
+
+    private func persistDeletion(_ ids: [UUID]) {
+        guard !ids.isEmpty else { return }
+        try? repository.deleteItems(ids: ids)
+    }
+
+    private func resequenceSortOrder() {
+        for (index, item) in items.enumerated() {
+            items[index].sortOrder = index
         }
-        return decoded
+        try? repository.updateSortOrder(for: items)
     }
 }
