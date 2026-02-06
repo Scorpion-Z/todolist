@@ -21,6 +21,7 @@ struct ContentView: View {
     @State private var editPriority: TodoItem.Priority = .medium
     @State private var editDueDateEnabled = false
     @State private var editDueDate = Date()
+    @State private var expandedCompletedItems: Set<UUID> = []
 
     private var filteredItems: [TodoItem] {
         viewModel.items.filter { item in
@@ -41,37 +42,22 @@ struct ContentView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 8) {
-                    TextField("New todo", text: $newTitle)
-                        .textFieldStyle(.roundedBorder)
-                    HStack(spacing: 12) {
-                        Picker("Priority", selection: $newPriority) {
-                            ForEach(TodoItem.Priority.allCases) { priority in
-                                Text(priority.displayName).tag(priority)
-                            }
-                        }
-                        .pickerStyle(.segmented)
+        VStack(alignment: .leading, spacing: 18) {
+            if #available(macOS 14.0, *) {
+                taskComposer
+                    .padding(16)
+                    .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            } else {
+                taskComposer
+            }
 
-                        Toggle("Due date", isOn: $newDueDateEnabled)
-                        if newDueDateEnabled {
-                            DatePicker("", selection: $newDueDate, displayedComponents: .date)
-                                .labelsHidden()
-                        }
-                    }
+            if #available(macOS 14.0, *) {
+                HStack {
+                    Text("Tasks")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                    Spacer()
                 }
-                Button("Add") {
-                    viewModel.addItem(
-                        title: newTitle,
-                        priority: newPriority,
-                        dueDate: newDueDateEnabled ? newDueDate : nil
-                    )
-                    newTitle = ""
-                    newPriority = .medium
-                    newDueDateEnabled = false
-                }
-                .keyboardShortcut(.defaultAction)
             }
 
             HStack {
@@ -100,44 +86,34 @@ struct ContentView: View {
             } else {
                 List {
                     ForEach(filteredItems) { item in
-                        HStack(alignment: .top, spacing: 12) {
-                            Button {
-                                viewModel.toggleCompletion(for: item)
-                            } label: {
-                                Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
-                            }
-                            .buttonStyle(.plain)
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(item.title)
-                                    .strikethrough(item.isCompleted, color: .secondary)
-                                    .foregroundStyle(item.isCompleted ? .secondary : .primary)
-
-                                HStack(spacing: 8) {
-                                    Text(item.priority.displayName)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                    if let dueDate = item.dueDate {
-                                        Text(dueDate, style: .date)
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
+                        TodoRowView(
+                            item: item,
+                            isCompletedExpanded: expandedCompletedItems.contains(item.id),
+                            onToggleCompletion: {
+                                withAnimation(.spring(response: 0.28, dampingFraction: 0.84)) {
+                                    viewModel.toggleCompletion(for: item)
+                                }
+                            },
+                            onToggleCompletedExpansion: {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    if expandedCompletedItems.contains(item.id) {
+                                        expandedCompletedItems.remove(item.id)
+                                    } else {
+                                        expandedCompletedItems.insert(item.id)
                                     }
                                 }
-                            }
-                            Spacer()
-                            Button("Edit") {
-                                beginEditing(item)
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                        }
+                            },
+                            onEdit: { beginEditing(item) }
+                        )
                         .padding(.vertical, 6)
                         .contextMenu {
                             Button("Edit") {
                                 beginEditing(item)
                             }
                             Button(item.isCompleted ? "Mark Open" : "Mark Done") {
-                                viewModel.toggleCompletion(for: item)
+                                withAnimation(.spring(response: 0.28, dampingFraction: 0.84)) {
+                                    viewModel.toggleCompletion(for: item)
+                                }
                             }
                         }
                     }
@@ -145,6 +121,8 @@ struct ContentView: View {
                     .onMove(perform: viewModel.moveItems)
                 }
                 .listStyle(.inset)
+                .animation(.default, value: filteredItems)
+                .scrollContentBackgroundIfAvailable()
             }
         }
         .padding(24)
@@ -152,6 +130,45 @@ struct ContentView: View {
         .searchable(text: $searchText)
         .sheet(item: $editingItem) { item in
             editSheet(for: item)
+        }
+    }
+
+    private var taskComposer: some View {
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 8) {
+                if #available(macOS 14.0, *) {
+                    Text("Add Todo")
+                        .font(.headline)
+                }
+
+                TextField("New todo", text: $newTitle)
+                    .textFieldStyle(.roundedBorder)
+                HStack(spacing: 12) {
+                    Picker("Priority", selection: $newPriority) {
+                        ForEach(TodoItem.Priority.allCases) { priority in
+                            Text(priority.displayName).tag(priority)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    Toggle("Due date", isOn: $newDueDateEnabled)
+                    if newDueDateEnabled {
+                        DatePicker("", selection: $newDueDate, displayedComponents: .date)
+                            .labelsHidden()
+                    }
+                }
+            }
+            Button("Add") {
+                viewModel.addItem(
+                    title: newTitle,
+                    priority: newPriority,
+                    dueDate: newDueDateEnabled ? newDueDate : nil
+                )
+                newTitle = ""
+                newPriority = .medium
+                newDueDateEnabled = false
+            }
+            .keyboardShortcut(.defaultAction)
         }
     }
 
@@ -204,6 +221,174 @@ struct ContentView: View {
         }
         .padding(24)
         .frame(minWidth: 360)
+    }
+}
+
+private struct TodoRowView: View {
+    let item: TodoItem
+    let isCompletedExpanded: Bool
+    let onToggleCompletion: () -> Void
+    let onToggleCompletedExpansion: () -> Void
+    let onEdit: () -> Void
+
+    @State private var isHovering = false
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Button(action: onToggleCompletion) {
+                Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
+            }
+            .buttonStyle(.plain)
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 8) {
+                    Text(item.title)
+                        .strikethrough(item.isCompleted, color: .secondary)
+                        .foregroundStyle(item.isCompleted ? .tertiary : .primary)
+
+                    PriorityCapsule(priority: item.priority)
+                }
+
+                if !item.isCompleted || isCompletedExpanded {
+                    HStack(spacing: 8) {
+                        if let dueDate = item.dueDate {
+                            Text(dueDate, style: .date)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+            }
+
+            Spacer(minLength: 0)
+
+            HStack(spacing: 6) {
+                if let dueDateState = DueDateState(dueDate: item.dueDate, isCompleted: item.isCompleted) {
+                    DateStateBadge(state: dueDateState)
+                }
+
+                if item.isCompleted {
+                    Button {
+                        onToggleCompletedExpansion()
+                    } label: {
+                        Image(systemName: isCompletedExpanded ? "chevron.up" : "chevron.down")
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                }
+
+                Button("Edit", action: onEdit)
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                    .opacity(isHovering ? 1 : 0)
+                    .animation(.easeInOut(duration: 0.16), value: isHovering)
+            }
+        }
+        .onHover { hovering in
+            isHovering = hovering
+        }
+    }
+}
+
+private struct PriorityCapsule: View {
+    let priority: TodoItem.Priority
+
+    var body: some View {
+        Text(priority.displayName)
+            .font(.caption2.weight(.semibold))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .foregroundStyle(priorityStyle.foreground)
+            .background(priorityStyle.background, in: Capsule())
+    }
+
+    private var priorityStyle: (foreground: Color, background: Color) {
+        switch priority {
+        case .low:
+            return (.green, .green.opacity(0.18))
+        case .medium:
+            return (.orange, .orange.opacity(0.18))
+        case .high:
+            return (.red, .red.opacity(0.2))
+        }
+    }
+}
+
+private enum DueDateState {
+    case overdue
+    case today
+    case upcoming
+
+    init?(dueDate: Date?, isCompleted: Bool) {
+        guard let dueDate else { return nil }
+        guard !isCompleted else { return nil }
+
+        let calendar = Calendar.current
+        if calendar.isDateInToday(dueDate) {
+            self = .today
+        } else if dueDate < calendar.startOfDay(for: Date()) {
+            self = .overdue
+        } else {
+            self = .upcoming
+        }
+    }
+}
+
+private struct DateStateBadge: View {
+    let state: DueDateState
+
+    var body: some View {
+        Text(label)
+            .font(.caption2.weight(.medium))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .foregroundStyle(foreground)
+            .background(background, in: Capsule())
+    }
+
+    private var label: String {
+        switch state {
+        case .overdue:
+            return "Overdue"
+        case .today:
+            return "Today"
+        case .upcoming:
+            return "Upcoming"
+        }
+    }
+
+    private var foreground: Color {
+        switch state {
+        case .overdue:
+            return .red
+        case .today:
+            return .orange
+        case .upcoming:
+            return .blue
+        }
+    }
+
+    private var background: Color {
+        switch state {
+        case .overdue:
+            return .red.opacity(0.15)
+        case .today:
+            return .orange.opacity(0.15)
+        case .upcoming:
+            return .blue.opacity(0.15)
+        }
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func scrollContentBackgroundIfAvailable() -> some View {
+        if #available(macOS 14.0, *) {
+            self.scrollContentBackground(.hidden)
+        } else {
+            self
+        }
     }
 }
 
