@@ -5,6 +5,18 @@ struct ContentView: View {
         case all = "All"
         case open = "Open"
         case completed = "Completed"
+        case today = "Today"
+        case upcoming = "Upcoming"
+        case overdue = "Overdue"
+
+        var id: String { rawValue }
+    }
+
+    private enum SortOption: String, CaseIterable, Identifiable {
+        case manual = "Manual"
+        case dueDate = "Due Date"
+        case priority = "Priority"
+        case createdAt = "Created"
 
         var id: String { rawValue }
     }
@@ -16,6 +28,7 @@ struct ContentView: View {
     @State private var newDueDate = Date()
     @State private var searchText = ""
     @State private var filter: Filter = .all
+    @State private var sortOption: SortOption = .manual
     @State private var editingItem: TodoItem?
     @State private var editTitle = ""
     @State private var editPriority: TodoItem.Priority = .medium
@@ -23,21 +36,90 @@ struct ContentView: View {
     @State private var editDueDate = Date()
 
     private var filteredItems: [TodoItem] {
-        viewModel.items.filter { item in
-            let matchesFilter: Bool
+        let calendar = Calendar.current
+        let startOfToday = calendar.startOfDay(for: Date())
+        let startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday) ?? startOfToday
+        let normalizedSearchText = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let filtered = viewModel.items.filter { item in
+            let matchesCompletionAndDateFilter: Bool
             switch filter {
             case .all:
-                matchesFilter = true
+                matchesCompletionAndDateFilter = true
             case .open:
-                matchesFilter = !item.isCompleted
+                matchesCompletionAndDateFilter = !item.isCompleted
             case .completed:
-                matchesFilter = item.isCompleted
+                matchesCompletionAndDateFilter = item.isCompleted
+            case .today:
+                guard !item.isCompleted, let dueDate = item.dueDate else { return false }
+                matchesCompletionAndDateFilter = dueDate >= startOfToday && dueDate < startOfTomorrow
+            case .upcoming:
+                guard !item.isCompleted, let dueDate = item.dueDate else { return false }
+                matchesCompletionAndDateFilter = dueDate >= startOfTomorrow
+            case .overdue:
+                guard !item.isCompleted, let dueDate = item.dueDate else { return false }
+                matchesCompletionAndDateFilter = dueDate < startOfToday
             }
 
-            guard matchesFilter else { return false }
-            guard !searchText.isEmpty else { return true }
-            return item.title.localizedCaseInsensitiveContains(searchText)
+            guard matchesCompletionAndDateFilter else { return false }
+            guard !normalizedSearchText.isEmpty else { return true }
+            return item.title.localizedCaseInsensitiveContains(normalizedSearchText)
         }
+
+        switch sortOption {
+        case .manual:
+            return filtered
+        case .dueDate:
+            return filtered.sorted { lhs, rhs in
+                let lhsHasDueDate = lhs.dueDate != nil
+                let rhsHasDueDate = rhs.dueDate != nil
+                if lhsHasDueDate != rhsHasDueDate {
+                    return lhsHasDueDate && !rhsHasDueDate
+                }
+
+                let lhsDueDate = lhs.dueDate ?? .distantFuture
+                let rhsDueDate = rhs.dueDate ?? .distantFuture
+                if lhsDueDate != rhsDueDate {
+                    return lhsDueDate < rhsDueDate
+                }
+
+                if priorityRank(lhs.priority) != priorityRank(rhs.priority) {
+                    return priorityRank(lhs.priority) > priorityRank(rhs.priority)
+                }
+                return lhs.createdAt < rhs.createdAt
+            }
+        case .priority:
+            return filtered.sorted { lhs, rhs in
+                if priorityRank(lhs.priority) != priorityRank(rhs.priority) {
+                    return priorityRank(lhs.priority) > priorityRank(rhs.priority)
+                }
+
+                let lhsDueDate = lhs.dueDate ?? .distantFuture
+                let rhsDueDate = rhs.dueDate ?? .distantFuture
+                if lhsDueDate != rhsDueDate {
+                    return lhsDueDate < rhsDueDate
+                }
+                return lhs.createdAt < rhs.createdAt
+            }
+        case .createdAt:
+            return filtered.sorted { lhs, rhs in
+                if lhs.createdAt != rhs.createdAt {
+                    return lhs.createdAt > rhs.createdAt
+                }
+                return priorityRank(lhs.priority) > priorityRank(rhs.priority)
+            }
+        }
+    }
+
+    private var emptyStateText: (title: String, systemImage: String) {
+        let normalizedSearchText = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !normalizedSearchText.isEmpty {
+            return ("No matching todos", "magnifyingglass")
+        }
+        if viewModel.items.isEmpty {
+            return ("No todos yet", "checkmark.circle")
+        }
+        return ("This view is empty", "line.3.horizontal.decrease.circle")
     }
 
     var body: some View {
@@ -80,19 +162,33 @@ struct ContentView: View {
                         Text(option.rawValue).tag(option)
                     }
                 }
-                .pickerStyle(.segmented)
+                .pickerStyle(.menu)
+
+                Picker("Sort", selection: $sortOption) {
+                    ForEach(SortOption.allCases) { option in
+                        Text(option.rawValue).tag(option)
+                    }
+                }
+                .pickerStyle(.menu)
+
                 Spacer()
+            }
+
+            if sortOption != .manual {
+                Text("Reordering is available only in Manual sort.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             if filteredItems.isEmpty {
                 if #available(macOS 14.0, *) {
-                    ContentUnavailableView("No todos", systemImage: "checkmark.circle")
+                    ContentUnavailableView(emptyStateText.title, systemImage: emptyStateText.systemImage)
                 } else {
                     VStack(spacing: 8) {
-                        Image(systemName: "checkmark.circle")
+                        Image(systemName: emptyStateText.systemImage)
                             .font(.largeTitle)
                             .foregroundStyle(.secondary)
-                        Text("No todos")
+                        Text(emptyStateText.title)
                             .foregroundStyle(.secondary)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -142,7 +238,11 @@ struct ContentView: View {
                         }
                     }
                     .onDelete(perform: viewModel.deleteItems)
-                    .onMove(perform: viewModel.moveItems)
+                    .moveDisabled(sortOption != .manual)
+                    .onMove { source, destination in
+                        guard sortOption == .manual else { return }
+                        viewModel.moveItems(from: source, to: destination)
+                    }
                 }
                 .listStyle(.inset)
             }
@@ -204,6 +304,17 @@ struct ContentView: View {
         }
         .padding(24)
         .frame(minWidth: 360)
+    }
+
+    private func priorityRank(_ priority: TodoItem.Priority) -> Int {
+        switch priority {
+        case .high:
+            return 3
+        case .medium:
+            return 2
+        case .low:
+            return 1
+        }
     }
 }
 
