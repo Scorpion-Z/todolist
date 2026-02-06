@@ -21,6 +21,8 @@ struct ContentView: View {
     @State private var editPriority: TodoItem.Priority = .medium
     @State private var editDueDateEnabled = false
     @State private var editDueDate = Date()
+    @State private var editReminderEnabled = false
+    @State private var editRemindAt = Date()
 
     private var filteredItems: [TodoItem] {
         viewModel.items.filter { item in
@@ -65,7 +67,8 @@ struct ContentView: View {
                     viewModel.addItem(
                         title: newTitle,
                         priority: newPriority,
-                        dueDate: newDueDateEnabled ? newDueDate : nil
+                        dueDate: newDueDateEnabled ? newDueDate : nil,
+                        remindAt: nil
                     )
                     newTitle = ""
                     newPriority = .medium
@@ -166,6 +169,13 @@ struct ContentView: View {
             editDueDateEnabled = false
             editDueDate = Date()
         }
+        if let remindAt = item.remindAt {
+            editReminderEnabled = true
+            editRemindAt = remindAt
+        } else {
+            editReminderEnabled = false
+            editRemindAt = Date()
+        }
     }
 
     @ViewBuilder
@@ -185,6 +195,20 @@ struct ContentView: View {
                 DatePicker("", selection: $editDueDate, displayedComponents: .date)
                     .labelsHidden()
             }
+            Toggle("Reminder", isOn: $editReminderEnabled)
+            if editReminderEnabled {
+                DatePicker("Remind at", selection: $editRemindAt, displayedComponents: [.date, .hourAndMinute])
+            }
+            if editReminderEnabled && viewModel.notificationStatus != .authorized {
+                Text("Notifications are off. Enable them in System Settings to receive reminders.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                if viewModel.notificationStatus == .notDetermined {
+                    Button("Enable Notifications") {
+                        viewModel.requestNotificationAuthorization()
+                    }
+                }
+            }
             HStack {
                 Button("Cancel") {
                     editingItem = nil
@@ -195,7 +219,8 @@ struct ContentView: View {
                         item,
                         title: editTitle,
                         priority: editPriority,
-                        dueDate: editDueDateEnabled ? editDueDate : nil
+                        dueDate: editDueDateEnabled ? editDueDate : nil,
+                        remindAt: editReminderEnabled ? editRemindAt : nil
                     )
                     editingItem = nil
                 }
@@ -204,6 +229,9 @@ struct ContentView: View {
         }
         .padding(24)
         .frame(minWidth: 360)
+        .onAppear {
+            viewModel.refreshNotificationStatus()
+        }
     }
 }
 

@@ -25,6 +25,7 @@ struct TodoItem: Identifiable, Codable, Equatable {
     var isCompleted: Bool
     var priority: Priority
     var dueDate: Date?
+    var remindAt: Date?
     var createdAt: Date
 
     init(
@@ -33,6 +34,7 @@ struct TodoItem: Identifiable, Codable, Equatable {
         isCompleted: Bool = false,
         priority: Priority = .medium,
         dueDate: Date? = nil,
+        remindAt: Date? = nil,
         createdAt: Date = Date()
     ) {
         self.id = id
@@ -40,6 +42,7 @@ struct TodoItem: Identifiable, Codable, Equatable {
         self.isCompleted = isCompleted
         self.priority = priority
         self.dueDate = dueDate
+        self.remindAt = remindAt
         self.createdAt = createdAt
     }
 }
