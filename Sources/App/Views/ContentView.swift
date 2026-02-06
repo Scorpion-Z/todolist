@@ -16,11 +16,36 @@ struct ContentView: View {
     @State private var newDueDate = Date()
     @State private var searchText = ""
     @State private var filter: Filter = .all
+    @State private var selectedTagFilter = "All Tags"
+    @State private var selectedProjectFilter = "All Projects"
+    @State private var selectedIds = Set<UUID>()
     @State private var editingItem: TodoItem?
     @State private var editTitle = ""
     @State private var editPriority: TodoItem.Priority = .medium
     @State private var editDueDateEnabled = false
     @State private var editDueDate = Date()
+    @State private var isAssignTagPresented = false
+    @State private var assignTagText = ""
+
+    private let allTagsLabel = "All Tags"
+    private let allProjectsLabel = "All Projects"
+    private let noProjectLabel = "No Project"
+
+    private var availableTags: [String] {
+        Array(Set(viewModel.items.flatMap(\.tags))).sorted()
+    }
+
+    private var availableProjects: [String] {
+        Array(Set(viewModel.items.compactMap(\.projectName))).sorted()
+    }
+
+    private var tagOptions: [String] {
+        [allTagsLabel] + availableTags
+    }
+
+    private var projectOptions: [String] {
+        [allProjectsLabel, noProjectLabel] + availableProjects
+    }
 
     private var filteredItems: [TodoItem] {
         viewModel.items.filter { item in
@@ -35,6 +60,17 @@ struct ContentView: View {
             }
 
             guard matchesFilter else { return false }
+            if selectedTagFilter != allTagsLabel && !item.tags.contains(selectedTagFilter) {
+                return false
+            }
+            switch selectedProjectFilter {
+            case allProjectsLabel:
+                break
+            case noProjectLabel:
+                if item.projectName != nil { return false }
+            default:
+                if item.projectName != selectedProjectFilter { return false }
+            }
             guard !searchText.isEmpty else { return true }
             return item.title.localizedCaseInsensitiveContains(searchText)
         }
@@ -84,6 +120,23 @@ struct ContentView: View {
                 Spacer()
             }
 
+            HStack {
+                Picker("Project", selection: $selectedProjectFilter) {
+                    ForEach(projectOptions, id: \.self) { option in
+                        Text(option).tag(option)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                Picker("Tag", selection: $selectedTagFilter) {
+                    ForEach(tagOptions, id: \.self) { option in
+                        Text(option).tag(option)
+                    }
+                }
+                .pickerStyle(.menu)
+                Spacer()
+            }
+
             if filteredItems.isEmpty {
                 if #available(macOS 14.0, *) {
                     ContentUnavailableView("No todos", systemImage: "checkmark.circle")
@@ -98,7 +151,7 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             } else {
-                List {
+                List(selection: $selectedIds) {
                     ForEach(filteredItems) { item in
                         HStack(alignment: .top, spacing: 12) {
                             Button {
@@ -122,6 +175,16 @@ struct ContentView: View {
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                     }
+                                    if let projectName = item.projectName {
+                                        Text(projectName)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                                if !item.tags.isEmpty {
+                                    Text(item.tags.map { "#\($0)" }.joined(separator: " "))
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
                                 }
                             }
                             Spacer()
@@ -140,6 +203,7 @@ struct ContentView: View {
                                 viewModel.toggleCompletion(for: item)
                             }
                         }
+                        .tag(item.id)
                     }
                     .onDelete(perform: viewModel.deleteItems)
                     .onMove(perform: viewModel.moveItems)
@@ -152,6 +216,29 @@ struct ContentView: View {
         .searchable(text: $searchText)
         .sheet(item: $editingItem) { item in
             editSheet(for: item)
+        }
+        .sheet(isPresented: $isAssignTagPresented) {
+            assignTagSheet
+        }
+        .toolbar {
+            ToolbarItemGroup {
+                Button("Complete") {
+                    viewModel.completeItems(ids: Array(selectedIds))
+                }
+                .disabled(selectedIds.isEmpty)
+
+                Button("Delete") {
+                    viewModel.deleteItems(ids: Array(selectedIds))
+                    selectedIds.removeAll()
+                }
+                .disabled(selectedIds.isEmpty)
+
+                Button("Tag") {
+                    assignTagText = ""
+                    isAssignTagPresented = true
+                }
+                .disabled(selectedIds.isEmpty)
+            }
         }
     }
 
@@ -204,6 +291,28 @@ struct ContentView: View {
         }
         .padding(24)
         .frame(minWidth: 360)
+    }
+
+    private var assignTagSheet: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Assign Tag")
+                .font(.title2)
+            TextField("Tag name", text: $assignTagText)
+                .textFieldStyle(.roundedBorder)
+            HStack {
+                Button("Cancel") {
+                    isAssignTagPresented = false
+                }
+                Spacer()
+                Button("Assign") {
+                    viewModel.assignTag(ids: Array(selectedIds), tag: assignTagText)
+                    isAssignTagPresented = false
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(24)
+        .frame(minWidth: 320)
     }
 }
 

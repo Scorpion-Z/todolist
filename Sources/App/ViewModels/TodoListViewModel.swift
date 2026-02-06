@@ -36,6 +36,35 @@ final class TodoListViewModel: ObservableObject {
         persistItems()
     }
 
+    func completeItems(ids: [UUID]) {
+        let idSet = Set(ids)
+        guard !idSet.isEmpty else { return }
+        for index in items.indices where idSet.contains(items[index].id) {
+            items[index].isCompleted = true
+        }
+        persistItems()
+    }
+
+    func deleteItems(ids: [UUID]) {
+        let idSet = Set(ids)
+        guard !idSet.isEmpty else { return }
+        items.removeAll { idSet.contains($0.id) }
+        persistItems()
+    }
+
+    func assignTag(ids: [UUID], tag: String) {
+        let trimmed = tag.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        let idSet = Set(ids)
+        guard !idSet.isEmpty else { return }
+        for index in items.indices where idSet.contains(items[index].id) {
+            if !items[index].tags.contains(trimmed) {
+                items[index].tags.append(trimmed)
+            }
+        }
+        persistItems()
+    }
+
     func updateItem(_ item: TodoItem, title: String, priority: TodoItem.Priority, dueDate: Date?) {
         guard let index = items.firstIndex(of: item) else { return }
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
