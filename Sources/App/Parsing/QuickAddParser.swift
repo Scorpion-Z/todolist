@@ -1,0 +1,171 @@
+import Foundation
+
+struct QuickAddParseResult {
+    let title: String
+    let priority: TodoItem.Priority
+    let dueDate: Date?
+    let recognizedTokens: [String]
+}
+
+struct QuickAddParser {
+    private let calendar: Calendar
+    private let nowProvider: () -> Date
+
+    init(calendar: Calendar = .current, nowProvider: @escaping () -> Date = Date.init) {
+        self.calendar = calendar
+        self.nowProvider = nowProvider
+    }
+
+    func parse(_ rawText: String) -> QuickAddParseResult {
+        let normalized = rawText
+            .replacingOccurrences(of: "，", with: " ")
+            .replacingOccurrences(of: "。", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !normalized.isEmpty else {
+            return QuickAddParseResult(title: "", priority: .medium, dueDate: nil, recognizedTokens: [])
+        }
+
+        var remainingTokens = normalized
+            .split(whereSeparator: { $0.isWhitespace })
+            .map(String.init)
+        var recognizedTokens: [String] = []
+
+        let priority = parsePriority(from: &remainingTokens, recognizedTokens: &recognizedTokens) ?? .medium
+
+        let dueDate = parseDate(from: &remainingTokens, recognizedTokens: &recognizedTokens)
+
+        let title = remainingTokens.joined(separator: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return QuickAddParseResult(
+            title: title,
+            priority: priority,
+            dueDate: dueDate,
+            recognizedTokens: recognizedTokens
+        )
+    }
+
+    private func parsePriority(
+        from tokens: inout [String],
+        recognizedTokens: inout [String]
+    ) -> TodoItem.Priority? {
+        guard let index = tokens.firstIndex(where: { token in
+            let lower = token.lowercased()
+            return lower == "p1" || lower == "p2" || lower == "p3"
+        }) else {
+            return nil
+        }
+
+        let token = tokens.remove(at: index)
+        recognizedTokens.append(token)
+
+        switch token.lowercased() {
+        case "p1":
+            return .high
+        case "p2":
+            return .medium
+        case "p3":
+            return .low
+        default:
+            return nil
+        }
+    }
+
+    private func parseDate(
+        from tokens: inout [String],
+        recognizedTokens: inout [String]
+    ) -> Date? {
+        guard let dateTokenIndex = tokens.firstIndex(where: isDateKeyword) else {
+            return nil
+        }
+
+        let dateToken = tokens.remove(at: dateTokenIndex)
+        recognizedTokens.append(dateToken)
+
+        guard var date = resolveDate(from: dateToken) else {
+            return nil
+        }
+
+        if let timeTokenIndex = tokens.firstIndex(where: isTimeToken) {
+            let timeToken = tokens.remove(at: timeTokenIndex)
+            recognizedTokens.append(timeToken)
+            date = applyTime(timeToken, to: date) ?? date
+        }
+
+        return date
+    }
+
+    private func isDateKeyword(_ token: String) -> Bool {
+        if token == "今天" || token == "明天" {
+            return true
+        }
+        if token.hasPrefix("周") || token.hasPrefix("星期") {
+            return weekdayNumber(from: token) != nil
+        }
+        return false
+    }
+
+    private func isTimeToken(_ token: String) -> Bool {
+        let pattern = #"^([01]?\d|2[0-3]):([0-5]\d)$"#
+        return token.range(of: pattern, options: .regularExpression) != nil
+    }
+
+    private func resolveDate(from token: String) -> Date? {
+        let now = nowProvider()
+
+        if token == "今天" {
+            return calendar.startOfDay(for: now)
+        }
+
+        if token == "明天", let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now)) {
+            return tomorrow
+        }
+
+        guard let targetWeekday = weekdayNumber(from: token) else {
+            return nil
+        }
+
+        let startToday = calendar.startOfDay(for: now)
+        let currentWeekday = calendar.component(.weekday, from: startToday)
+        var delta = (targetWeekday - currentWeekday + 7) % 7
+        if delta == 0 {
+            delta = 7
+        }
+
+        return calendar.date(byAdding: .day, value: delta, to: startToday)
+    }
+
+    private func weekdayNumber(from token: String) -> Int? {
+        let normalized = token.replacingOccurrences(of: "星期", with: "周")
+        guard normalized.count >= 2 else { return nil }
+        let suffix = String(normalized.dropFirst())
+
+        switch suffix {
+        case "一": return 2
+        case "二": return 3
+        case "三": return 4
+        case "四": return 5
+        case "五": return 6
+        case "六": return 7
+        case "日", "天": return 1
+        default: return nil
+        }
+    }
+
+    private func applyTime(_ token: String, to date: Date) -> Date? {
+        let parts = token.split(separator: ":")
+        guard parts.count == 2,
+              let hour = Int(parts[0]),
+              let minute = Int(parts[1]) else {
+            return nil
+        }
+
+        return calendar.date(
+            bySettingHour: hour,
+            minute: minute,
+            second: 0,
+            of: date
+        )
+    }
+}

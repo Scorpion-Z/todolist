@@ -1,11 +1,19 @@
 import Foundation
 
+struct QuickAddFeedback {
+    let created: Bool
+    let recognizedTokens: [String]
+}
+
 final class TodoListViewModel: ObservableObject {
     @Published private(set) var items: [TodoItem]
 
     private let storageKey = "todo_items"
+    private let quickAddParser: QuickAddParser
 
-    init(items: [TodoItem] = []) {
+    init(items: [TodoItem] = [], quickAddParser: QuickAddParser = QuickAddParser()) {
+        self.quickAddParser = quickAddParser
+
         if items.isEmpty {
             self.items = Self.loadItems(from: storageKey)
         } else {
@@ -18,6 +26,20 @@ final class TodoListViewModel: ObservableObject {
         guard !trimmed.isEmpty else { return }
         items.append(TodoItem(title: trimmed, priority: priority, dueDate: dueDate))
         persistItems()
+    }
+
+    @discardableResult
+    func addQuickItem(rawText: String) -> QuickAddFeedback {
+        let parsed = quickAddParser.parse(rawText)
+        let fallbackTitle = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let finalTitle = parsed.title.isEmpty ? fallbackTitle : parsed.title
+
+        guard !finalTitle.isEmpty else {
+            return QuickAddFeedback(created: false, recognizedTokens: parsed.recognizedTokens)
+        }
+
+        addItem(title: finalTitle, priority: parsed.priority, dueDate: parsed.dueDate)
+        return QuickAddFeedback(created: true, recognizedTokens: parsed.recognizedTokens)
     }
 
     func deleteItems(at offsets: IndexSet) {
