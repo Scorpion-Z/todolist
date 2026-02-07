@@ -20,6 +20,9 @@
 "duedate.label" = "Due date";
 "filter.label" = "Filter";
 "sort.label" = "Sort";
+"view.title" = "View";
+"view.list" = "List";
+"view.card" = "Cards";
 "sort.manual" = "Manual";
 "sort.duedate" = "Due Date";
 "sort.priority" = "Priority";
@@ -44,6 +47,8 @@
 "section.overdue" = "Overdue";
 
 "edit.button" = "Edit";
+"delete.button" = "Delete";
+"search.focus" = "Focus search";
 "mark.open" = "Mark Open";
 "mark.done" = "Mark Done";
 "edit.title" = "Edit Todo";
