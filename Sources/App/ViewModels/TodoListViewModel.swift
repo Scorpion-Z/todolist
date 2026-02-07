@@ -237,6 +237,7 @@ final class TodoListViewModel: ObservableObject {
         guard let index = items.firstIndex(of: item) else { return }
         items.remove(at: index)
         persistItems()
+        return deleted
     }
 
     func moveItems(from source: IndexSet, to destination: Int) {

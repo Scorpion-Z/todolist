@@ -374,6 +374,9 @@ struct ContentView: View {
                                             let completedCount = item.subtasks.filter(\.isCompleted).count
                                             tagLabel("\(completedCount)/\(item.subtasks.count)")
                                         }
+                                        ForEach(item.tags, id: \.self) { tag in
+                                            tagLabel(tag)
+                                        }
                                     }
                                     Spacer()
                                     Button("edit.button") {
