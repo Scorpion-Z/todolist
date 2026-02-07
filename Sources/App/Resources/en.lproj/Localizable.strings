@@ -20,6 +20,9 @@
 "duedate.label" = "Due date";
 "filter.label" = "Filter";
 "sort.label" = "Sort";
+"view.title" = "View";
+"view.list" = "List";
+"view.card" = "Cards";
 "sort.manual" = "Manual";
 "sort.duedate" = "Due Date";
 "sort.priority" = "Priority";
@@ -31,6 +34,13 @@
 "filter.upcoming" = "Upcoming";
 "filter.overdue" = "Overdue";
 "reorder.notice" = "Reordering is available only in Manual sort.";
+"view.mode" = "View";
+"view.today" = "Today";
+"view.week" = "This Week";
+"view.calendar" = "Calendar";
+"view.section.today" = "Today";
+"view.section.week" = "This Week";
+"calendar.section.noduedate" = "No Due Date";
 
 "empty.search" = "No matching todos";
 "empty.none" = "No todos yet";
@@ -44,6 +54,8 @@
 "section.overdue" = "Overdue";
 
 "edit.button" = "Edit";
+"delete.button" = "Delete";
+"search.focus" = "Focus search";
 "mark.open" = "Mark Open";
 "mark.done" = "Mark Done";
 "edit.title" = "Edit Todo";
@@ -61,3 +73,5 @@
 "priority.low" = "Low";
 "priority.medium" = "Medium";
 "priority.high" = "High";
+
+"notification.body" = "Todo reminder";
