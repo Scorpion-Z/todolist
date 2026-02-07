@@ -113,6 +113,7 @@ struct ContentView: View {
         let calendar = Calendar.current
         let startOfToday = calendar.startOfDay(for: Date())
         let startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday) ?? startOfToday
+        let endOfWeek = calendar.date(byAdding: .day, value: 7, to: startOfToday) ?? startOfTomorrow
         let normalizedSearchText = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
 
         let filtered = viewModel.items.filter { item in
@@ -136,6 +137,14 @@ struct ContentView: View {
             }
 
             guard matchesCompletionAndDateFilter else { return false }
+            if viewMode == .today {
+                guard let dueDate = item.dueDate else { return false }
+                guard dueDate >= startOfToday && dueDate < startOfTomorrow else { return false }
+            }
+            if viewMode == .week {
+                guard let dueDate = item.dueDate else { return false }
+                guard dueDate >= startOfToday && dueDate < endOfWeek else { return false }
+            }
             guard !normalizedSearchText.isEmpty else { return true }
             return item.title.localizedCaseInsensitiveContains(normalizedSearchText)
         }
@@ -277,6 +286,13 @@ struct ContentView: View {
                 }
                 .keyboardShortcut(.return, modifiers: [.command])
             }
+
+            Picker("view.label", selection: $viewMode) {
+                ForEach(ViewMode.allCases) { mode in
+                    Text(mode.titleKey).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
 
             HStack {
                 Picker("filter.label", selection: $filter) {
