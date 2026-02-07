@@ -226,6 +226,7 @@ struct ContentView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             headerSection
+            StatsView(viewModel: viewModel)
             quickAddSection
 
             HStack(alignment: .top) {

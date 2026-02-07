@@ -28,6 +28,13 @@ final class TodoListViewModel: ObservableObject {
         rescheduleNotifications(for: self.items)
     }
 
+    struct DailyCompletionStat: Identifiable {
+        let date: Date
+        let completedCount: Int
+
+        var id: Date { date }
+    }
+
     func addItem(title: String, priority: TodoItem.Priority, dueDate: Date?) {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
@@ -145,6 +152,45 @@ final class TodoListViewModel: ObservableObject {
         updateNotification(for: items[index])
     }
 
+    func todayCompletedCount(referenceDate: Date = Date(), calendar: Calendar = .current) -> Int {
+        let dayRange = dayRange(for: referenceDate, calendar: calendar)
+        return items.filter { item in
+            item.isCompleted && dayRange.contains(normalizedDate(for: item))
+        }.count
+    }
+
+    func overdueCount(referenceDate: Date = Date(), calendar: Calendar = .current) -> Int {
+        let startOfToday = calendar.startOfDay(for: referenceDate)
+        return items.filter { item in
+            guard let dueDate = item.dueDate else { return false }
+            return !item.isCompleted && dueDate < startOfToday
+        }.count
+    }
+
+    func sevenDayCompletionTrend(referenceDate: Date = Date(), calendar: Calendar = .current) -> [DailyCompletionStat] {
+        let startOfToday = calendar.startOfDay(for: referenceDate)
+        return (0..<7).compactMap { offset in
+            guard let day = calendar.date(byAdding: .day, value: offset - 6, to: startOfToday) else { return nil }
+            let dayRange = dayRange(for: day, calendar: calendar)
+            let completedCount = items.filter { item in
+                item.isCompleted && dayRange.contains(normalizedDate(for: item))
+            }.count
+            return DailyCompletionStat(date: day, completedCount: completedCount)
+        }
+    }
+
+    func todayCompletionRate(referenceDate: Date = Date(), calendar: Calendar = .current) -> Double {
+        let dayRange = dayRange(for: referenceDate, calendar: calendar)
+        let totalCount = items.filter { item in
+            dayRange.contains(normalizedDate(for: item))
+        }.count
+        guard totalCount > 0 else { return 0 }
+        let completedCount = items.filter { item in
+            item.isCompleted && dayRange.contains(normalizedDate(for: item))
+        }.count
+        return Double(completedCount) / Double(totalCount)
+    }
+
     private func persistItems() {
         guard let url = Self.storageURL else { return }
         let directory = url.deletingLastPathComponent()
@@ -230,45 +276,13 @@ final class TodoListViewModel: ObservableObject {
             .appendingPathComponent(storageFilename)
     }
 
-    private func requestNotificationAuthorization() {
-        notificationCenter.requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
+    private func normalizedDate(for item: TodoItem) -> Date {
+        item.dueDate ?? item.createdAt
     }
 
-    private func scheduleNotification(for item: TodoItem) {
-        guard let dueDate = item.dueDate, !item.isCompleted, dueDate > Date() else { return }
-
-        let content = UNMutableNotificationContent()
-        content.title = item.title
-        content.body = String(localized: "notification.body")
-        content.sound = .default
-
-        let calendar = Calendar.current
-        let components = calendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: dueDate)
-        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
-        let request = UNNotificationRequest(
-            identifier: notificationIdentifier(for: item),
-            content: content,
-            trigger: trigger
-        )
-        notificationCenter.add(request)
-    }
-
-    private func cancelNotification(for item: TodoItem) {
-        notificationCenter.removePendingNotificationRequests(withIdentifiers: [notificationIdentifier(for: item)])
-    }
-
-    private func updateNotification(for item: TodoItem) {
-        cancelNotification(for: item)
-        scheduleNotification(for: item)
-    }
-
-    private func rescheduleNotifications(for items: [TodoItem]) {
-        let identifiers = items.map(notificationIdentifier)
-        notificationCenter.removePendingNotificationRequests(withIdentifiers: identifiers)
-        items.forEach(scheduleNotification)
-    }
-
-    private func notificationIdentifier(for item: TodoItem) -> String {
-        "todo-reminder-\(item.id.uuidString)"
+    private func dayRange(for date: Date, calendar: Calendar) -> Range<Date> {
+        let startOfDay = calendar.startOfDay(for: date)
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? startOfDay
+        return startOfDay..<endOfDay
     }
 }
