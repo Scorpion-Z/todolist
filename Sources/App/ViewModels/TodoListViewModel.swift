@@ -21,6 +21,13 @@ final class TodoListViewModel: ObservableObject {
         }
     }
 
+    struct DailyCompletionStat: Identifiable {
+        let date: Date
+        let completedCount: Int
+
+        var id: Date { date }
+    }
+
     func addItem(title: String, priority: TodoItem.Priority, dueDate: Date?) {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
@@ -68,6 +75,45 @@ final class TodoListViewModel: ObservableObject {
         persistItems()
     }
 
+    func todayCompletedCount(referenceDate: Date = Date(), calendar: Calendar = .current) -> Int {
+        let dayRange = dayRange(for: referenceDate, calendar: calendar)
+        return items.filter { item in
+            item.isCompleted && dayRange.contains(normalizedDate(for: item))
+        }.count
+    }
+
+    func overdueCount(referenceDate: Date = Date(), calendar: Calendar = .current) -> Int {
+        let startOfToday = calendar.startOfDay(for: referenceDate)
+        return items.filter { item in
+            guard let dueDate = item.dueDate else { return false }
+            return !item.isCompleted && dueDate < startOfToday
+        }.count
+    }
+
+    func sevenDayCompletionTrend(referenceDate: Date = Date(), calendar: Calendar = .current) -> [DailyCompletionStat] {
+        let startOfToday = calendar.startOfDay(for: referenceDate)
+        return (0..<7).compactMap { offset in
+            guard let day = calendar.date(byAdding: .day, value: offset - 6, to: startOfToday) else { return nil }
+            let dayRange = dayRange(for: day, calendar: calendar)
+            let completedCount = items.filter { item in
+                item.isCompleted && dayRange.contains(normalizedDate(for: item))
+            }.count
+            return DailyCompletionStat(date: day, completedCount: completedCount)
+        }
+    }
+
+    func todayCompletionRate(referenceDate: Date = Date(), calendar: Calendar = .current) -> Double {
+        let dayRange = dayRange(for: referenceDate, calendar: calendar)
+        let totalCount = items.filter { item in
+            dayRange.contains(normalizedDate(for: item))
+        }.count
+        guard totalCount > 0 else { return 0 }
+        let completedCount = items.filter { item in
+            item.isCompleted && dayRange.contains(normalizedDate(for: item))
+        }.count
+        return Double(completedCount) / Double(totalCount)
+    }
+
     private func persistItems() {
         guard let url = Self.storageURL else { return }
         let directory = url.deletingLastPathComponent()
@@ -102,5 +148,15 @@ final class TodoListViewModel: ObservableObject {
         return baseURL
             .appendingPathComponent("Todolist", isDirectory: true)
             .appendingPathComponent(storageFilename)
+    }
+
+    private func normalizedDate(for item: TodoItem) -> Date {
+        item.dueDate ?? item.createdAt
+    }
+
+    private func dayRange(for date: Date, calendar: Calendar) -> Range<Date> {
+        let startOfDay = calendar.startOfDay(for: date)
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? startOfDay
+        return startOfDay..<endOfDay
     }
 }
