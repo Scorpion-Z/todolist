@@ -339,6 +339,10 @@ struct ContentView: View {
         editingItem = item
     }
 
+    private func beginEditing(_ item: TodoItem) {
+        beginEditingSheet(item)
+    }
+
     @ViewBuilder
     private func editSheet(for item: TodoItem) -> some View {
         VStack(alignment: .leading, spacing: 16) {
