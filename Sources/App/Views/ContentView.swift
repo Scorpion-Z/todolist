@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ContentView: View {
     private enum Filter: String, CaseIterable, Identifiable {
@@ -76,6 +77,7 @@ struct ContentView: View {
     }
 
     @FocusState private var quickInputFocused: Bool
+    @FocusState private var searchFieldFocused: Bool
     @AppStorage("appLanguage") private var appLanguage = Locale.current.language.languageCode?.identifier == "zh" ? "zh-Hans" : "en"
     @StateObject private var viewModel = TodoListViewModel()
     @State private var quickInputText = ""
@@ -102,6 +104,9 @@ struct ContentView: View {
     @State private var newTagName = ""
     @State private var itemPendingDelete: TodoItem?
     @State private var showingDeleteConfirmation = false
+    @State private var selectedItemID: TodoItem.ID?
+    @State private var draggingItemID: TodoItem.ID?
+    @State private var dropTargetItemID: TodoItem.ID?
 
     private var filteredItems: [TodoItem] {
         let calendar = Calendar.current
@@ -258,7 +263,7 @@ struct ContentView: View {
                     newPriority = .medium
                     newDueDateEnabled = false
                 }
-                .keyboardShortcut(.defaultAction)
+                .keyboardShortcut(.return, modifiers: [.command])
             }
 
             HStack {
@@ -275,6 +280,14 @@ struct ContentView: View {
                     }
                 }
                 .pickerStyle(.menu)
+
+                Picker("view.title", selection: $viewStyle) {
+                    ForEach(ViewStyle.allCases) { option in
+                        Text(option.titleKey).tag(option)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 200)
 
                 Spacer()
 
@@ -379,6 +392,7 @@ struct ContentView: View {
         .padding(24)
         .frame(minWidth: 520, minHeight: 420)
         .searchable(text: $searchText)
+        .searchFocused($searchFieldFocused)
         .sheet(item: $editingItem) { item in
             editSheet(for: item)
         }
@@ -420,6 +434,19 @@ struct ContentView: View {
                     quickInputFocused = true
                 }
                 .keyboardShortcut("n", modifiers: .command)
+
+                Button("search.focus") {
+                    searchFieldFocused = true
+                }
+                .keyboardShortcut("f", modifiers: .command)
+
+                Button("edit.button") {
+                    if let item = selectedItem {
+                        beginEditing(item)
+                    }
+                }
+                .keyboardShortcut("e", modifiers: .command)
+                .disabled(selectedItem == nil)
 
                 Button("quickadd.clear") {
                     clearQuickInput()
@@ -609,6 +636,96 @@ struct ContentView: View {
         case .low:
             return .gray
         }
+    }
+
+    private var selectedItem: TodoItem? {
+        guard let selectedItemID else { return nil }
+        return filteredItems.first { $0.id == selectedItemID }
+    }
+
+    private func listRow(for item: TodoItem) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Button {
+                viewModel.toggleCompletion(for: item)
+            } label: {
+                Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
+            }
+            .buttonStyle(.plain)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(item.title)
+                    .strikethrough(item.isCompleted, color: .secondary)
+                    .foregroundStyle(item.isCompleted ? .secondary : .primary)
+
+                HStack(spacing: 6) {
+                    tagLabel(
+                        item.priority.displayNameKey,
+                        foreground: priorityColor(item.priority)
+                    )
+                    if let dueDate = item.dueDate {
+                        tagLabel(dueDate, style: .date)
+                    }
+                }
+            }
+            Spacer()
+            Button("edit.button") {
+                beginEditing(item)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+        }
+        .padding(.vertical, 8)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            selectedItemID = item.id
+        }
+        .onDrag {
+            draggingItemID = item.id
+            return NSItemProvider(object: item.id.uuidString as NSString)
+        }
+        .onDrop(
+            of: [.text],
+            isTargeted: Binding(
+                get: { dropTargetItemID == item.id },
+                set: { isTargeted in
+                    dropTargetItemID = isTargeted ? item.id : (dropTargetItemID == item.id ? nil : dropTargetItemID)
+                }
+            ),
+            perform: { _ in
+                dropTargetItemID = nil
+                draggingItemID = nil
+                return false
+            }
+        )
+        .contextMenu {
+            let markKey: LocalizedStringKey = item.isCompleted ? "mark.open" : "mark.done"
+            Button("edit.button") {
+                beginEditing(item)
+            }
+            Button(markKey) {
+                viewModel.toggleCompletion(for: item)
+            }
+        }
+    }
+
+    private func rowBackground(for item: TodoItem) -> some View {
+        let isSelected = selectedItemID == item.id
+        let isDragging = draggingItemID == item.id
+        let isDropTarget = dropTargetItemID == item.id
+
+        return RoundedRectangle(cornerRadius: 12)
+            .fill(isDragging ? Color.accentColor.opacity(0.15) : Color.clear)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(isDropTarget ? Color.accentColor.opacity(0.6) : Color.clear, lineWidth: 2)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(isSelected ? Color.accentColor.opacity(0.4) : Color.clear, lineWidth: 1)
+            )
+            .animation(.easeInOut(duration: 0.2), value: isDragging)
+            .animation(.easeInOut(duration: 0.2), value: isDropTarget)
+            .animation(.easeInOut(duration: 0.2), value: isSelected)
     }
 
     private var sectionTitleKey: LocalizedStringKey {
