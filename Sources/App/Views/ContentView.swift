@@ -309,14 +309,6 @@ struct ContentView: View {
                 }
                 .pickerStyle(.menu)
 
-                Picker("view.title", selection: $viewStyle) {
-                    ForEach(ViewStyle.allCases) { option in
-                        Text(option.titleKey).tag(option)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .frame(width: 200)
-
                 Spacer()
 
                 Picker("view.mode", selection: $viewMode) {
@@ -389,9 +381,6 @@ struct ContentView: View {
                                         if !item.subtasks.isEmpty {
                                             let completedCount = item.subtasks.filter(\.isCompleted).count
                                             tagLabel("\(completedCount)/\(item.subtasks.count)")
-                                        }
-                                        ForEach(item.tags, id: \.self) { tag in
-                                            tagLabel(tag)
                                         }
                                     }
                                     Spacer()
