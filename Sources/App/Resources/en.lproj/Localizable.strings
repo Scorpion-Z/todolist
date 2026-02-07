@@ -63,6 +63,13 @@
 "edit.cancel" = "Cancel";
 "edit.save" = "Save";
 
+"markdown.description" = "Description (Markdown)";
+"markdown.preview" = "Preview";
+"export.calendar" = "Export to Calendar";
+"export.reminder" = "Export to Reminders";
+"export.error.title" = "Export Failed";
+"export.error.dismiss" = "OK";
+
 "priority.low" = "Low";
 "priority.medium" = "Medium";
 "priority.high" = "High";
