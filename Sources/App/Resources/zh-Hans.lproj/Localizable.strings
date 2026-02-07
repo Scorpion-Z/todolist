@@ -31,6 +31,13 @@
 "filter.upcoming" = "将来";
 "filter.overdue" = "已逾期";
 "reorder.notice" = "仅在“手动”排序下可拖动排序。";
+"view.mode" = "视图";
+"view.today" = "今日";
+"view.week" = "本周";
+"view.calendar" = "日历";
+"view.section.today" = "今日";
+"view.section.week" = "本周";
+"calendar.section.noduedate" = "无截止日期";
 
 "empty.search" = "没有匹配的待办";
 "empty.none" = "暂无待办";
@@ -54,3 +61,5 @@
 "priority.low" = "低";
 "priority.medium" = "中";
 "priority.high" = "高";
+
+"notification.body" = "待办提醒";

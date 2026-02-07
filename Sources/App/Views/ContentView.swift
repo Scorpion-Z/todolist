@@ -51,6 +51,25 @@ struct ContentView: View {
         }
     }
 
+    private enum ViewMode: String, CaseIterable, Identifiable {
+        case today
+        case week
+        case calendar
+
+        var id: String { rawValue }
+
+        var titleKey: LocalizedStringKey {
+            switch self {
+            case .today:
+                return "view.today"
+            case .week:
+                return "view.week"
+            case .calendar:
+                return "view.calendar"
+            }
+        }
+    }
+
     private struct LanguageOption: Identifiable {
         let id: String
         let nameKey: LocalizedStringKey
@@ -68,6 +87,7 @@ struct ContentView: View {
     @State private var searchText = ""
     @State private var filter: Filter = .all
     @State private var sortOption: SortOption = .manual
+    @State private var viewMode: ViewMode = .today
     @State private var editingItem: TodoItem?
     @State private var inlineEditingItemID: TodoItem.ID?
     @State private var editTitle = ""
@@ -153,6 +173,30 @@ struct ContentView: View {
         }
     }
 
+    private var viewModeItems: [TodoItem] {
+        let calendar = Calendar.current
+        let startOfToday = calendar.startOfDay(for: Date())
+        let startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday) ?? startOfToday
+
+        switch viewMode {
+        case .today:
+            return filteredItems.filter { item in
+                guard let dueDate = item.dueDate else { return false }
+                return dueDate >= startOfToday && dueDate < startOfTomorrow
+            }
+        case .week:
+            guard let weekInterval = calendar.dateInterval(of: .weekOfYear, for: Date()) else {
+                return filteredItems
+            }
+            return filteredItems.filter { item in
+                guard let dueDate = item.dueDate else { return false }
+                return weekInterval.contains(dueDate)
+            }
+        case .calendar:
+            return filteredItems
+        }
+    }
+
     private let languageOptions: [LanguageOption] = [
         LanguageOption(id: "zh-Hans", nameKey: "language.chinese"),
         LanguageOption(id: "en", nameKey: "language.english"),
@@ -226,15 +270,23 @@ struct ContentView: View {
                 .pickerStyle(.menu)
 
                 Spacer()
+
+                Picker("view.mode", selection: $viewMode) {
+                    ForEach(ViewMode.allCases) { option in
+                        Text(option.titleKey).tag(option)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 240)
             }
 
-            if sortOption != .manual {
+            if sortOption != .manual && viewMode != .calendar {
                 Text("reorder.notice")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
-            if filteredItems.isEmpty {
+            if viewModeItems.isEmpty {
                 if #available(macOS 14.0, *) {
                     ContentUnavailableView(emptyStateText.titleKey, systemImage: emptyStateText.systemImage)
                 } else {
@@ -248,55 +300,64 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             } else {
-                List {
-                    Section(sectionTitleKey) {
-                        ForEach(filteredItems) { item in
-                            HStack(alignment: .top, spacing: 12) {
-                                Button {
-                                    viewModel.toggleCompletion(for: item)
-                                } label: {
-                                    Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
-                                }
-                                .buttonStyle(.plain)
+                if viewMode == .calendar {
+                    CalendarView(
+                        items: viewModeItems,
+                        onDelete: viewModel.deleteItems(withIDs:),
+                        onToggleCompletion: viewModel.toggleCompletion(for:),
+                        onEdit: beginEditing(_:)
+                    )
+                } else {
+                    List {
+                        Section(sectionTitleKey) {
+                            ForEach(viewModeItems) { item in
+                                HStack(alignment: .top, spacing: 12) {
+                                    Button {
+                                        viewModel.toggleCompletion(for: item)
+                                    } label: {
+                                        Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
+                                    }
+                                    .buttonStyle(.plain)
 
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text(item.title)
-                                        .strikethrough(item.isCompleted, color: .secondary)
-                                        .foregroundStyle(item.isCompleted ? .secondary : .primary)
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Text(item.title)
+                                            .strikethrough(item.isCompleted, color: .secondary)
+                                            .foregroundStyle(item.isCompleted ? .secondary : .primary)
 
-                                    HStack(spacing: 6) {
-                                        tagLabel(
-                                            item.priority.displayNameKey,
-                                            foreground: priorityColor(item.priority)
-                                        )
-                                        if let dueDate = item.dueDate {
-                                            tagLabel(dueDate, style: .date)
+                                        HStack(spacing: 6) {
+                                            tagLabel(
+                                                item.priority.displayNameKey,
+                                                foreground: priorityColor(item.priority)
+                                            )
+                                            if let dueDate = item.dueDate {
+                                                tagLabel(dueDate, style: .date)
+                                            }
                                         }
                                     }
+                                    Spacer()
+                                    Button("edit.button") {
+                                        beginEditing(item)
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .controlSize(.small)
                                 }
-                                Spacer()
-                                Button("edit.button") {
-                                    beginEditing(item)
+                                .padding(.vertical, 8)
+                                .contextMenu {
+                                    let markKey: LocalizedStringKey = item.isCompleted ? "mark.open" : "mark.done"
+                                    Button("edit.button") {
+                                        beginEditing(item)
+                                    }
+                                    Button(markKey) {
+                                        viewModel.toggleCompletion(for: item)
+                                    }
                                 }
-                                .buttonStyle(.bordered)
-                                .controlSize(.small)
                             }
-                            .padding(.vertical, 8)
-                            .contextMenu {
-                                let markKey: LocalizedStringKey = item.isCompleted ? "mark.open" : "mark.done"
-                                Button("edit.button") {
-                                    beginEditing(item)
-                                }
-                                Button(markKey) {
-                                    viewModel.toggleCompletion(for: item)
-                                }
-                            }
+                            .onDelete(perform: viewModel.deleteItems)
+                            .onMove(perform: viewModel.moveItems)
                         }
-                        .onDelete(perform: viewModel.deleteItems)
-                        .onMove(perform: viewModel.moveItems)
                     }
+                    .listStyle(.inset)
                 }
-                .listStyle(.inset)
             }
         }
         .padding(24)
@@ -477,6 +538,15 @@ struct ContentView: View {
     }
 
     private var sectionTitleKey: LocalizedStringKey {
+        switch viewMode {
+        case .today:
+            return "view.section.today"
+        case .week:
+            return "view.section.week"
+        case .calendar:
+            break
+        }
+
         switch filter {
         case .all:
             return "section.allTodos"
