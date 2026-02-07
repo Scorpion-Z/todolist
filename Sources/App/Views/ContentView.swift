@@ -33,6 +33,7 @@ struct ContentView: View {
     @State private var filter: Filter = .all
     @State private var sortOption: SortOption = .manual
     @State private var editingItem: TodoItem?
+    @State private var inlineEditingItemID: TodoItem.ID?
     @State private var editTitle = ""
     @State private var editPriority: TodoItem.Priority = .medium
     @State private var editDueDateEnabled = false
@@ -201,41 +202,91 @@ struct ContentView: View {
             } else {
                 List {
                     ForEach(filteredItems) { item in
-                        HStack(alignment: .top, spacing: 12) {
-                            Button {
-                                viewModel.toggleCompletion(for: item)
-                            } label: {
-                                Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
-                            }
-                            .buttonStyle(.plain)
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(alignment: .top, spacing: 12) {
+                                Button {
+                                    viewModel.toggleCompletion(for: item)
+                                } label: {
+                                    Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
+                                }
+                                .buttonStyle(.plain)
 
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(item.title)
-                                    .strikethrough(item.isCompleted, color: .secondary)
-                                    .foregroundStyle(item.isCompleted ? .secondary : .primary)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(item.title)
+                                        .strikethrough(item.isCompleted, color: .secondary)
+                                        .foregroundStyle(item.isCompleted ? .secondary : .primary)
 
-                                HStack(spacing: 8) {
-                                    Text(item.priority.displayName)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                    if let dueDate = item.dueDate {
-                                        Text(dueDate, style: .date)
+                                    HStack(spacing: 8) {
+                                        Text(item.priority.displayName)
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
+                                        if let dueDate = item.dueDate {
+                                            Text(dueDate, style: .date)
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                        }
                                     }
                                 }
+                                Spacer()
                             }
-                            Spacer()
-                            Button("Edit") {
-                                beginEditing(item)
+
+                            DisclosureGroup(
+                                "展开编辑",
+                                isExpanded: Binding(
+                                    get: { inlineEditingItemID == item.id },
+                                    set: { isExpanded in
+                                        if isExpanded {
+                                            prepareEditing(item)
+                                            inlineEditingItemID = item.id
+                                        } else if inlineEditingItemID == item.id {
+                                            inlineEditingItemID = nil
+                                        }
+                                    }
+                                )
+                            ) {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    TextField("Title", text: $editTitle)
+                                        .textFieldStyle(.roundedBorder)
+                                    Picker("Priority", selection: $editPriority) {
+                                        ForEach(TodoItem.Priority.allCases) { priority in
+                                            Text(priority.displayName).tag(priority)
+                                        }
+                                    }
+                                    Toggle("Due date", isOn: $editDueDateEnabled)
+                                    if editDueDateEnabled {
+                                        DatePicker("", selection: $editDueDate, displayedComponents: .date)
+                                            .labelsHidden()
+                                    }
+                                    HStack {
+                                        Button("Save") {
+                                            viewModel.updateItem(
+                                                item,
+                                                title: editTitle,
+                                                priority: editPriority,
+                                                dueDate: editDueDateEnabled ? editDueDate : nil
+                                            )
+                                            inlineEditingItemID = nil
+                                        }
+                                        .buttonStyle(.borderedProminent)
+
+                                        Button("更多…") {
+                                            beginEditingSheet(item)
+                                        }
+                                        .buttonStyle(.bordered)
+                                    }
+                                }
+                                .padding(.top, 4)
                             }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
+                            .font(.caption)
                         }
                         .padding(.vertical, 6)
                         .contextMenu {
-                            Button("Edit") {
-                                beginEditing(item)
+                            Button("行内编辑") {
+                                prepareEditing(item)
+                                inlineEditingItemID = item.id
+                            }
+                            Button("Edit in Sheet") {
+                                beginEditingSheet(item)
                             }
                             Button(item.isCompleted ? "Mark Open" : "Mark Done") {
                                 viewModel.toggleCompletion(for: item)
@@ -317,8 +368,7 @@ struct ContentView: View {
         quickInputHint = "示例：明天 17:00 提交周报 p1"
     }
 
-    private func beginEditing(_ item: TodoItem) {
-        editingItem = item
+    private func prepareEditing(_ item: TodoItem) {
         editTitle = item.title
         editPriority = item.priority
         if let dueDate = item.dueDate {
@@ -328,6 +378,11 @@ struct ContentView: View {
             editDueDateEnabled = false
             editDueDate = Date()
         }
+    }
+
+    private func beginEditingSheet(_ item: TodoItem) {
+        prepareEditing(item)
+        editingItem = item
     }
 
     @ViewBuilder
