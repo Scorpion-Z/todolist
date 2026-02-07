@@ -392,6 +392,39 @@ final class TodoListViewModel: ObservableObject {
         notificationCenter.removePendingNotificationRequests(withIdentifiers: [id.uuidString])
     }
 
+    func requestNotificationAuthorization() {
+        notificationCenter.requestAuthorization(options: [.alert, .sound]) { _, _ in }
+    }
+
+    private func scheduleNotificationIfNeeded(for item: TodoItem) {
+        guard let dueDate = item.dueDate, !item.isCompleted else { return }
+        if dueDate <= Date() {
+            removeNotification(for: item.id)
+            return
+        }
+
+        let content = UNMutableNotificationContent()
+        content.title = NSLocalizedString("notification.title", comment: "Todo notification title")
+        content.body = item.title
+        content.sound = .default
+
+        let components = Calendar.current.dateComponents(
+            [.year, .month, .day, .hour, .minute],
+            from: dueDate
+        )
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+        let request = UNNotificationRequest(
+            identifier: item.id.uuidString,
+            content: content,
+            trigger: trigger
+        )
+        notificationCenter.add(request)
+    }
+
+    private func removeNotification(for id: UUID) {
+        notificationCenter.removePendingNotificationRequests(withIdentifiers: [id.uuidString])
+    }
+
     private func persistItems() {
         let snapshot = items
         Task {
