@@ -33,10 +33,13 @@ struct ContentView: View {
     @State private var filter: Filter = .all
     @State private var sortOption: SortOption = .manual
     @State private var editingItem: TodoItem?
+    @State private var inlineEditingItemID: TodoItem.ID?
     @State private var editTitle = ""
     @State private var editPriority: TodoItem.Priority = .medium
     @State private var editDueDateEnabled = false
     @State private var editDueDate = Date()
+    @State private var itemPendingDelete: TodoItem?
+    @State private var showingDeleteConfirmation = false
 
     private var filteredItems: [TodoItem] {
         let calendar = Calendar.current
@@ -319,8 +322,7 @@ struct ContentView: View {
         quickInputHint = "示例：明天 17:00 提交周报 p1"
     }
 
-    private func beginEditing(_ item: TodoItem) {
-        editingItem = item
+    private func prepareEditing(_ item: TodoItem) {
         editTitle = item.title
         editPriority = item.priority
         if let dueDate = item.dueDate {
@@ -330,6 +332,11 @@ struct ContentView: View {
             editDueDateEnabled = false
             editDueDate = Date()
         }
+    }
+
+    private func beginEditingSheet(_ item: TodoItem) {
+        prepareEditing(item)
+        editingItem = item
     }
 
     @ViewBuilder
