@@ -250,7 +250,6 @@ struct ContentView: View {
                     }
                 }
                 .listStyle(.inset)
-                .listRowSpacing(12)
             }
         }
         .padding(24)
@@ -337,6 +336,10 @@ struct ContentView: View {
     private func beginEditingSheet(_ item: TodoItem) {
         prepareEditing(item)
         editingItem = item
+    }
+
+    private func beginEditing(_ item: TodoItem) {
+        beginEditingSheet(item)
     }
 
     @ViewBuilder
