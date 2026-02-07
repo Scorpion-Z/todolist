@@ -74,6 +74,12 @@ struct ContentView: View {
     @State private var editPriority: TodoItem.Priority = .medium
     @State private var editDueDateEnabled = false
     @State private var editDueDate = Date()
+    @State private var editRepeatRule: TodoItem.RepeatRule = .none
+    @State private var editSubtasks: [Subtask] = []
+    @State private var editTags: [Tag] = []
+    @State private var editAvailableTags: [Tag] = []
+    @State private var newSubtaskTitle = ""
+    @State private var newTagName = ""
     @State private var itemPendingDelete: TodoItem?
     @State private var showingDeleteConfirmation = false
 
@@ -272,6 +278,15 @@ struct ContentView: View {
                                         if let dueDate = item.dueDate {
                                             tagLabel(dueDate, style: .date)
                                         }
+                                        if !item.tags.isEmpty {
+                                            ForEach(item.tags) { tag in
+                                                tagLabel(tag.name)
+                                            }
+                                        }
+                                        if !item.subtasks.isEmpty {
+                                            let completedCount = item.subtasks.filter(\.isCompleted).count
+                                            tagLabel("\(completedCount)/\(item.subtasks.count)")
+                                        }
                                     }
                                 }
                                 Spacer()
@@ -405,6 +420,12 @@ struct ContentView: View {
             editDueDateEnabled = false
             editDueDate = Date()
         }
+        editRepeatRule = item.repeatRule
+        editSubtasks = item.subtasks
+        editTags = item.tags
+        editAvailableTags = mergeTags(viewModel.tags, item.tags)
+        newSubtaskTitle = ""
+        newTagName = ""
     }
 
     private func beginEditingSheet(_ item: TodoItem) {
@@ -433,6 +454,55 @@ struct ContentView: View {
                 DatePicker("", selection: $editDueDate, displayedComponents: .date)
                     .labelsHidden()
             }
+            Picker("repeat.label", selection: $editRepeatRule) {
+                ForEach(TodoItem.RepeatRule.allCases) { rule in
+                    Text(rule.displayNameKey).tag(rule)
+                }
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                Text("subtasks.title")
+                    .font(.headline)
+                ForEach($editSubtasks) { $subtask in
+                    HStack {
+                        Toggle(subtask.title, isOn: $subtask.isCompleted)
+                        Spacer()
+                        Button(role: .destructive) {
+                            removeSubtask(subtask)
+                        } label: {
+                            Image(systemName: "trash")
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                }
+                HStack {
+                    TextField("subtasks.add.placeholder", text: $newSubtaskTitle)
+                        .textFieldStyle(.roundedBorder)
+                    Button("subtasks.add.button") {
+                        addSubtask()
+                    }
+                    .disabled(newSubtaskTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                Text("tags.title")
+                    .font(.headline)
+                ForEach(editAvailableTags) { tag in
+                    Toggle(tag.name, isOn: Binding(
+                        get: { editTags.contains(where: { $0.id == tag.id }) },
+                        set: { isSelected in
+                            updateTagSelection(tag: tag, isSelected: isSelected)
+                        }
+                    ))
+                }
+                HStack {
+                    TextField("tags.add.placeholder", text: $newTagName)
+                        .textFieldStyle(.roundedBorder)
+                    Button("tags.add.button") {
+                        addTag()
+                    }
+                    .disabled(newTagName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
             HStack {
                 Button("edit.cancel") {
                     editingItem = nil
@@ -443,7 +513,10 @@ struct ContentView: View {
                         item,
                         title: editTitle,
                         priority: editPriority,
-                        dueDate: editDueDateEnabled ? editDueDate : nil
+                        dueDate: editDueDateEnabled ? editDueDate : nil,
+                        subtasks: editSubtasks,
+                        tags: editTags,
+                        repeatRule: editRepeatRule
                     )
                     editingItem = nil
                 }
@@ -507,6 +580,19 @@ struct ContentView: View {
     }
 
     private func tagLabel(
+        _ text: String,
+        foreground: Color = .secondary
+    ) -> some View {
+        Text(text)
+            .font(.caption)
+            .foregroundStyle(foreground)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 2)
+            .background(.thinMaterial)
+            .clipShape(Capsule())
+    }
+
+    private func tagLabel(
         _ date: Date,
         style: Text.DateStyle,
         foreground: Color = .secondary
@@ -518,6 +604,55 @@ struct ContentView: View {
             .padding(.vertical, 2)
             .background(.thinMaterial)
             .clipShape(Capsule())
+    }
+
+    private func addSubtask() {
+        let trimmed = newSubtaskTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        editSubtasks.append(Subtask(title: trimmed))
+        newSubtaskTitle = ""
+    }
+
+    private func removeSubtask(_ subtask: Subtask) {
+        editSubtasks.removeAll { $0.id == subtask.id }
+    }
+
+    private func addTag() {
+        let trimmed = newTagName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        if let existingIndex = editAvailableTags.firstIndex(where: { $0.name.caseInsensitiveCompare(trimmed) == .orderedSame }) {
+            let existing = editAvailableTags[existingIndex]
+            if !editTags.contains(where: { $0.id == existing.id }) {
+                editTags.append(existing)
+            }
+        } else {
+            let newTag = Tag(name: trimmed)
+            editAvailableTags.append(newTag)
+            editTags.append(newTag)
+        }
+        newTagName = ""
+    }
+
+    private func updateTagSelection(tag: Tag, isSelected: Bool) {
+        if isSelected {
+            if !editTags.contains(where: { $0.id == tag.id }) {
+                editTags.append(tag)
+            }
+        } else {
+            editTags.removeAll { $0.id == tag.id }
+        }
+    }
+
+    private func mergeTags(_ first: [Tag], _ second: [Tag]) -> [Tag] {
+        var seen = Set<String>()
+        var merged: [Tag] = []
+        for tag in first + second {
+            let normalized = tag.name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            guard !normalized.isEmpty, !seen.contains(normalized) else { continue }
+            seen.insert(normalized)
+            merged.append(tag)
+        }
+        return merged.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 }
 
