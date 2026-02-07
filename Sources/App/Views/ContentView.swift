@@ -250,7 +250,6 @@ struct ContentView: View {
                     }
                 }
                 .listStyle(.inset)
-                .listRowSpacing(12)
             }
         }
         .padding(24)
