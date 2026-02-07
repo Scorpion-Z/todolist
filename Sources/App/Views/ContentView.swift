@@ -200,52 +200,54 @@ struct ContentView: View {
                 }
             } else {
                 List {
-                    ForEach(filteredItems) { item in
-                        HStack(alignment: .top, spacing: 12) {
-                            Button {
-                                viewModel.toggleCompletion(for: item)
-                            } label: {
-                                Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
-                            }
-                            .buttonStyle(.plain)
+                    Section(sectionTitle) {
+                        ForEach(filteredItems) { item in
+                            HStack(alignment: .top, spacing: 12) {
+                                Button {
+                                    viewModel.toggleCompletion(for: item)
+                                } label: {
+                                    Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
+                                }
+                                .buttonStyle(.plain)
 
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(item.title)
-                                    .strikethrough(item.isCompleted, color: .secondary)
-                                    .foregroundStyle(item.isCompleted ? .secondary : .primary)
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text(item.title)
+                                        .strikethrough(item.isCompleted, color: .secondary)
+                                        .foregroundStyle(item.isCompleted ? .secondary : .primary)
 
-                                HStack(spacing: 8) {
-                                    Text(item.priority.displayName)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                    if let dueDate = item.dueDate {
-                                        Text(dueDate, style: .date)
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
+                                    HStack(spacing: 6) {
+                                        tagLabel(
+                                            item.priority.displayName,
+                                            foreground: priorityColor(item.priority)
+                                        )
+                                        if let dueDate = item.dueDate {
+                                            tagLabel(dueDate, style: .date)
+                                        }
                                     }
                                 }
+                                Spacer()
+                                Button("Edit") {
+                                    beginEditing(item)
+                                }
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
                             }
-                            Spacer()
-                            Button("Edit") {
-                                beginEditing(item)
+                            .padding(.vertical, 8)
+                            .contextMenu {
+                                Button("Edit") {
+                                    beginEditing(item)
+                                }
+                                Button(item.isCompleted ? "Mark Open" : "Mark Done") {
+                                    viewModel.toggleCompletion(for: item)
+                                }
                             }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
                         }
-                        .padding(.vertical, 6)
-                        .contextMenu {
-                            Button("Edit") {
-                                beginEditing(item)
-                            }
-                            Button(item.isCompleted ? "Mark Open" : "Mark Done") {
-                                viewModel.toggleCompletion(for: item)
-                            }
-                        }
+                        .onDelete(perform: viewModel.deleteItems)
+                        .onMove(perform: viewModel.moveItems)
                     }
-                    .onDelete(perform: viewModel.deleteItems)
-                    .onMove(perform: viewModel.moveItems)
                 }
                 .listStyle(.inset)
+                .listRowSpacing(12)
             }
         }
         .padding(24)
@@ -377,6 +379,61 @@ struct ContentView: View {
         case .low:
             return 1
         }
+    }
+
+    private func priorityColor(_ priority: TodoItem.Priority) -> Color {
+        switch priority {
+        case .high:
+            return .red
+        case .medium:
+            return .orange
+        case .low:
+            return .gray
+        }
+    }
+
+    private var sectionTitle: String {
+        switch filter {
+        case .all:
+            return "All Todos"
+        case .open:
+            return "Open"
+        case .completed:
+            return "Completed"
+        case .today:
+            return "Due Today"
+        case .upcoming:
+            return "Upcoming"
+        case .overdue:
+            return "Overdue"
+        }
+    }
+
+    private func tagLabel(
+        _ text: String,
+        foreground: Color = .secondary
+    ) -> some View {
+        Text(text)
+            .font(.caption)
+            .foregroundStyle(foreground)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 2)
+            .background(.thinMaterial)
+            .clipShape(Capsule())
+    }
+
+    private func tagLabel(
+        _ date: Date,
+        style: Text.DateStyle,
+        foreground: Color = .secondary
+    ) -> some View {
+        Text(date, style: style)
+            .font(.caption)
+            .foregroundStyle(foreground)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 2)
+            .background(.thinMaterial)
+            .clipShape(Capsule())
     }
 }
 
