@@ -143,6 +143,7 @@ struct ContentView: View {
                     }
                     .onDelete(perform: viewModel.deleteItems)
                     .onMove(perform: viewModel.moveItems)
+                    .moveDisabled(false)
                 }
                 .listStyle(.inset)
             }
