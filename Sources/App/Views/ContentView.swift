@@ -243,11 +243,7 @@ struct ContentView: View {
                         }
                     }
                     .onDelete(perform: viewModel.deleteItems)
-                    .moveDisabled(sortOption != .manual)
-                    .onMove { source, destination in
-                        guard sortOption == .manual else { return }
-                        viewModel.moveItems(from: source, to: destination)
-                    }
+                    .onMove(perform: viewModel.moveItems)
                 }
                 .listStyle(.inset)
             }
