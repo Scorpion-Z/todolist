@@ -49,13 +49,10 @@ struct TodoItem: Identifiable, Codable, Equatable {
     var isCompleted: Bool
     var priority: Priority
     var dueDate: Date?
-    var tags: [String]
+    var tags: [Tag]
     var subtasks: [Subtask]
     var repeatRule: RepeatRule
     var createdAt: Date
-    var subtasks: [Subtask]
-    var tags: [Tag]
-    var repeatRule: RepeatRule
 
     init(
         id: UUID = UUID(),
@@ -79,14 +76,12 @@ struct TodoItem: Identifiable, Codable, Equatable {
         self.subtasks = subtasks
         self.repeatRule = repeatRule
         self.createdAt = createdAt
-        self.subtasks = subtasks
-        self.tags = tags
-        self.repeatRule = repeatRule
     }
 
     enum CodingKeys: String, CodingKey {
         case id
         case title
+        case descriptionMarkdown
         case isCompleted
         case priority
         case dueDate
@@ -100,6 +95,7 @@ struct TodoItem: Identifiable, Codable, Equatable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
         title = try container.decode(String.self, forKey: .title)
+        descriptionMarkdown = try container.decodeIfPresent(String.self, forKey: .descriptionMarkdown) ?? ""
         isCompleted = try container.decode(Bool.self, forKey: .isCompleted)
         priority = try container.decode(Priority.self, forKey: .priority)
         dueDate = try container.decodeIfPresent(Date.self, forKey: .dueDate)
@@ -107,27 +103,6 @@ struct TodoItem: Identifiable, Codable, Equatable {
         subtasks = try container.decodeIfPresent([Subtask].self, forKey: .subtasks) ?? []
         tags = try container.decodeIfPresent([Tag].self, forKey: .tags) ?? []
         repeatRule = try container.decodeIfPresent(RepeatRule.self, forKey: .repeatRule) ?? .none
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case title
-        case descriptionMarkdown
-        case isCompleted
-        case priority
-        case dueDate
-        case createdAt
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(UUID.self, forKey: .id)
-        title = try container.decode(String.self, forKey: .title)
-        descriptionMarkdown = try container.decodeIfPresent(String.self, forKey: .descriptionMarkdown) ?? ""
-        isCompleted = try container.decode(Bool.self, forKey: .isCompleted)
-        priority = try container.decode(Priority.self, forKey: .priority)
-        dueDate = try container.decodeIfPresent(Date.self, forKey: .dueDate)
-        createdAt = try container.decode(Date.self, forKey: .createdAt)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -139,83 +114,8 @@ struct TodoItem: Identifiable, Codable, Equatable {
         try container.encode(priority, forKey: .priority)
         try container.encodeIfPresent(dueDate, forKey: .dueDate)
         try container.encode(createdAt, forKey: .createdAt)
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(UUID.self, forKey: .id)
-        title = try container.decode(String.self, forKey: .title)
-        isCompleted = try container.decode(Bool.self, forKey: .isCompleted)
-        priority = try container.decode(Priority.self, forKey: .priority)
-        dueDate = try container.decodeIfPresent(Date.self, forKey: .dueDate)
-        tags = try container.decodeIfPresent([String].self, forKey: .tags) ?? []
-        subtasks = try container.decodeIfPresent([Subtask].self, forKey: .subtasks) ?? []
-        repeatRule = try container.decodeIfPresent(RepeatRule.self, forKey: .repeatRule) ?? .none
-        createdAt = try container.decode(Date.self, forKey: .createdAt)
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(id, forKey: .id)
-        try container.encode(title, forKey: .title)
-        try container.encode(isCompleted, forKey: .isCompleted)
-        try container.encode(priority, forKey: .priority)
-        try container.encodeIfPresent(dueDate, forKey: .dueDate)
-        try container.encode(tags, forKey: .tags)
         try container.encode(subtasks, forKey: .subtasks)
-        try container.encode(repeatRule, forKey: .repeatRule)
-        try container.encode(createdAt, forKey: .createdAt)
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(UUID.self, forKey: .id)
-        title = try container.decode(String.self, forKey: .title)
-        isCompleted = try container.decode(Bool.self, forKey: .isCompleted)
-        priority = try container.decode(Priority.self, forKey: .priority)
-        dueDate = try container.decodeIfPresent(Date.self, forKey: .dueDate)
-        tags = try container.decodeIfPresent([String].self, forKey: .tags) ?? []
-        subtasks = try container.decodeIfPresent([Subtask].self, forKey: .subtasks) ?? []
-        repeatRule = try container.decodeIfPresent(RepeatRule.self, forKey: .repeatRule) ?? .none
-        createdAt = try container.decode(Date.self, forKey: .createdAt)
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(id, forKey: .id)
-        try container.encode(title, forKey: .title)
-        try container.encode(isCompleted, forKey: .isCompleted)
-        try container.encode(priority, forKey: .priority)
-        try container.encodeIfPresent(dueDate, forKey: .dueDate)
         try container.encode(tags, forKey: .tags)
-        try container.encode(subtasks, forKey: .subtasks)
         try container.encode(repeatRule, forKey: .repeatRule)
-        try container.encode(createdAt, forKey: .createdAt)
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(UUID.self, forKey: .id)
-        title = try container.decode(String.self, forKey: .title)
-        isCompleted = try container.decode(Bool.self, forKey: .isCompleted)
-        priority = try container.decode(Priority.self, forKey: .priority)
-        dueDate = try container.decodeIfPresent(Date.self, forKey: .dueDate)
-        tags = try container.decodeIfPresent([String].self, forKey: .tags) ?? []
-        subtasks = try container.decodeIfPresent([Subtask].self, forKey: .subtasks) ?? []
-        repeatRule = try container.decodeIfPresent(RepeatRule.self, forKey: .repeatRule) ?? .none
-        createdAt = try container.decode(Date.self, forKey: .createdAt)
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(id, forKey: .id)
-        try container.encode(title, forKey: .title)
-        try container.encode(isCompleted, forKey: .isCompleted)
-        try container.encode(priority, forKey: .priority)
-        try container.encodeIfPresent(dueDate, forKey: .dueDate)
-        try container.encode(tags, forKey: .tags)
-        try container.encode(subtasks, forKey: .subtasks)
-        try container.encode(repeatRule, forKey: .repeatRule)
-        try container.encode(createdAt, forKey: .createdAt)
     }
 }
