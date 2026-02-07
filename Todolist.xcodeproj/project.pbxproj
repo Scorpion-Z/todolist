@@ -13,10 +13,12 @@
 		C1C1C1C1C1C1C1C1C1C1C112 /* CardListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C1C1C1C1C1C1C1C1C1C102 /* CardListView.swift */; };
 		C1C1C1C1C1C1C1C1C1C1C113 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C1C1C1C1C1C1C1C1C1C103 /* StatsView.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1A5 /* TodoItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1A6 /* TodoItem.swift */; };
-		C1C1C1C1C1C1C1C1C1C1C114 /* Tag.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C1C1C1C1C1C1C1C1C1C104 /* Tag.swift */; };
-		C1C1C1C1C1C1C1C1C1C1C115 /* Subtask.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C1C1C1C1C1C1C1C1C1C105 /* Subtask.swift */; };
+		A1A1A1A1A1A1A1A1A1A1A1C5 /* Tag.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1C4 /* Tag.swift */; };
+		A1A1A1A1A1A1A1A1A1A1A1C7 /* Subtask.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1C6 /* Subtask.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1A7 /* TodoListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1A8 /* TodoListViewModel.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1C1 /* QuickAddParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1C2 /* QuickAddParser.swift */; };
+		A1A1A1A1A1A1A1A1A1A1A1D1 /* Tag.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1D3 /* Tag.swift */; };
+		A1A1A1A1A1A1A1A1A1A1A1D2 /* Subtask.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1D4 /* Subtask.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1A9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1AA /* Assets.xcassets */; };
 		B1B1B1B1B1B1B1B1B1B1B1B1 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = B1B1B1B1B1B1B1B1B1B1B1B2 /* Localizable.strings */; };
 /* End PBXBuildFile section */
@@ -29,10 +31,12 @@
 		C1C1C1C1C1C1C1C1C1C1C102 /* CardListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardListView.swift; sourceTree = "<group>"; };
 		C1C1C1C1C1C1C1C1C1C1C103 /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1A6 /* TodoItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoItem.swift; sourceTree = "<group>"; };
-		C1C1C1C1C1C1C1C1C1C1C104 /* Tag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tag.swift; sourceTree = "<group>"; };
-		C1C1C1C1C1C1C1C1C1C1C105 /* Subtask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Subtask.swift; sourceTree = "<group>"; };
+		A1A1A1A1A1A1A1A1A1A1A1C4 /* Tag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tag.swift; sourceTree = "<group>"; };
+		A1A1A1A1A1A1A1A1A1A1A1C6 /* Subtask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Subtask.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1A8 /* TodoListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoListViewModel.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1C2 /* QuickAddParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickAddParser.swift; sourceTree = "<group>"; };
+		A1A1A1A1A1A1A1A1A1A1A1D3 /* Tag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tag.swift; sourceTree = "<group>"; };
+		A1A1A1A1A1A1A1A1A1A1A1D4 /* Subtask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Subtask.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1AA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1AC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B1B1B1B1B1B1B1B1B1B1B1B3 /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = Localizable.strings; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -95,9 +99,11 @@
 		A1A1A1A1A1A1A1A1A1A1A1B3 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				A1A1A1A1A1A1A1A1A1A1A1D4 /* Subtask.swift */,
+				A1A1A1A1A1A1A1A1A1A1A1D3 /* Tag.swift */,
 				A1A1A1A1A1A1A1A1A1A1A1A6 /* TodoItem.swift */,
-				C1C1C1C1C1C1C1C1C1C1C104 /* Tag.swift */,
-				C1C1C1C1C1C1C1C1C1C1C105 /* Subtask.swift */,
+				A1A1A1A1A1A1A1A1A1A1A1C4 /* Tag.swift */,
+				A1A1A1A1A1A1A1A1A1A1A1C6 /* Subtask.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -206,12 +212,11 @@
 			files = (
 				A1A1A1A1A1A1A1A1A1A1A1A1 /* TodolistApp.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1A3 /* ContentView.swift in Sources */,
-				C1C1C1C1C1C1C1C1C1C1C111 /* CalendarView.swift in Sources */,
-				C1C1C1C1C1C1C1C1C1C1C112 /* CardListView.swift in Sources */,
-				C1C1C1C1C1C1C1C1C1C1C113 /* StatsView.swift in Sources */,
+				A1A1A1A1A1A1A1A1A1A1A1D2 /* Subtask.swift in Sources */,
+				A1A1A1A1A1A1A1A1A1A1A1D1 /* Tag.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1A5 /* TodoItem.swift in Sources */,
-				C1C1C1C1C1C1C1C1C1C1C114 /* Tag.swift in Sources */,
-				C1C1C1C1C1C1C1C1C1C1C115 /* Subtask.swift in Sources */,
+				A1A1A1A1A1A1A1A1A1A1A1C5 /* Tag.swift in Sources */,
+				A1A1A1A1A1A1A1A1A1A1A1C7 /* Subtask.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1A7 /* TodoListViewModel.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1C1 /* QuickAddParser.swift in Sources */,
 			);
@@ -250,7 +255,9 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.todolist;
 				PRODUCT_NAME = TodoList;
+				SEPARATE_HEADERMAPS = YES;
 				SWIFT_VERSION = 5.0;
+				USE_HEADERMAP = YES;
 			};
 			name = Debug;
 		};
@@ -272,7 +279,9 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.todolist;
 				PRODUCT_NAME = TodoList;
+				SEPARATE_HEADERMAPS = YES;
 				SWIFT_VERSION = 5.0;
+				USE_HEADERMAP = YES;
 			};
 			name = Release;
 		};
