@@ -98,6 +98,7 @@ struct ContentView: View {
     @State private var editDueDateEnabled = false
     @State private var editDueDate = Date()
     @State private var editRepeatRule: TodoItem.RepeatRule = .none
+    @State private var editDescription = ""
     @State private var editSubtasks: [Subtask] = []
     @State private var editTags: [Tag] = []
     @State private var editAvailableTags: [Tag] = []
@@ -108,6 +109,7 @@ struct ContentView: View {
     @State private var selectedItemID: TodoItem.ID?
     @State private var draggingItemID: TodoItem.ID?
     @State private var dropTargetItemID: TodoItem.ID?
+    @State private var exportErrorMessage: String?
 
     private var filteredItems: [TodoItem] {
         let calendar = Calendar.current
