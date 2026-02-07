@@ -51,6 +51,25 @@ struct ContentView: View {
         }
     }
 
+    private enum ViewMode: String, CaseIterable, Identifiable {
+        case today
+        case week
+        case calendar
+
+        var id: String { rawValue }
+
+        var titleKey: LocalizedStringKey {
+            switch self {
+            case .today:
+                return "view.today"
+            case .week:
+                return "view.week"
+            case .calendar:
+                return "view.calendar"
+            }
+        }
+    }
+
     private struct LanguageOption: Identifiable {
         let id: String
         let nameKey: LocalizedStringKey
@@ -68,12 +87,19 @@ struct ContentView: View {
     @State private var searchText = ""
     @State private var filter: Filter = .all
     @State private var sortOption: SortOption = .manual
+    @State private var viewMode: ViewMode = .today
     @State private var editingItem: TodoItem?
     @State private var inlineEditingItemID: TodoItem.ID?
     @State private var editTitle = ""
     @State private var editPriority: TodoItem.Priority = .medium
     @State private var editDueDateEnabled = false
     @State private var editDueDate = Date()
+    @State private var editRepeatRule: TodoItem.RepeatRule = .none
+    @State private var editSubtasks: [Subtask] = []
+    @State private var editTags: [Tag] = []
+    @State private var editAvailableTags: [Tag] = []
+    @State private var newSubtaskTitle = ""
+    @State private var newTagName = ""
     @State private var itemPendingDelete: TodoItem?
     @State private var showingDeleteConfirmation = false
 
@@ -153,6 +179,30 @@ struct ContentView: View {
         }
     }
 
+    private var viewModeItems: [TodoItem] {
+        let calendar = Calendar.current
+        let startOfToday = calendar.startOfDay(for: Date())
+        let startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday) ?? startOfToday
+
+        switch viewMode {
+        case .today:
+            return filteredItems.filter { item in
+                guard let dueDate = item.dueDate else { return false }
+                return dueDate >= startOfToday && dueDate < startOfTomorrow
+            }
+        case .week:
+            guard let weekInterval = calendar.dateInterval(of: .weekOfYear, for: Date()) else {
+                return filteredItems
+            }
+            return filteredItems.filter { item in
+                guard let dueDate = item.dueDate else { return false }
+                return weekInterval.contains(dueDate)
+            }
+        case .calendar:
+            return filteredItems
+        }
+    }
+
     private let languageOptions: [LanguageOption] = [
         LanguageOption(id: "zh-Hans", nameKey: "language.chinese"),
         LanguageOption(id: "en", nameKey: "language.english"),
@@ -227,15 +277,23 @@ struct ContentView: View {
                 .pickerStyle(.menu)
 
                 Spacer()
+
+                Picker("view.mode", selection: $viewMode) {
+                    ForEach(ViewMode.allCases) { option in
+                        Text(option.titleKey).tag(option)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 240)
             }
 
-            if sortOption != .manual {
+            if sortOption != .manual && viewMode != .calendar {
                 Text("reorder.notice")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
-            if filteredItems.isEmpty {
+            if viewModeItems.isEmpty {
                 if #available(macOS 14.0, *) {
                     ContentUnavailableView(emptyStateText.titleKey, systemImage: emptyStateText.systemImage)
                 } else {
@@ -249,55 +307,73 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             } else {
-                List {
-                    Section(sectionTitleKey) {
-                        ForEach(filteredItems) { item in
-                            HStack(alignment: .top, spacing: 12) {
-                                Button {
-                                    viewModel.toggleCompletion(for: item)
-                                } label: {
-                                    Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
-                                }
-                                .buttonStyle(.plain)
+                if viewMode == .calendar {
+                    CalendarView(
+                        items: viewModeItems,
+                        onDelete: viewModel.deleteItems(withIDs:),
+                        onToggleCompletion: viewModel.toggleCompletion(for:),
+                        onEdit: beginEditing(_:)
+                    )
+                } else {
+                    List {
+                        Section(sectionTitleKey) {
+                            ForEach(viewModeItems) { item in
+                                HStack(alignment: .top, spacing: 12) {
+                                    Button {
+                                        viewModel.toggleCompletion(for: item)
+                                    } label: {
+                                        Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
+                                    }
+                                    .buttonStyle(.plain)
 
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text(item.title)
-                                        .strikethrough(item.isCompleted, color: .secondary)
-                                        .foregroundStyle(item.isCompleted ? .secondary : .primary)
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Text(item.title)
+                                            .strikethrough(item.isCompleted, color: .secondary)
+                                            .foregroundStyle(item.isCompleted ? .secondary : .primary)
 
-                                    HStack(spacing: 6) {
-                                        tagLabel(
-                                            item.priority.displayNameKey,
-                                            foreground: priorityColor(item.priority)
-                                        )
-                                        if let dueDate = item.dueDate {
-                                            tagLabel(dueDate, style: .date)
+                                        HStack(spacing: 6) {
+                                            tagLabel(
+                                                item.priority.displayNameKey,
+                                                foreground: priorityColor(item.priority)
+                                            )
+                                            if let dueDate = item.dueDate {
+                                                tagLabel(dueDate, style: .date)
+                                            }
+                                        }
+                                        if !item.tags.isEmpty {
+                                            ForEach(item.tags) { tag in
+                                                tagLabel(tag.name)
+                                            }
+                                        }
+                                        if !item.subtasks.isEmpty {
+                                            let completedCount = item.subtasks.filter(\.isCompleted).count
+                                            tagLabel("\(completedCount)/\(item.subtasks.count)")
                                         }
                                     }
+                                    Spacer()
+                                    Button("edit.button") {
+                                        beginEditing(item)
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .controlSize(.small)
                                 }
-                                Spacer()
-                                Button("edit.button") {
-                                    beginEditing(item)
+                                .padding(.vertical, 8)
+                                .contextMenu {
+                                    let markKey: LocalizedStringKey = item.isCompleted ? "mark.open" : "mark.done"
+                                    Button("edit.button") {
+                                        beginEditing(item)
+                                    }
+                                    Button(markKey) {
+                                        viewModel.toggleCompletion(for: item)
+                                    }
                                 }
-                                .buttonStyle(.bordered)
-                                .controlSize(.small)
                             }
-                            .padding(.vertical, 8)
-                            .contextMenu {
-                                let markKey: LocalizedStringKey = item.isCompleted ? "mark.open" : "mark.done"
-                                Button("edit.button") {
-                                    beginEditing(item)
-                                }
-                                Button(markKey) {
-                                    viewModel.toggleCompletion(for: item)
-                                }
-                            }
+                            .onDelete(perform: viewModel.deleteItems)
+                            .onMove(perform: viewModel.moveItems)
                         }
-                        .onDelete(perform: viewModel.deleteItems)
-                        .onMove(perform: viewModel.moveItems)
                     }
+                    .listStyle(.inset)
                 }
-                .listStyle(.inset)
             }
         }
         .padding(24)
@@ -406,6 +482,12 @@ struct ContentView: View {
             editDueDateEnabled = false
             editDueDate = Date()
         }
+        editRepeatRule = item.repeatRule
+        editSubtasks = item.subtasks
+        editTags = item.tags
+        editAvailableTags = mergeTags(viewModel.tags, item.tags)
+        newSubtaskTitle = ""
+        newTagName = ""
     }
 
     private func beginEditingSheet(_ item: TodoItem) {
@@ -434,6 +516,55 @@ struct ContentView: View {
                 DatePicker("", selection: $editDueDate, displayedComponents: .date)
                     .labelsHidden()
             }
+            Picker("repeat.label", selection: $editRepeatRule) {
+                ForEach(TodoItem.RepeatRule.allCases) { rule in
+                    Text(rule.displayNameKey).tag(rule)
+                }
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                Text("subtasks.title")
+                    .font(.headline)
+                ForEach($editSubtasks) { $subtask in
+                    HStack {
+                        Toggle(subtask.title, isOn: $subtask.isCompleted)
+                        Spacer()
+                        Button(role: .destructive) {
+                            removeSubtask(subtask)
+                        } label: {
+                            Image(systemName: "trash")
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                }
+                HStack {
+                    TextField("subtasks.add.placeholder", text: $newSubtaskTitle)
+                        .textFieldStyle(.roundedBorder)
+                    Button("subtasks.add.button") {
+                        addSubtask()
+                    }
+                    .disabled(newSubtaskTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                Text("tags.title")
+                    .font(.headline)
+                ForEach(editAvailableTags) { tag in
+                    Toggle(tag.name, isOn: Binding(
+                        get: { editTags.contains(where: { $0.id == tag.id }) },
+                        set: { isSelected in
+                            updateTagSelection(tag: tag, isSelected: isSelected)
+                        }
+                    ))
+                }
+                HStack {
+                    TextField("tags.add.placeholder", text: $newTagName)
+                        .textFieldStyle(.roundedBorder)
+                    Button("tags.add.button") {
+                        addTag()
+                    }
+                    .disabled(newTagName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
             HStack {
                 Button("edit.cancel") {
                     editingItem = nil
@@ -444,7 +575,10 @@ struct ContentView: View {
                         item,
                         title: editTitle,
                         priority: editPriority,
-                        dueDate: editDueDateEnabled ? editDueDate : nil
+                        dueDate: editDueDateEnabled ? editDueDate : nil,
+                        subtasks: editSubtasks,
+                        tags: editTags,
+                        repeatRule: editRepeatRule
                     )
                     editingItem = nil
                 }
@@ -478,6 +612,15 @@ struct ContentView: View {
     }
 
     private var sectionTitleKey: LocalizedStringKey {
+        switch viewMode {
+        case .today:
+            return "view.section.today"
+        case .week:
+            return "view.section.week"
+        case .calendar:
+            break
+        }
+
         switch filter {
         case .all:
             return "section.allTodos"
@@ -508,6 +651,19 @@ struct ContentView: View {
     }
 
     private func tagLabel(
+        _ text: String,
+        foreground: Color = .secondary
+    ) -> some View {
+        Text(text)
+            .font(.caption)
+            .foregroundStyle(foreground)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 2)
+            .background(.thinMaterial)
+            .clipShape(Capsule())
+    }
+
+    private func tagLabel(
         _ date: Date,
         style: Text.DateStyle,
         foreground: Color = .secondary
@@ -519,6 +675,55 @@ struct ContentView: View {
             .padding(.vertical, 2)
             .background(.thinMaterial)
             .clipShape(Capsule())
+    }
+
+    private func addSubtask() {
+        let trimmed = newSubtaskTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        editSubtasks.append(Subtask(title: trimmed))
+        newSubtaskTitle = ""
+    }
+
+    private func removeSubtask(_ subtask: Subtask) {
+        editSubtasks.removeAll { $0.id == subtask.id }
+    }
+
+    private func addTag() {
+        let trimmed = newTagName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        if let existingIndex = editAvailableTags.firstIndex(where: { $0.name.caseInsensitiveCompare(trimmed) == .orderedSame }) {
+            let existing = editAvailableTags[existingIndex]
+            if !editTags.contains(where: { $0.id == existing.id }) {
+                editTags.append(existing)
+            }
+        } else {
+            let newTag = Tag(name: trimmed)
+            editAvailableTags.append(newTag)
+            editTags.append(newTag)
+        }
+        newTagName = ""
+    }
+
+    private func updateTagSelection(tag: Tag, isSelected: Bool) {
+        if isSelected {
+            if !editTags.contains(where: { $0.id == tag.id }) {
+                editTags.append(tag)
+            }
+        } else {
+            editTags.removeAll { $0.id == tag.id }
+        }
+    }
+
+    private func mergeTags(_ first: [Tag], _ second: [Tag]) -> [Tag] {
+        var seen = Set<String>()
+        var merged: [Tag] = []
+        for tag in first + second {
+            let normalized = tag.name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            guard !normalized.isEmpty, !seen.contains(normalized) else { continue }
+            seen.insert(normalized)
+            merged.append(tag)
+        }
+        return merged.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 }
 
