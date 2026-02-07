@@ -1,4 +1,5 @@
 import Foundation
+import UserNotifications
 
 struct QuickAddFeedback {
     let created: Bool
@@ -10,6 +11,7 @@ final class TodoListViewModel: ObservableObject {
 
     private let quickAddParser: QuickAddParser
     private static let storageFilename = "todos.json"
+    private let notificationCenter = UNUserNotificationCenter.current()
 
     init(items: [TodoItem] = [], quickAddParser: QuickAddParser = QuickAddParser()) {
         self.quickAddParser = quickAddParser
@@ -21,10 +23,26 @@ final class TodoListViewModel: ObservableObject {
         }
     }
 
-    func addItem(title: String, priority: TodoItem.Priority, dueDate: Date?) {
+    func addItem(
+        title: String,
+        priority: TodoItem.Priority,
+        dueDate: Date?,
+        tags: [String] = [],
+        subtasks: [TodoItem.Subtask] = [],
+        repeatRule: TodoItem.RepeatRule = .none
+    ) {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        items.append(TodoItem(title: trimmed, priority: priority, dueDate: dueDate))
+        let newItem = TodoItem(
+            title: trimmed,
+            priority: priority,
+            dueDate: dueDate,
+            tags: tags,
+            subtasks: subtasks,
+            repeatRule: repeatRule
+        )
+        items.append(newItem)
+        scheduleNotificationIfNeeded(for: newItem)
         persistItems()
     }
 
@@ -42,9 +60,15 @@ final class TodoListViewModel: ObservableObject {
         return QuickAddFeedback(created: true, recognizedTokens: parsed.recognizedTokens)
     }
 
-    func deleteItems(at offsets: IndexSet) {
+    @discardableResult
+    func deleteItems(at offsets: IndexSet) -> [TodoItem] {
+        let deleted = offsets.compactMap { index in
+            items.indices.contains(index) ? items[index] : nil
+        }
+        deleted.forEach { removeNotification(for: $0.id) }
         items.remove(atOffsets: offsets)
         persistItems()
+        return deleted
     }
 
     func moveItems(from source: IndexSet, to destination: Int) {
@@ -55,17 +79,80 @@ final class TodoListViewModel: ObservableObject {
     func toggleCompletion(for item: TodoItem) {
         guard let index = items.firstIndex(of: item) else { return }
         items[index].isCompleted.toggle()
+        if items[index].isCompleted {
+            removeNotification(for: items[index].id)
+        } else {
+            scheduleNotificationIfNeeded(for: items[index])
+        }
         persistItems()
     }
 
-    func updateItem(_ item: TodoItem, title: String, priority: TodoItem.Priority, dueDate: Date?) {
+    func updateItem(
+        _ item: TodoItem,
+        title: String,
+        priority: TodoItem.Priority,
+        dueDate: Date?,
+        tags: [String],
+        subtasks: [TodoItem.Subtask],
+        repeatRule: TodoItem.RepeatRule
+    ) {
         guard let index = items.firstIndex(of: item) else { return }
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         items[index].title = trimmed
         items[index].priority = priority
         items[index].dueDate = dueDate
+        items[index].tags = tags
+        items[index].subtasks = subtasks
+        items[index].repeatRule = repeatRule
+        if items[index].isCompleted {
+            removeNotification(for: items[index].id)
+        } else {
+            scheduleNotificationIfNeeded(for: items[index])
+        }
         persistItems()
+    }
+
+    func restoreItems(_ deletedItems: [TodoItem], at offsets: IndexSet) {
+        for (offset, item) in zip(offsets, deletedItems) {
+            let insertIndex = min(offset, items.count)
+            items.insert(item, at: insertIndex)
+            scheduleNotificationIfNeeded(for: item)
+        }
+        persistItems()
+    }
+
+    func requestNotificationAuthorization() {
+        notificationCenter.requestAuthorization(options: [.alert, .sound]) { _, _ in }
+    }
+
+    private func scheduleNotificationIfNeeded(for item: TodoItem) {
+        guard let dueDate = item.dueDate, !item.isCompleted else { return }
+        if dueDate <= Date() {
+            removeNotification(for: item.id)
+            return
+        }
+
+        let content = UNMutableNotificationContent()
+        content.title = NSLocalizedString("notification.title", comment: "Todo notification title")
+        content.body = item.title
+        content.sound = .default
+
+        let components = Calendar.current.dateComponents(
+            [.year, .month, .day, .hour, .minute],
+            from: dueDate
+        )
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+        let request = UNNotificationRequest(
+            identifier: item.id.uuidString,
+            content: content,
+            trigger: trigger
+        )
+        notificationCenter.add(request)
+    }
+
+    private func removeNotification(for id: UUID) {
+        notificationCenter.removePendingNotificationRequests(withIdentifiers: [id.uuidString])
     }
 
     private func persistItems() {

@@ -1,0 +1,75 @@
+"app.title" = "Todolist";
+"language.title" = "Language";
+"language.english" = "English";
+"language.chinese" = "Simplified Chinese";
+
+"quickadd.placeholder" = "Quick add: tomorrow 17:00 submit report p1";
+"quickadd.button" = "Quick Add";
+"quickadd.help" = "Press Enter to add";
+"quickadd.focus" = "Focus quick add";
+"quickadd.clear" = "Clear";
+"quickadd.hint.example" = "Example: tomorrow 17:00 submit report p1";
+"quickadd.hint.missingtitle" = "Enter a title before submitting";
+"quickadd.hint.unrecognized" = "No date/priority recognized. Created as a plain title.";
+"quickadd.hint.recognized" = "Recognized: %@";
+"quickadd.token.separator" = ", ";
+
+"newtodo.placeholder" = "New todo";
+"add.button" = "Add";
+"priority.label" = "Priority";
+"duedate.label" = "Due date";
+"filter.label" = "Filter";
+"sort.label" = "Sort";
+"sort.manual" = "Manual";
+"sort.duedate" = "Due Date";
+"sort.priority" = "Priority";
+"sort.created" = "Created";
+"filter.all" = "All";
+"filter.open" = "Open";
+"filter.completed" = "Completed";
+"filter.today" = "Today";
+"filter.upcoming" = "Upcoming";
+"filter.overdue" = "Overdue";
+"reorder.notice" = "Reordering is available only in Manual sort.";
+
+"empty.search" = "No matching todos";
+"empty.none" = "No todos yet";
+"empty.view" = "This view is empty";
+
+"section.allTodos" = "All Todos";
+"section.open" = "Open";
+"section.completed" = "Completed";
+"section.dueToday" = "Due Today";
+"section.upcoming" = "Upcoming";
+"section.overdue" = "Overdue";
+
+"edit.button" = "Edit";
+"mark.open" = "Mark Open";
+"mark.done" = "Mark Done";
+"edit.title" = "Edit Todo";
+"edit.field.title" = "Title";
+"edit.cancel" = "Cancel";
+"edit.save" = "Save";
+
+"priority.low" = "Low";
+"priority.medium" = "Medium";
+"priority.high" = "High";
+
+"undo.button" = "Undo";
+"tags.placeholder" = "Tags (comma-separated)";
+"repeat.label" = "Repeat";
+"repeat.none" = "None";
+"repeat.daily" = "Daily";
+"repeat.weekly" = "Weekly";
+"repeat.monthly" = "Monthly";
+"subtasks.title" = "Subtasks";
+"subtasks.item.placeholder" = "Subtask";
+"subtasks.new.placeholder" = "Add a subtask";
+"subtasks.add" = "Add";
+
+"view.label" = "View";
+"view.list" = "List";
+"view.today" = "Today";
+"view.week" = "Week";
+"view.calendar" = "Calendar";
+"notification.title" = "Todo reminder";
