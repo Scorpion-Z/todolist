@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 struct TodoItem: Identifiable, Codable, Equatable {
     enum Priority: String, Codable, CaseIterable, Identifiable {
@@ -8,14 +9,14 @@ struct TodoItem: Identifiable, Codable, Equatable {
 
         var id: String { rawValue }
 
-        var displayName: String {
+        var displayNameKey: LocalizedStringKey {
             switch self {
             case .low:
-                return "Low"
+                return "priority.low"
             case .medium:
-                return "Medium"
+                return "priority.medium"
             case .high:
-                return "High"
+                return "priority.high"
             }
         }
     }
