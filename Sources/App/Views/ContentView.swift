@@ -38,6 +38,8 @@ struct ContentView: View {
     @State private var editPriority: TodoItem.Priority = .medium
     @State private var editDueDateEnabled = false
     @State private var editDueDate = Date()
+    @State private var itemPendingDelete: TodoItem?
+    @State private var showingDeleteConfirmation = false
 
     private var filteredItems: [TodoItem] {
         let calendar = Calendar.current
@@ -280,6 +282,13 @@ struct ContentView: View {
                             .font(.caption)
                         }
                         .padding(.vertical, 6)
+                        .swipeActions(edge: .trailing) {
+                            Button("删除", role: .destructive) {
+                                itemPendingDelete = item
+                                showingDeleteConfirmation = true
+                            }
+                            .tint(.red)
+                        }
                         .contextMenu {
                             Button("行内编辑") {
                                 prepareEditing(item)
@@ -297,6 +306,16 @@ struct ContentView: View {
                     .onMove(perform: viewModel.moveItems)
                 }
                 .listStyle(.inset)
+                .alert("删除待办事项？", isPresented: $showingDeleteConfirmation, presenting: itemPendingDelete) { item in
+                    Button("删除", role: .destructive) {
+                        deleteItem(item)
+                    }
+                    Button("取消", role: .cancel) {
+                        itemPendingDelete = nil
+                    }
+                } message: { item in
+                    Text("确认删除“\(item.title)”吗？")
+                }
             }
         }
         .padding(24)
