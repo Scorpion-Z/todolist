@@ -10,6 +10,8 @@
 		A1A1A1A1A1A1A1A1A1A1A1A1 /* TodolistApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1A2 /* TodolistApp.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1A3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1A4 /* ContentView.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1A5 /* TodoItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1A6 /* TodoItem.swift */; };
+		A1A1A1A1A1A1A1A1A1A1A1C5 /* Tag.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1C4 /* Tag.swift */; };
+		A1A1A1A1A1A1A1A1A1A1A1C7 /* Subtask.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1C6 /* Subtask.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1A7 /* TodoListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1A8 /* TodoListViewModel.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1C1 /* QuickAddParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1C2 /* QuickAddParser.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1D1 /* Tag.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1D3 /* Tag.swift */; };
@@ -23,6 +25,8 @@
 		A1A1A1A1A1A1A1A1A1A1A1A2 /* TodolistApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodolistApp.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1A4 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1A6 /* TodoItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoItem.swift; sourceTree = "<group>"; };
+		A1A1A1A1A1A1A1A1A1A1A1C4 /* Tag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tag.swift; sourceTree = "<group>"; };
+		A1A1A1A1A1A1A1A1A1A1A1C6 /* Subtask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Subtask.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1A8 /* TodoListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoListViewModel.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1C2 /* QuickAddParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickAddParser.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1D3 /* Tag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tag.swift; sourceTree = "<group>"; };
@@ -89,6 +93,8 @@
 				A1A1A1A1A1A1A1A1A1A1A1D4 /* Subtask.swift */,
 				A1A1A1A1A1A1A1A1A1A1A1D3 /* Tag.swift */,
 				A1A1A1A1A1A1A1A1A1A1A1A6 /* TodoItem.swift */,
+				A1A1A1A1A1A1A1A1A1A1A1C4 /* Tag.swift */,
+				A1A1A1A1A1A1A1A1A1A1A1C6 /* Subtask.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -200,6 +206,8 @@
 				A1A1A1A1A1A1A1A1A1A1A1D2 /* Subtask.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1D1 /* Tag.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1A5 /* TodoItem.swift in Sources */,
+				A1A1A1A1A1A1A1A1A1A1A1C5 /* Tag.swift in Sources */,
+				A1A1A1A1A1A1A1A1A1A1A1C7 /* Subtask.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1A7 /* TodoListViewModel.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1C1 /* QuickAddParser.swift in Sources */,
 			);
