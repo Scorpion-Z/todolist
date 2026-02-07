@@ -238,7 +238,6 @@ final class TodoListViewModel: ObservableObject {
         guard let index = items.firstIndex(of: item) else { return }
         items.remove(at: index)
         persistItems()
-        return deleted
     }
 
     func moveItems(from source: IndexSet, to destination: Int) {
@@ -259,6 +258,7 @@ final class TodoListViewModel: ObservableObject {
     func updateItem(
         _ item: TodoItem,
         title: String,
+        descriptionMarkdown: String,
         priority: TodoItem.Priority,
         dueDate: Date?,
         subtasks: [Subtask],
