@@ -203,8 +203,8 @@ struct ContentView: View {
                 }
             } else {
                 List {
-                    ForEach(filteredItems) { item in
-                        VStack(alignment: .leading, spacing: 8) {
+                    Section(sectionTitle) {
+                        ForEach(filteredItems) { item in
                             HStack(alignment: .top, spacing: 12) {
                                 Button {
                                     viewModel.toggleCompletion(for: item)
@@ -213,109 +213,44 @@ struct ContentView: View {
                                 }
                                 .buttonStyle(.plain)
 
-                                VStack(alignment: .leading, spacing: 4) {
+                                VStack(alignment: .leading, spacing: 8) {
                                     Text(item.title)
                                         .strikethrough(item.isCompleted, color: .secondary)
                                         .foregroundStyle(item.isCompleted ? .secondary : .primary)
 
-                                    HStack(spacing: 8) {
-                                        Text(item.priority.displayName)
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
+                                    HStack(spacing: 6) {
+                                        tagLabel(
+                                            item.priority.displayName,
+                                            foreground: priorityColor(item.priority)
+                                        )
                                         if let dueDate = item.dueDate {
-                                            Text(dueDate, style: .date)
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
+                                            tagLabel(dueDate, style: .date)
                                         }
                                     }
                                 }
                                 Spacer()
-                            }
-
-                            DisclosureGroup(
-                                "展开编辑",
-                                isExpanded: Binding(
-                                    get: { inlineEditingItemID == item.id },
-                                    set: { isExpanded in
-                                        if isExpanded {
-                                            prepareEditing(item)
-                                            inlineEditingItemID = item.id
-                                        } else if inlineEditingItemID == item.id {
-                                            inlineEditingItemID = nil
-                                        }
-                                    }
-                                )
-                            ) {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    TextField("Title", text: $editTitle)
-                                        .textFieldStyle(.roundedBorder)
-                                    Picker("Priority", selection: $editPriority) {
-                                        ForEach(TodoItem.Priority.allCases) { priority in
-                                            Text(priority.displayName).tag(priority)
-                                        }
-                                    }
-                                    Toggle("Due date", isOn: $editDueDateEnabled)
-                                    if editDueDateEnabled {
-                                        DatePicker("", selection: $editDueDate, displayedComponents: .date)
-                                            .labelsHidden()
-                                    }
-                                    HStack {
-                                        Button("Save") {
-                                            viewModel.updateItem(
-                                                item,
-                                                title: editTitle,
-                                                priority: editPriority,
-                                                dueDate: editDueDateEnabled ? editDueDate : nil
-                                            )
-                                            inlineEditingItemID = nil
-                                        }
-                                        .buttonStyle(.borderedProminent)
-
-                                        Button("更多…") {
-                                            beginEditingSheet(item)
-                                        }
-                                        .buttonStyle(.bordered)
-                                    }
+                                Button("Edit") {
+                                    beginEditing(item)
                                 }
-                                .padding(.top, 4)
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
                             }
-                            .font(.caption)
-                        }
-                        .padding(.vertical, 6)
-                        .swipeActions(edge: .trailing) {
-                            Button("删除", role: .destructive) {
-                                itemPendingDelete = item
-                                showingDeleteConfirmation = true
-                            }
-                            .tint(.red)
-                        }
-                        .contextMenu {
-                            Button("行内编辑") {
-                                prepareEditing(item)
-                                inlineEditingItemID = item.id
-                            }
-                            Button("Edit in Sheet") {
-                                beginEditingSheet(item)
-                            }
-                            Button(item.isCompleted ? "Mark Open" : "Mark Done") {
-                                viewModel.toggleCompletion(for: item)
+                            .padding(.vertical, 8)
+                            .contextMenu {
+                                Button("Edit") {
+                                    beginEditing(item)
+                                }
+                                Button(item.isCompleted ? "Mark Open" : "Mark Done") {
+                                    viewModel.toggleCompletion(for: item)
+                                }
                             }
                         }
+                        .onDelete(perform: viewModel.deleteItems)
+                        .onMove(perform: viewModel.moveItems)
                     }
-                    .onDelete(perform: viewModel.deleteItems)
-                    .onMove(perform: viewModel.moveItems)
                 }
                 .listStyle(.inset)
-                .alert("删除待办事项？", isPresented: $showingDeleteConfirmation, presenting: itemPendingDelete) { item in
-                    Button("删除", role: .destructive) {
-                        deleteItem(item)
-                    }
-                    Button("取消", role: .cancel) {
-                        itemPendingDelete = nil
-                    }
-                } message: { item in
-                    Text("确认删除“\(item.title)”吗？")
-                }
+                .listRowSpacing(12)
             }
         }
         .padding(24)
@@ -451,6 +386,61 @@ struct ContentView: View {
         case .low:
             return 1
         }
+    }
+
+    private func priorityColor(_ priority: TodoItem.Priority) -> Color {
+        switch priority {
+        case .high:
+            return .red
+        case .medium:
+            return .orange
+        case .low:
+            return .gray
+        }
+    }
+
+    private var sectionTitle: String {
+        switch filter {
+        case .all:
+            return "All Todos"
+        case .open:
+            return "Open"
+        case .completed:
+            return "Completed"
+        case .today:
+            return "Due Today"
+        case .upcoming:
+            return "Upcoming"
+        case .overdue:
+            return "Overdue"
+        }
+    }
+
+    private func tagLabel(
+        _ text: String,
+        foreground: Color = .secondary
+    ) -> some View {
+        Text(text)
+            .font(.caption)
+            .foregroundStyle(foreground)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 2)
+            .background(.thinMaterial)
+            .clipShape(Capsule())
+    }
+
+    private func tagLabel(
+        _ date: Date,
+        style: Text.DateStyle,
+        foreground: Color = .secondary
+    ) -> some View {
+        Text(date, style: style)
+            .font(.caption)
+            .foregroundStyle(foreground)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 2)
+            .background(.thinMaterial)
+            .clipShape(Capsule())
     }
 }
 
