@@ -215,6 +215,7 @@
 		A1A1A1A1A1A1A1A1A1A1A1BB /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -229,13 +230,16 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.todolist;
 				PRODUCT_NAME = TodoList;
+				SEPARATE_HEADERMAPS = YES;
 				SWIFT_VERSION = 5.0;
+				USE_HEADERMAP = YES;
 			};
 			name = Debug;
 		};
 		A1A1A1A1A1A1A1A1A1A1A1BC /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -250,7 +254,9 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.todolist;
 				PRODUCT_NAME = TodoList;
+				SEPARATE_HEADERMAPS = YES;
 				SWIFT_VERSION = 5.0;
+				USE_HEADERMAP = YES;
 			};
 			name = Release;
 		};
