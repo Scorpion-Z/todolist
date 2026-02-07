@@ -21,7 +21,10 @@ struct ContentView: View {
         var id: String { rawValue }
     }
 
+    @FocusState private var quickInputFocused: Bool
     @StateObject private var viewModel = TodoListViewModel()
+    @State private var quickInputText = ""
+    @State private var quickInputHint = "示例：明天 17:00 提交周报 p1"
     @State private var newTitle = ""
     @State private var newPriority: TodoItem.Priority = .medium
     @State private var newDueDateEnabled = false
@@ -124,6 +127,8 @@ struct ContentView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            quickAddSection
+
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 8) {
                     TextField("New todo", text: $newTitle)
@@ -253,6 +258,67 @@ struct ContentView: View {
         .sheet(item: $editingItem) { item in
             editSheet(for: item)
         }
+        .onExitCommand {
+            clearQuickInput()
+        }
+    }
+
+    private var quickAddSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                TextField("快速输入：明天 17:00 提交周报 p1", text: $quickInputText)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($quickInputFocused)
+                    .onSubmit {
+                        submitQuickInput()
+                    }
+
+                Button("Quick Add") {
+                    submitQuickInput()
+                }
+                .keyboardShortcut(.return, modifiers: [])
+                .help("Enter 提交")
+            }
+
+            Text(quickInputHint)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 12) {
+                Button("聚焦快速输入") {
+                    quickInputFocused = true
+                }
+                .keyboardShortcut("n", modifiers: .command)
+
+                Button("清空") {
+                    clearQuickInput()
+                }
+                .keyboardShortcut(.escape, modifiers: [])
+            }
+            .buttonStyle(.borderless)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+    }
+
+    private func submitQuickInput() {
+        let feedback = viewModel.addQuickItem(rawText: quickInputText)
+        guard feedback.created else {
+            quickInputHint = "请输入标题后再提交"
+            return
+        }
+
+        quickInputHint = feedback.recognizedTokens.isEmpty
+            ? "未识别到日期/优先级，已按普通标题创建"
+            : "已识别：\(feedback.recognizedTokens.joined(separator: "、"))"
+
+        quickInputText = ""
+        quickInputFocused = true
+    }
+
+    private func clearQuickInput() {
+        quickInputText = ""
+        quickInputHint = "示例：明天 17:00 提交周报 p1"
     }
 
     private func beginEditing(_ item: TodoItem) {
