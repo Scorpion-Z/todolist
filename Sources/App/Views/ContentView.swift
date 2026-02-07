@@ -65,6 +65,7 @@ struct ContentView: View {
     @State private var newPriority: TodoItem.Priority = .medium
     @State private var newDueDateEnabled = false
     @State private var newDueDate = Date()
+    @State private var newDescription = ""
     @State private var searchText = ""
     @State private var filter: Filter = .all
     @State private var sortOption: SortOption = .manual
@@ -74,8 +75,10 @@ struct ContentView: View {
     @State private var editPriority: TodoItem.Priority = .medium
     @State private var editDueDateEnabled = false
     @State private var editDueDate = Date()
+    @State private var editDescription = ""
     @State private var itemPendingDelete: TodoItem?
     @State private var showingDeleteConfirmation = false
+    @State private var exportErrorMessage: String?
 
     private var filteredItems: [TodoItem] {
         let calendar = Calendar.current
@@ -182,6 +185,15 @@ struct ContentView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     TextField("newtodo.placeholder", text: $newTitle)
                         .textFieldStyle(.roundedBorder)
+                    Text("markdown.description")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    TextEditor(text: $newDescription)
+                        .frame(minHeight: 80)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                        )
                     HStack(spacing: 12) {
                         Picker("priority.label", selection: $newPriority) {
                             ForEach(TodoItem.Priority.allCases) { priority in
@@ -200,10 +212,12 @@ struct ContentView: View {
                 Button("add.button") {
                     viewModel.addItem(
                         title: newTitle,
+                        descriptionMarkdown: newDescription,
                         priority: newPriority,
                         dueDate: newDueDateEnabled ? newDueDate : nil
                     )
                     newTitle = ""
+                    newDescription = ""
                     newPriority = .medium
                     newDueDateEnabled = false
                 }
@@ -264,6 +278,12 @@ struct ContentView: View {
                                         .strikethrough(item.isCompleted, color: .secondary)
                                         .foregroundStyle(item.isCompleted ? .secondary : .primary)
 
+                                    if !item.descriptionMarkdown.isEmpty {
+                                        Text(.init(item.descriptionMarkdown))
+                                            .font(.subheadline)
+                                            .foregroundStyle(.secondary)
+                                    }
+
                                     HStack(spacing: 6) {
                                         tagLabel(
                                             item.priority.displayNameKey,
@@ -275,8 +295,16 @@ struct ContentView: View {
                                     }
                                 }
                                 Spacer()
-                                Button("edit.button") {
-                                    beginEditing(item)
+                                Menu("edit.button") {
+                                    Button("edit.button") {
+                                        beginEditing(item)
+                                    }
+                                    Button("export.calendar") {
+                                        exportToCalendar(item)
+                                    }
+                                    Button("export.reminder") {
+                                        exportToReminder(item)
+                                    }
                                 }
                                 .buttonStyle(.bordered)
                                 .controlSize(.small)
@@ -286,6 +314,12 @@ struct ContentView: View {
                                 let markKey: LocalizedStringKey = item.isCompleted ? "mark.open" : "mark.done"
                                 Button("edit.button") {
                                     beginEditing(item)
+                                }
+                                Button("export.calendar") {
+                                    exportToCalendar(item)
+                                }
+                                Button("export.reminder") {
+                                    exportToReminder(item)
                                 }
                                 Button(markKey) {
                                     viewModel.toggleCompletion(for: item)
@@ -313,6 +347,19 @@ struct ContentView: View {
         }
         .onChange(of: appLanguage) { _, _ in
             clearQuickInput()
+        }
+        .alert("export.error.title", isPresented: Binding(get: {
+            exportErrorMessage != nil
+        }, set: { newValue in
+            if !newValue {
+                exportErrorMessage = nil
+            }
+        })) {
+            Button("export.error.dismiss") {
+                exportErrorMessage = nil
+            }
+        } message: {
+            Text(exportErrorMessage ?? "")
         }
         .environment(\.locale, selectedLocale)
     }
@@ -398,6 +445,7 @@ struct ContentView: View {
     private func prepareEditing(_ item: TodoItem) {
         editTitle = item.title
         editPriority = item.priority
+        editDescription = item.descriptionMarkdown
         if let dueDate = item.dueDate {
             editDueDateEnabled = true
             editDueDate = dueDate
@@ -423,6 +471,31 @@ struct ContentView: View {
                 .font(.title2)
             TextField("edit.field.title", text: $editTitle)
                 .textFieldStyle(.roundedBorder)
+            Text("markdown.description")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            HStack(alignment: .top, spacing: 12) {
+                TextEditor(text: $editDescription)
+                    .frame(minHeight: 160)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                    )
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("markdown.preview")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text(.init(editDescription))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(minWidth: 200, maxWidth: 260)
+                .background(Color.secondary.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
             Picker("priority.label", selection: $editPriority) {
                 ForEach(TodoItem.Priority.allCases) { priority in
                     Text(priority.displayNameKey).tag(priority)
@@ -442,6 +515,7 @@ struct ContentView: View {
                     viewModel.updateItem(
                         item,
                         title: editTitle,
+                        descriptionMarkdown: editDescription,
                         priority: editPriority,
                         dueDate: editDueDateEnabled ? editDueDate : nil
                     )
@@ -518,6 +592,28 @@ struct ContentView: View {
             .padding(.vertical, 2)
             .background(.thinMaterial)
             .clipShape(Capsule())
+    }
+
+    private func exportToCalendar(_ item: TodoItem) {
+        Task {
+            do {
+                _ = try await viewModel.requestEventAccess()
+                try viewModel.exportToCalendar(item: item)
+            } catch {
+                exportErrorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func exportToReminder(_ item: TodoItem) {
+        Task {
+            do {
+                _ = try await viewModel.requestReminderAccess()
+                try viewModel.exportToReminder(item: item)
+            } catch {
+                exportErrorMessage = error.localizedDescription
+            }
+        }
     }
 }
 

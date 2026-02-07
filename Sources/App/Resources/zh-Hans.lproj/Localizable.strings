@@ -51,6 +51,13 @@
 "edit.cancel" = "取消";
 "edit.save" = "保存";
 
+"markdown.description" = "描述（Markdown）";
+"markdown.preview" = "预览";
+"export.calendar" = "导出到日历";
+"export.reminder" = "导出到提醒事项";
+"export.error.title" = "导出失败";
+"export.error.dismiss" = "确定";
+
 "priority.low" = "低";
 "priority.medium" = "中";
 "priority.high" = "高";
