@@ -1,0 +1,68 @@
+"app.title" = "待办清单";
+"language.title" = "语言";
+"language.english" = "英文";
+"language.chinese" = "简体中文";
+
+"quickadd.placeholder" = "快速输入：明天 17:00 提交周报 p1";
+"quickadd.button" = "快速添加";
+"quickadd.help" = "回车提交";
+"quickadd.focus" = "聚焦快速输入";
+"quickadd.clear" = "清空";
+"quickadd.hint.example" = "示例：明天 17:00 提交周报 p1";
+"quickadd.hint.missingtitle" = "请输入标题后再提交";
+"quickadd.hint.unrecognized" = "未识别到日期/优先级，已按普通标题创建";
+"quickadd.hint.recognized" = "已识别：%@";
+"quickadd.token.separator" = "、";
+
+"newtodo.placeholder" = "新建待办";
+"add.button" = "添加";
+"priority.label" = "优先级";
+"duedate.label" = "截止日期";
+"filter.label" = "筛选";
+"sort.label" = "排序";
+"sort.manual" = "手动";
+"sort.duedate" = "截止日期";
+"sort.priority" = "优先级";
+"sort.created" = "创建时间";
+"filter.all" = "全部";
+"filter.open" = "未完成";
+"filter.completed" = "已完成";
+"filter.today" = "今天";
+"filter.upcoming" = "将来";
+"filter.overdue" = "已逾期";
+"reorder.notice" = "仅在“手动”排序下可拖动排序。";
+
+"empty.search" = "没有匹配的待办";
+"empty.none" = "暂无待办";
+"empty.view" = "该视图暂无内容";
+
+"section.allTodos" = "全部待办";
+"section.open" = "未完成";
+"section.completed" = "已完成";
+"section.dueToday" = "今天到期";
+"section.upcoming" = "即将到期";
+"section.overdue" = "已逾期";
+
+"edit.button" = "编辑";
+"mark.open" = "标记未完成";
+"mark.done" = "标记完成";
+"edit.title" = "编辑待办";
+"edit.field.title" = "标题";
+"edit.cancel" = "取消";
+"edit.save" = "保存";
+
+"priority.low" = "低";
+"priority.medium" = "中";
+"priority.high" = "高";
+
+"undo.button" = "撤销";
+"tags.placeholder" = "标签（用逗号分隔）";
+"repeat.label" = "重复";
+"repeat.none" = "不重复";
+"repeat.daily" = "每天";
+"repeat.weekly" = "每周";
+"repeat.monthly" = "每月";
+"subtasks.title" = "子任务";
+"subtasks.item.placeholder" = "子任务";
+"subtasks.new.placeholder" = "添加子任务";
+"subtasks.add" = "添加";

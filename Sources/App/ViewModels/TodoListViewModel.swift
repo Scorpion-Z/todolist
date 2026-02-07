@@ -21,10 +21,26 @@ final class TodoListViewModel: ObservableObject {
         }
     }
 
-    func addItem(title: String, priority: TodoItem.Priority, dueDate: Date?) {
+    func addItem(
+        title: String,
+        priority: TodoItem.Priority,
+        dueDate: Date?,
+        tags: [String] = [],
+        subtasks: [TodoItem.Subtask] = [],
+        repeatRule: TodoItem.RepeatRule = .none
+    ) {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        items.append(TodoItem(title: trimmed, priority: priority, dueDate: dueDate))
+        items.append(
+            TodoItem(
+                title: trimmed,
+                priority: priority,
+                dueDate: dueDate,
+                tags: tags,
+                subtasks: subtasks,
+                repeatRule: repeatRule
+            )
+        )
         persistItems()
     }
 
@@ -42,9 +58,14 @@ final class TodoListViewModel: ObservableObject {
         return QuickAddFeedback(created: true, recognizedTokens: parsed.recognizedTokens)
     }
 
-    func deleteItems(at offsets: IndexSet) {
+    @discardableResult
+    func deleteItems(at offsets: IndexSet) -> [TodoItem] {
+        let deleted = offsets.compactMap { index in
+            items.indices.contains(index) ? items[index] : nil
+        }
         items.remove(atOffsets: offsets)
         persistItems()
+        return deleted
     }
 
     func moveItems(from source: IndexSet, to destination: Int) {
@@ -58,13 +79,32 @@ final class TodoListViewModel: ObservableObject {
         persistItems()
     }
 
-    func updateItem(_ item: TodoItem, title: String, priority: TodoItem.Priority, dueDate: Date?) {
+    func updateItem(
+        _ item: TodoItem,
+        title: String,
+        priority: TodoItem.Priority,
+        dueDate: Date?,
+        tags: [String],
+        subtasks: [TodoItem.Subtask],
+        repeatRule: TodoItem.RepeatRule
+    ) {
         guard let index = items.firstIndex(of: item) else { return }
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         items[index].title = trimmed
         items[index].priority = priority
         items[index].dueDate = dueDate
+        items[index].tags = tags
+        items[index].subtasks = subtasks
+        items[index].repeatRule = repeatRule
+        persistItems()
+    }
+
+    func restoreItems(_ deletedItems: [TodoItem], at offsets: IndexSet) {
+        for (offset, item) in zip(offsets, deletedItems) {
+            let insertIndex = min(offset, items.count)
+            items.insert(item, at: insertIndex)
+        }
         persistItems()
     }
 
