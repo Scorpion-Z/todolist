@@ -1,4 +1,4 @@
-"app.title" = "Todolist";
+"app.title" = "Todo List";
 "language.title" = "Language";
 "language.english" = "English";
 "language.chinese" = "Simplified Chinese";
@@ -20,6 +20,9 @@
 "duedate.label" = "Due date";
 "filter.label" = "Filter";
 "sort.label" = "Sort";
+"view.title" = "View";
+"view.list" = "List";
+"view.card" = "Cards";
 "sort.manual" = "Manual";
 "sort.duedate" = "Due Date";
 "sort.priority" = "Priority";
@@ -31,6 +34,13 @@
 "filter.upcoming" = "Upcoming";
 "filter.overdue" = "Overdue";
 "reorder.notice" = "Reordering is available only in Manual sort.";
+"view.mode" = "View";
+"view.today" = "Today";
+"view.week" = "This Week";
+"view.calendar" = "Calendar";
+"view.section.today" = "Today";
+"view.section.week" = "This Week";
+"calendar.section.noduedate" = "No Due Date";
 
 "empty.search" = "No matching todos";
 "empty.none" = "No todos yet";
@@ -44,6 +54,8 @@
 "section.overdue" = "Overdue";
 
 "edit.button" = "Edit";
+"delete.button" = "Delete";
+"search.focus" = "Focus search";
 "mark.open" = "Mark Open";
 "mark.done" = "Mark Done";
 "edit.title" = "Edit Todo";
@@ -51,30 +63,15 @@
 "edit.cancel" = "Cancel";
 "edit.save" = "Save";
 
+"markdown.description" = "Description (Markdown)";
+"markdown.preview" = "Preview";
+"export.calendar" = "Export to Calendar";
+"export.reminder" = "Export to Reminders";
+"export.error.title" = "Export Failed";
+"export.error.dismiss" = "OK";
+
 "priority.low" = "Low";
 "priority.medium" = "Medium";
 "priority.high" = "High";
 
-"undo.button" = "Undo";
-"tags.placeholder" = "Tags (comma-separated)";
-"repeat.label" = "Repeat";
-"repeat.none" = "None";
-"repeat.daily" = "Daily";
-"repeat.weekly" = "Weekly";
-"repeat.monthly" = "Monthly";
-"subtasks.title" = "Subtasks";
-"subtasks.item.placeholder" = "Subtask";
-"subtasks.new.placeholder" = "Add a subtask";
-"subtasks.add" = "Add";
-
-"view.label" = "View";
-"view.list" = "List";
-"view.today" = "Today";
-"view.week" = "Week";
-"view.calendar" = "Calendar";
-"notification.title" = "Todo reminder";
-
-"stats.total" = "Total";
-"stats.completed" = "Completed";
-"stats.overdue" = "Overdue";
-"stats.completionRate" = "Completion rate";
+"notification.body" = "Todo reminder";

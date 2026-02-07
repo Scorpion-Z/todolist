@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ContentView: View {
     private enum Filter: String, CaseIterable, Identifiable {
@@ -51,13 +52,7 @@ struct ContentView: View {
         }
     }
 
-    private struct LanguageOption: Identifiable {
-        let id: String
-        let nameKey: LocalizedStringKey
-    }
-
     private enum ViewMode: String, CaseIterable, Identifiable {
-        case list
         case today
         case week
         case calendar
@@ -66,8 +61,6 @@ struct ContentView: View {
 
         var titleKey: LocalizedStringKey {
             switch self {
-            case .list:
-                return "view.list"
             case .today:
                 return "view.today"
             case .week:
@@ -78,7 +71,13 @@ struct ContentView: View {
         }
     }
 
+    private struct LanguageOption: Identifiable {
+        let id: String
+        let nameKey: LocalizedStringKey
+    }
+
     @FocusState private var quickInputFocused: Bool
+    @FocusState private var searchFieldFocused: Bool
     @AppStorage("appLanguage") private var appLanguage = Locale.current.language.languageCode?.identifier == "zh" ? "zh-Hans" : "en"
     @StateObject private var viewModel = TodoListViewModel()
     @State private var quickInputText = ""
@@ -87,23 +86,28 @@ struct ContentView: View {
     @State private var newPriority: TodoItem.Priority = .medium
     @State private var newDueDateEnabled = false
     @State private var newDueDate = Date()
+    @State private var newDescription = ""
     @State private var searchText = ""
     @State private var filter: Filter = .all
     @State private var sortOption: SortOption = .manual
-    @State private var viewMode: ViewMode = .list
+    @State private var viewMode: ViewMode = .today
     @State private var editingItem: TodoItem?
     @State private var inlineEditingItemID: TodoItem.ID?
     @State private var editTitle = ""
     @State private var editPriority: TodoItem.Priority = .medium
     @State private var editDueDateEnabled = false
     @State private var editDueDate = Date()
-    @State private var editTagsText = ""
     @State private var editRepeatRule: TodoItem.RepeatRule = .none
-    @State private var editSubtasks: [TodoItem.Subtask] = []
+    @State private var editSubtasks: [Subtask] = []
+    @State private var editTags: [Tag] = []
+    @State private var editAvailableTags: [Tag] = []
     @State private var newSubtaskTitle = ""
+    @State private var newTagName = ""
     @State private var itemPendingDelete: TodoItem?
     @State private var showingDeleteConfirmation = false
-    @State private var undoState: (items: [TodoItem], offsets: IndexSet)?
+    @State private var selectedItemID: TodoItem.ID?
+    @State private var draggingItemID: TodoItem.ID?
+    @State private var dropTargetItemID: TodoItem.ID?
 
     private var filteredItems: [TodoItem] {
         let calendar = Calendar.current
@@ -190,22 +194,34 @@ struct ContentView: View {
         }
     }
 
+    private var viewModeItems: [TodoItem] {
+        let calendar = Calendar.current
+        let startOfToday = calendar.startOfDay(for: Date())
+        let startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday) ?? startOfToday
+
+        switch viewMode {
+        case .today:
+            return filteredItems.filter { item in
+                guard let dueDate = item.dueDate else { return false }
+                return dueDate >= startOfToday && dueDate < startOfTomorrow
+            }
+        case .week:
+            guard let weekInterval = calendar.dateInterval(of: .weekOfYear, for: Date()) else {
+                return filteredItems
+            }
+            return filteredItems.filter { item in
+                guard let dueDate = item.dueDate else { return false }
+                return weekInterval.contains(dueDate)
+            }
+        case .calendar:
+            return filteredItems
+        }
+    }
+
     private let languageOptions: [LanguageOption] = [
         LanguageOption(id: "zh-Hans", nameKey: "language.chinese"),
         LanguageOption(id: "en", nameKey: "language.english"),
     ]
-
-    private var calendarSections: [(date: Date, items: [TodoItem])] {
-        let calendar = Calendar.current
-        let grouped = Dictionary(grouping: filteredItems) { item in
-            calendar.startOfDay(for: item.dueDate ?? item.createdAt)
-        }
-        return grouped
-            .map { (key, value) in
-                (date: key, items: value.sorted { $0.createdAt < $1.createdAt })
-            }
-            .sorted { $0.date < $1.date }
-    }
 
     private var emptyStateText: (titleKey: LocalizedStringKey, systemImage: String) {
         let normalizedSearchText = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -222,27 +238,25 @@ struct ContentView: View {
         Locale(identifier: appLanguage)
     }
 
-    private var statsSummary: (total: Int, completed: Int, overdue: Int, completionRate: Double) {
-        let total = viewModel.items.count
-        let completed = viewModel.items.filter { $0.isCompleted }.count
-        let overdue = viewModel.items.filter { item in
-            guard !item.isCompleted, let dueDate = item.dueDate else { return false }
-            return dueDate < Calendar.current.startOfDay(for: Date())
-        }.count
-        let completionRate = total == 0 ? 0 : Double(completed) / Double(total)
-        return (total, completed, overdue, completionRate)
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             headerSection
-            statsSection
+            StatsView(viewModel: viewModel)
             quickAddSection
 
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 8) {
                     TextField("newtodo.placeholder", text: $newTitle)
                         .textFieldStyle(.roundedBorder)
+                    Text("markdown.description")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    TextEditor(text: $newDescription)
+                        .frame(minHeight: 80)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                        )
                     HStack(spacing: 12) {
                         Picker("priority.label", selection: $newPriority) {
                             ForEach(TodoItem.Priority.allCases) { priority in
@@ -261,14 +275,16 @@ struct ContentView: View {
                 Button("add.button") {
                     viewModel.addItem(
                         title: newTitle,
+                        descriptionMarkdown: newDescription,
                         priority: newPriority,
                         dueDate: newDueDateEnabled ? newDueDate : nil
                     )
                     newTitle = ""
+                    newDescription = ""
                     newPriority = .medium
                     newDueDateEnabled = false
                 }
-                .keyboardShortcut(.defaultAction)
+                .keyboardShortcut(.return, modifiers: [.command])
             }
 
             Picker("view.label", selection: $viewMode) {
@@ -293,16 +309,32 @@ struct ContentView: View {
                 }
                 .pickerStyle(.menu)
 
+                Picker("view.title", selection: $viewStyle) {
+                    ForEach(ViewStyle.allCases) { option in
+                        Text(option.titleKey).tag(option)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 200)
+
                 Spacer()
+
+                Picker("view.mode", selection: $viewMode) {
+                    ForEach(ViewMode.allCases) { option in
+                        Text(option.titleKey).tag(option)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 240)
             }
 
-            if sortOption != .manual {
+            if sortOption != .manual && viewMode != .calendar {
                 Text("reorder.notice")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
-            if filteredItems.isEmpty {
+            if viewModeItems.isEmpty {
                 if #available(macOS 14.0, *) {
                     ContentUnavailableView(emptyStateText.titleKey, systemImage: emptyStateText.systemImage)
                 } else {
@@ -316,47 +348,106 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             } else {
-                List {
-                    if viewMode == .calendar {
-                        ForEach(calendarSections, id: \.date) { section in
-                            Section {
-                                ForEach(section.items) { item in
-                                    todoRow(item)
-                                }
-                                .onDelete(perform: handleDelete)
-                                .onMove(perform: viewModel.moveItems)
-                            } header: {
-                                Text(section.date, style: .date)
-                            }
-                        }
-                    } else {
+                if viewMode == .calendar {
+                    CalendarView(
+                        items: viewModeItems,
+                        onDelete: viewModel.deleteItems(withIDs:),
+                        onToggleCompletion: viewModel.toggleCompletion(for:),
+                        onEdit: beginEditing(_:)
+                    )
+                } else {
+                    List {
                         Section(sectionTitleKey) {
-                            ForEach(filteredItems) { item in
-                                todoRow(item)
+                            ForEach(viewModeItems) { item in
+                                HStack(alignment: .top, spacing: 12) {
+                                    Button {
+                                        viewModel.toggleCompletion(for: item)
+                                    } label: {
+                                        Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
+                                    }
+                                    .buttonStyle(.plain)
+
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Text(item.title)
+                                            .strikethrough(item.isCompleted, color: .secondary)
+                                            .foregroundStyle(item.isCompleted ? .secondary : .primary)
+
+                                        HStack(spacing: 6) {
+                                            tagLabel(
+                                                item.priority.displayNameKey,
+                                                foreground: priorityColor(item.priority)
+                                            )
+                                            if let dueDate = item.dueDate {
+                                                tagLabel(dueDate, style: .date)
+                                            }
+                                        }
+                                        if !item.tags.isEmpty {
+                                            ForEach(item.tags) { tag in
+                                                tagLabel(tag.name)
+                                            }
+                                        }
+                                        if !item.subtasks.isEmpty {
+                                            let completedCount = item.subtasks.filter(\.isCompleted).count
+                                            tagLabel("\(completedCount)/\(item.subtasks.count)")
+                                        }
+                                        ForEach(item.tags, id: \.self) { tag in
+                                            tagLabel(tag)
+                                        }
+                                    }
+                                    Spacer()
+                                    Button("edit.button") {
+                                        beginEditing(item)
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .controlSize(.small)
+                                }
+                                .padding(.vertical, 8)
+                                .contextMenu {
+                                    let markKey: LocalizedStringKey = item.isCompleted ? "mark.open" : "mark.done"
+                                    Button("edit.button") {
+                                        beginEditing(item)
+                                    }
+                                    Button(markKey) {
+                                        viewModel.toggleCompletion(for: item)
+                                    }
+                                }
                             }
-                            .onDelete(perform: handleDelete)
+                            .onDelete(perform: viewModel.deleteItems)
                             .onMove(perform: viewModel.moveItems)
                         }
                     }
+                    .listStyle(.inset)
                 }
-                .listStyle(.inset)
             }
         }
         .padding(24)
         .frame(minWidth: 520, minHeight: 420)
         .searchable(text: $searchText)
+        .searchFocused($searchFieldFocused)
         .sheet(item: $editingItem) { item in
             editSheet(for: item)
         }
         .onAppear {
             clearQuickInput()
-            viewModel.requestNotificationAuthorization()
         }
         .onExitCommand {
             clearQuickInput()
         }
         .onChange(of: appLanguage) { _, _ in
             clearQuickInput()
+        }
+        .alert("export.error.title", isPresented: Binding(get: {
+            exportErrorMessage != nil
+        }, set: { newValue in
+            if !newValue {
+                exportErrorMessage = nil
+            }
+        })) {
+            Button("export.error.dismiss") {
+                exportErrorMessage = nil
+            }
+        } message: {
+            Text(exportErrorMessage ?? "")
         }
         .environment(\.locale, selectedLocale)
     }
@@ -388,6 +479,19 @@ struct ContentView: View {
                 }
                 .keyboardShortcut("n", modifiers: .command)
 
+                Button("search.focus") {
+                    searchFieldFocused = true
+                }
+                .keyboardShortcut("f", modifiers: .command)
+
+                Button("edit.button") {
+                    if let item = selectedItem {
+                        beginEditing(item)
+                    }
+                }
+                .keyboardShortcut("e", modifiers: .command)
+                .disabled(selectedItem == nil)
+
                 Button("quickadd.clear") {
                     clearQuickInput()
                 }
@@ -405,14 +509,6 @@ struct ContentView: View {
                 .font(.title3)
                 .fontWeight(.semibold)
             Spacer()
-            if let undoState {
-                Button("undo.button") {
-                    viewModel.restoreItems(undoState.items, at: undoState.offsets)
-                    self.undoState = nil
-                }
-                .buttonStyle(.bordered)
-                .transition(.opacity)
-            }
             Picker("language.title", selection: $appLanguage) {
                 ForEach(languageOptions) { option in
                     Text(option.nameKey).tag(option.id)
@@ -421,34 +517,6 @@ struct ContentView: View {
             .pickerStyle(.segmented)
             .frame(width: 200)
         }
-    }
-
-    private var statsSection: some View {
-        let stats = statsSummary
-        return HStack(spacing: 16) {
-            statCard(titleKey: "stats.total", value: "\(stats.total)")
-            statCard(titleKey: "stats.completed", value: "\(stats.completed)")
-            statCard(titleKey: "stats.overdue", value: "\(stats.overdue)")
-            statCard(
-                titleKey: "stats.completionRate",
-                value: stats.total == 0 ? "—" : "\(Int(stats.completionRate * 100))%"
-            )
-        }
-    }
-
-    private func statCard(titleKey: LocalizedStringKey, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(titleKey)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(.title3)
-                .fontWeight(.semibold)
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     private func submitQuickInput() {
@@ -478,6 +546,7 @@ struct ContentView: View {
     private func prepareEditing(_ item: TodoItem) {
         editTitle = item.title
         editPriority = item.priority
+        editDescription = item.descriptionMarkdown
         if let dueDate = item.dueDate {
             editDueDateEnabled = true
             editDueDate = dueDate
@@ -485,10 +554,12 @@ struct ContentView: View {
             editDueDateEnabled = false
             editDueDate = Date()
         }
-        editTagsText = item.tags.joined(separator: ", ")
         editRepeatRule = item.repeatRule
         editSubtasks = item.subtasks
+        editTags = item.tags
+        editAvailableTags = mergeTags(viewModel.tags, item.tags)
         newSubtaskTitle = ""
+        newTagName = ""
     }
 
     private func beginEditingSheet(_ item: TodoItem) {
@@ -507,6 +578,31 @@ struct ContentView: View {
                 .font(.title2)
             TextField("edit.field.title", text: $editTitle)
                 .textFieldStyle(.roundedBorder)
+            Text("markdown.description")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            HStack(alignment: .top, spacing: 12) {
+                TextEditor(text: $editDescription)
+                    .frame(minHeight: 160)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                    )
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("markdown.preview")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text(.init(editDescription))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(minWidth: 200, maxWidth: 260)
+                .background(Color.secondary.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
             Picker("priority.label", selection: $editPriority) {
                 ForEach(TodoItem.Priority.allCases) { priority in
                     Text(priority.displayNameKey).tag(priority)
@@ -517,31 +613,20 @@ struct ContentView: View {
                 DatePicker("", selection: $editDueDate, displayedComponents: .date)
                     .labelsHidden()
             }
-            HStack(spacing: 12) {
-                TextField("tags.placeholder", text: $editTagsText)
-                    .textFieldStyle(.roundedBorder)
-                Picker("repeat.label", selection: $editRepeatRule) {
-                    ForEach(TodoItem.RepeatRule.allCases) { rule in
-                        Text(rule.titleKey).tag(rule)
-                    }
+            Picker("repeat.label", selection: $editRepeatRule) {
+                ForEach(TodoItem.RepeatRule.allCases) { rule in
+                    Text(rule.displayNameKey).tag(rule)
                 }
-                .frame(width: 200)
             }
             VStack(alignment: .leading, spacing: 8) {
                 Text("subtasks.title")
                     .font(.headline)
                 ForEach($editSubtasks) { $subtask in
                     HStack {
-                        Button {
-                            subtask.isCompleted.toggle()
-                        } label: {
-                            Image(systemName: subtask.isCompleted ? "checkmark.circle.fill" : "circle")
-                        }
-                        .buttonStyle(.plain)
-                        TextField("subtasks.item.placeholder", text: $subtask.title)
-                            .textFieldStyle(.roundedBorder)
-                        Button {
-                            editSubtasks.removeAll { $0.id == subtask.id }
+                        Toggle(subtask.title, isOn: $subtask.isCompleted)
+                        Spacer()
+                        Button(role: .destructive) {
+                            removeSubtask(subtask)
                         } label: {
                             Image(systemName: "trash")
                         }
@@ -549,12 +634,32 @@ struct ContentView: View {
                     }
                 }
                 HStack {
-                    TextField("subtasks.new.placeholder", text: $newSubtaskTitle)
+                    TextField("subtasks.add.placeholder", text: $newSubtaskTitle)
                         .textFieldStyle(.roundedBorder)
-                    Button("subtasks.add") {
+                    Button("subtasks.add.button") {
                         addSubtask()
                     }
                     .disabled(newSubtaskTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                Text("tags.title")
+                    .font(.headline)
+                ForEach(editAvailableTags) { tag in
+                    Toggle(tag.name, isOn: Binding(
+                        get: { editTags.contains(where: { $0.id == tag.id }) },
+                        set: { isSelected in
+                            updateTagSelection(tag: tag, isSelected: isSelected)
+                        }
+                    ))
+                }
+                HStack {
+                    TextField("tags.add.placeholder", text: $newTagName)
+                        .textFieldStyle(.roundedBorder)
+                    Button("tags.add.button") {
+                        addTag()
+                    }
+                    .disabled(newTagName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
             HStack {
@@ -563,14 +668,14 @@ struct ContentView: View {
                 }
                 Spacer()
                 Button("edit.save") {
-                    let tags = parseTags(from: editTagsText)
                     viewModel.updateItem(
                         item,
                         title: editTitle,
+                        descriptionMarkdown: editDescription,
                         priority: editPriority,
                         dueDate: editDueDateEnabled ? editDueDate : nil,
-                        tags: tags,
                         subtasks: editSubtasks,
+                        tags: editTags,
                         repeatRule: editRepeatRule
                     )
                     editingItem = nil
@@ -604,25 +709,12 @@ struct ContentView: View {
         }
     }
 
-    private var sectionTitleKey: LocalizedStringKey {
-        switch filter {
-        case .all:
-            return "section.allTodos"
-        case .open:
-            return "section.open"
-        case .completed:
-            return "section.completed"
-        case .today:
-            return "section.dueToday"
-        case .upcoming:
-            return "section.upcoming"
-        case .overdue:
-            return "section.overdue"
-        }
+    private var selectedItem: TodoItem? {
+        guard let selectedItemID else { return nil }
+        return filteredItems.first { $0.id == selectedItemID }
     }
 
-    @ViewBuilder
-    private func todoRow(_ item: TodoItem) -> some View {
+    private func listRow(for item: TodoItem) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Button {
                 viewModel.toggleCompletion(for: item)
@@ -644,9 +736,6 @@ struct ContentView: View {
                     if let dueDate = item.dueDate {
                         tagLabel(dueDate, style: .date)
                     }
-                    ForEach(item.tags, id: \.self) { tag in
-                        tagLabel(tag)
-                    }
                 }
             }
             Spacer()
@@ -657,6 +746,28 @@ struct ContentView: View {
             .controlSize(.small)
         }
         .padding(.vertical, 8)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            selectedItemID = item.id
+        }
+        .onDrag {
+            draggingItemID = item.id
+            return NSItemProvider(object: item.id.uuidString as NSString)
+        }
+        .onDrop(
+            of: [.text],
+            isTargeted: Binding(
+                get: { dropTargetItemID == item.id },
+                set: { isTargeted in
+                    dropTargetItemID = isTargeted ? item.id : (dropTargetItemID == item.id ? nil : dropTargetItemID)
+                }
+            ),
+            perform: { _ in
+                dropTargetItemID = nil
+                draggingItemID = nil
+                return false
+            }
+        )
         .contextMenu {
             let markKey: LocalizedStringKey = item.isCompleted ? "mark.open" : "mark.done"
             Button("edit.button") {
@@ -665,6 +776,52 @@ struct ContentView: View {
             Button(markKey) {
                 viewModel.toggleCompletion(for: item)
             }
+        }
+    }
+
+    private func rowBackground(for item: TodoItem) -> some View {
+        let isSelected = selectedItemID == item.id
+        let isDragging = draggingItemID == item.id
+        let isDropTarget = dropTargetItemID == item.id
+
+        return RoundedRectangle(cornerRadius: 12)
+            .fill(isDragging ? Color.accentColor.opacity(0.15) : Color.clear)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(isDropTarget ? Color.accentColor.opacity(0.6) : Color.clear, lineWidth: 2)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(isSelected ? Color.accentColor.opacity(0.4) : Color.clear, lineWidth: 1)
+            )
+            .animation(.easeInOut(duration: 0.2), value: isDragging)
+            .animation(.easeInOut(duration: 0.2), value: isDropTarget)
+            .animation(.easeInOut(duration: 0.2), value: isSelected)
+    }
+
+    private var sectionTitleKey: LocalizedStringKey {
+        switch viewMode {
+        case .today:
+            return "view.section.today"
+        case .week:
+            return "view.section.week"
+        case .calendar:
+            break
+        }
+
+        switch filter {
+        case .all:
+            return "section.allTodos"
+        case .open:
+            return "section.open"
+        case .completed:
+            return "section.completed"
+        case .today:
+            return "section.dueToday"
+        case .upcoming:
+            return "section.upcoming"
+        case .overdue:
+            return "section.overdue"
         }
     }
 
@@ -711,20 +868,50 @@ struct ContentView: View {
     private func addSubtask() {
         let trimmed = newSubtaskTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        editSubtasks.append(TodoItem.Subtask(title: trimmed))
+        editSubtasks.append(Subtask(title: trimmed))
         newSubtaskTitle = ""
     }
 
-    private func parseTags(from text: String) -> [String] {
-        text
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
+    private func removeSubtask(_ subtask: Subtask) {
+        editSubtasks.removeAll { $0.id == subtask.id }
     }
 
-    private func handleDelete(_ offsets: IndexSet) {
-        let deleted = viewModel.deleteItems(at: offsets)
-        undoState = deleted.isEmpty ? nil : (items: deleted, offsets: offsets)
+    private func addTag() {
+        let trimmed = newTagName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        if let existingIndex = editAvailableTags.firstIndex(where: { $0.name.caseInsensitiveCompare(trimmed) == .orderedSame }) {
+            let existing = editAvailableTags[existingIndex]
+            if !editTags.contains(where: { $0.id == existing.id }) {
+                editTags.append(existing)
+            }
+        } else {
+            let newTag = Tag(name: trimmed)
+            editAvailableTags.append(newTag)
+            editTags.append(newTag)
+        }
+        newTagName = ""
+    }
+
+    private func updateTagSelection(tag: Tag, isSelected: Bool) {
+        if isSelected {
+            if !editTags.contains(where: { $0.id == tag.id }) {
+                editTags.append(tag)
+            }
+        } else {
+            editTags.removeAll { $0.id == tag.id }
+        }
+    }
+
+    private func mergeTags(_ first: [Tag], _ second: [Tag]) -> [Tag] {
+        var seen = Set<String>()
+        var merged: [Tag] = []
+        for tag in first + second {
+            let normalized = tag.name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            guard !normalized.isEmpty, !seen.contains(normalized) else { continue }
+            seen.insert(normalized)
+            merged.append(tag)
+        }
+        return merged.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 }
 
