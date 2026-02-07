@@ -37,6 +37,8 @@ struct ContentView: View {
     @State private var editPriority: TodoItem.Priority = .medium
     @State private var editDueDateEnabled = false
     @State private var editDueDate = Date()
+    @State private var itemPendingDelete: TodoItem?
+    @State private var showingDeleteConfirmation = false
 
     private var filteredItems: [TodoItem] {
         let calendar = Calendar.current
@@ -233,6 +235,13 @@ struct ContentView: View {
                             .controlSize(.small)
                         }
                         .padding(.vertical, 6)
+                        .swipeActions(edge: .trailing) {
+                            Button("删除", role: .destructive) {
+                                itemPendingDelete = item
+                                showingDeleteConfirmation = true
+                            }
+                            .tint(.red)
+                        }
                         .contextMenu {
                             Button("Edit") {
                                 beginEditing(item)
@@ -246,6 +255,16 @@ struct ContentView: View {
                     .onMove(perform: viewModel.moveItems)
                 }
                 .listStyle(.inset)
+                .alert("删除待办事项？", isPresented: $showingDeleteConfirmation, presenting: itemPendingDelete) { item in
+                    Button("删除", role: .destructive) {
+                        deleteItem(item)
+                    }
+                    Button("取消", role: .cancel) {
+                        itemPendingDelete = nil
+                    }
+                } message: { item in
+                    Text("确认删除“\(item.title)”吗？")
+                }
             }
         }
         .padding(24)
@@ -328,6 +347,15 @@ struct ContentView: View {
             editDueDateEnabled = false
             editDueDate = Date()
         }
+    }
+
+    private func deleteItem(_ item: TodoItem) {
+        guard let index = viewModel.items.firstIndex(of: item) else {
+            itemPendingDelete = nil
+            return
+        }
+        viewModel.deleteItems(at: IndexSet(integer: index))
+        itemPendingDelete = nil
     }
 
     @ViewBuilder
