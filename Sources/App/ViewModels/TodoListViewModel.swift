@@ -8,14 +8,14 @@ struct QuickAddFeedback {
 final class TodoListViewModel: ObservableObject {
     @Published private(set) var items: [TodoItem]
 
-    private let storageKey = "todo_items"
     private let quickAddParser: QuickAddParser
+    private static let storageFilename = "todos.json"
 
     init(items: [TodoItem] = [], quickAddParser: QuickAddParser = QuickAddParser()) {
         self.quickAddParser = quickAddParser
 
         if items.isEmpty {
-            self.items = Self.loadItems(from: storageKey)
+            self.items = Self.loadItems()
         } else {
             self.items = items
         }
@@ -69,15 +69,38 @@ final class TodoListViewModel: ObservableObject {
     }
 
     private func persistItems() {
-        guard let data = try? JSONEncoder().encode(items) else { return }
-        UserDefaults.standard.set(data, forKey: storageKey)
+        guard let url = Self.storageURL else { return }
+        let directory = url.deletingLastPathComponent()
+
+        do {
+            try FileManager.default.createDirectory(
+                at: directory,
+                withIntermediateDirectories: true,
+                attributes: nil
+            )
+            let data = try JSONEncoder().encode(items)
+            try data.write(to: url, options: .atomic)
+        } catch {
+            print("Failed to persist todos:", error.localizedDescription)
+        }
     }
 
-    private static func loadItems(from key: String) -> [TodoItem] {
-        guard let data = UserDefaults.standard.data(forKey: key),
+    private static func loadItems() -> [TodoItem] {
+        guard let url = storageURL,
+              let data = try? Data(contentsOf: url),
               let decoded = try? JSONDecoder().decode([TodoItem].self, from: data) else {
             return []
         }
         return decoded
+    }
+
+    private static var storageURL: URL? {
+        guard let baseURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            return nil
+        }
+
+        return baseURL
+            .appendingPathComponent("Todolist", isDirectory: true)
+            .appendingPathComponent(storageFilename)
     }
 }
