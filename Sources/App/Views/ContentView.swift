@@ -280,6 +280,7 @@ struct ContentView: View {
                         priority: newPriority,
                         dueDate: newDueDateEnabled ? newDueDate : nil
                     )
+                    print("Debug: items count \(viewModel.items.count)")
                     newTitle = ""
                     newDescription = ""
                     newPriority = .medium
@@ -515,6 +516,7 @@ struct ContentView: View {
             quickInputHint = String(localized: "quickadd.hint.missingtitle", locale: selectedLocale)
             return
         }
+        print("Debug: items count \(viewModel.items.count)")
 
         let tokenSeparator = String(localized: "quickadd.token.separator", locale: selectedLocale)
         quickInputHint = feedback.recognizedTokens.isEmpty
