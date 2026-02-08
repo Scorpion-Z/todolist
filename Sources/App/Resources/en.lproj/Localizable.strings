@@ -21,6 +21,7 @@
 "quickfill.today" = "Today";
 "quickfill.tomorrow" = "Tomorrow";
 "quickfill.nextweek" = "Next Week";
+"quickview.title" = "Quick Views";
 "template.title" = "Default templates";
 "template.hint" = "Tap a template to insert a starter checklist.";
 "template.work" = "Work";
@@ -38,6 +39,9 @@
 "priority.label" = "Priority";
 "duedate.label" = "Due date";
 "filter.label" = "Filter";
+"filter.status" = "Status";
+"filter.time" = "Time";
+"filter.priority" = "Priority";
 "sort.label" = "Sort";
 "view.title" = "View";
 "view.list" = "List";
@@ -50,8 +54,14 @@
 "filter.open" = "Open";
 "filter.completed" = "Completed";
 "filter.today" = "Today";
+"filter.anytime" = "Any time";
+"filter.thisWeek" = "This Week";
 "filter.upcoming" = "Upcoming";
 "filter.overdue" = "Overdue";
+"filter.tags" = "Tags";
+"filter.tags.selected" = "Tags (%d)";
+"filter.tags.empty" = "No tags";
+"filter.tags.clear" = "Clear tags";
 "reorder.notice" = "Reordering is available only in Manual sort.";
 "view.mode" = "View";
 "view.today" = "Today";
@@ -69,6 +79,7 @@
 "section.open" = "Open";
 "section.completed" = "Completed";
 "section.dueToday" = "Due Today";
+"section.thisWeek" = "This Week";
 "section.upcoming" = "Upcoming";
 "section.overdue" = "Overdue";
 
@@ -92,5 +103,17 @@
 "priority.low" = "Low";
 "priority.medium" = "Medium";
 "priority.high" = "High";
+"tag.stats.title" = "Tag Summary";
+"tag.stats.detail" = "%d/%d completed";
+
+"tag.color.red" = "Red";
+"tag.color.orange" = "Orange";
+"tag.color.yellow" = "Yellow";
+"tag.color.green" = "Green";
+"tag.color.teal" = "Teal";
+"tag.color.blue" = "Blue";
+"tag.color.purple" = "Purple";
+"tag.color.pink" = "Pink";
+"tag.color.gray" = "Gray";
 
 "notification.body" = "Todo reminder";
