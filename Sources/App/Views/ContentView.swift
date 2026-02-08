@@ -136,6 +136,12 @@ struct ContentView: View {
         var items: [String]
     }
 
+    private struct TemplateSelection: Identifiable, Equatable {
+        let id: UUID
+        let title: String
+        var isSelected: Bool
+    }
+
     @FocusState private var quickInputFocused: Bool
     @FocusState private var searchFieldFocused: Bool
     @AppStorage("appLanguage") private var appLanguage = Locale.current.language.languageCode?.identifier == "zh" ? "zh-Hans" : "en"
@@ -176,6 +182,9 @@ struct ContentView: View {
     @State private var templates: [TemplateConfig] = []
     @State private var hasLoadedTemplates = false
     @State private var showingTemplateManager = false
+    @State private var showingTemplatePreview = false
+    @State private var previewTemplate: TemplateConfig?
+    @State private var templateSelections: [TemplateSelection] = []
     @AppStorage("templateConfigs") private var storedTemplateConfigs = ""
 
     private var filteredItems: [TodoItem] {
@@ -543,6 +552,9 @@ struct ContentView: View {
                 title: manageTemplateTitle
             )
         }
+        .sheet(isPresented: $showingTemplatePreview) {
+            templatePreviewSheet
+        }
         .onAppear(perform: loadTemplatesIfNeeded)
         .onChange(of: templates) { _ in
             persistTemplates()
@@ -614,7 +626,7 @@ struct ContentView: View {
             HStack(spacing: 12) {
                 ForEach(templates) { template in
                     Button {
-                        addTemplate(template)
+                        presentTemplatePreview(template)
                     } label: {
                         Text(template.title)
                     }
@@ -745,8 +757,77 @@ struct ContentView: View {
         quickInputFocused = true
     }
 
-    private func addTemplate(_ template: TemplateConfig) {
-        viewModel.addTemplateItems(template.items)
+    private func addSelectedTemplateItems() {
+        let selectedItems = templateSelections
+            .filter(\.isSelected)
+            .map(\.title)
+        guard !selectedItems.isEmpty else {
+            dismissTemplatePreview()
+            return
+        }
+        viewModel.addTemplateItems(selectedItems)
+        dismissTemplatePreview()
+    }
+
+    private func presentTemplatePreview(_ template: TemplateConfig) {
+        previewTemplate = template
+        templateSelections = template.items.map {
+            TemplateSelection(id: UUID(), title: $0, isSelected: true)
+        }
+        showingTemplatePreview = true
+    }
+
+    private func dismissTemplatePreview() {
+        showingTemplatePreview = false
+        previewTemplate = nil
+        templateSelections.removeAll()
+    }
+
+    private func selectAllTemplateItems(_ isSelected: Bool) {
+        templateSelections = templateSelections.map { selection in
+            TemplateSelection(id: selection.id, title: selection.title, isSelected: isSelected)
+        }
+    }
+
+    private var templatePreviewSheet: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            if let previewTemplate {
+                Text(previewTemplate.title)
+                    .font(.headline)
+                Text("Select the items you want to create.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                List {
+                    ForEach($templateSelections) { $selection in
+                        Toggle(selection.title, isOn: $selection.isSelected)
+                    }
+                }
+                HStack {
+                    Button("Select All") {
+                        selectAllTemplateItems(true)
+                    }
+                    Button("Clear") {
+                        selectAllTemplateItems(false)
+                    }
+                    Spacer()
+                    Button("Cancel") {
+                        dismissTemplatePreview()
+                    }
+                    Button("Create") {
+                        addSelectedTemplateItems()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(templateSelections.allSatisfy { !$0.isSelected })
+                }
+            } else {
+                Text("No template selected.")
+            }
+        }
+        .padding()
+        .frame(minWidth: 360, minHeight: 360)
+        .onDisappear {
+            dismissTemplatePreview()
+        }
     }
 
     private func loadTemplatesIfNeeded() {
