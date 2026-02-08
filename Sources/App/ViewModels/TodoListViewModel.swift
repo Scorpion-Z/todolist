@@ -227,6 +227,17 @@ final class TodoListViewModel: ObservableObject {
         return QuickAddFeedback(created: true, recognizedTokens: parsed.recognizedTokens)
     }
 
+    func addTemplateItems(_ titles: [String]) {
+        let trimmedTitles = titles
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        guard !trimmedTitles.isEmpty else { return }
+
+        trimmedTitles.forEach { title in
+            addItem(title: title, descriptionMarkdown: "", priority: .medium, dueDate: nil)
+        }
+    }
+
     func deleteItems(at offsets: IndexSet) {
         let removedItems = offsets.compactMap { index in
             items.indices.contains(index) ? items[index] : nil
