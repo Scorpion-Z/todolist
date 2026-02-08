@@ -98,6 +98,7 @@ struct ContentView: View {
     @State private var editDueDateEnabled = false
     @State private var editDueDate = Date()
     @State private var editRepeatRule: TodoItem.RepeatRule = .none
+    @State private var editDescription = ""
     @State private var editSubtasks: [Subtask] = []
     @State private var editTags: [Tag] = []
     @State private var editAvailableTags: [Tag] = []
@@ -108,6 +109,7 @@ struct ContentView: View {
     @State private var selectedItemID: TodoItem.ID?
     @State private var draggingItemID: TodoItem.ID?
     @State private var dropTargetItemID: TodoItem.ID?
+    @State private var exportErrorMessage: String?
 
     private var filteredItems: [TodoItem] {
         let calendar = Calendar.current
@@ -309,14 +311,6 @@ struct ContentView: View {
                 }
                 .pickerStyle(.menu)
 
-                Picker("view.title", selection: $viewStyle) {
-                    ForEach(ViewStyle.allCases) { option in
-                        Text(option.titleKey).tag(option)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .frame(width: 200)
-
                 Spacer()
 
                 Picker("view.mode", selection: $viewMode) {
@@ -390,9 +384,6 @@ struct ContentView: View {
                                             let completedCount = item.subtasks.filter(\.isCompleted).count
                                             tagLabel("\(completedCount)/\(item.subtasks.count)")
                                         }
-                                        ForEach(item.tags, id: \.self) { tag in
-                                            tagLabel(tag)
-                                        }
                                     }
                                     Spacer()
                                     Button("edit.button") {
@@ -423,7 +414,7 @@ struct ContentView: View {
         .padding(24)
         .frame(minWidth: 520, minHeight: 420)
         .searchable(text: $searchText)
-        .searchFocused($searchFieldFocused)
+        .applySearchFocus($searchFieldFocused)
         .sheet(item: $editingItem) { item in
             editSheet(for: item)
         }
@@ -917,4 +908,15 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
+}
+
+private extension View {
+    @ViewBuilder
+    func applySearchFocus(_ isFocused: FocusState<Bool>.Binding) -> some View {
+        if #available(macOS 15.0, *) {
+            self.searchFocused(isFocused)
+        } else {
+            self
+        }
+    }
 }
