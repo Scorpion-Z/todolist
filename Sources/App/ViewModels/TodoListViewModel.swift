@@ -201,9 +201,10 @@ final class TodoListViewModel: ObservableObject {
     func addItem(title: String, descriptionMarkdown: String, priority: TodoItem.Priority, dueDate: Date?) {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
+        let trimmedDescription = descriptionMarkdown.trimmingCharacters(in: .whitespacesAndNewlines)
         let newItem = TodoItem(
             title: trimmed,
-            descriptionMarkdown: descriptionMarkdown,
+            descriptionMarkdown: trimmedDescription,
             priority: priority,
             dueDate: dueDate
         )
