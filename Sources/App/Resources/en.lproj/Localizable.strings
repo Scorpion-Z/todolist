@@ -90,6 +90,13 @@
 "mark.done" = "Mark Done";
 "edit.title" = "Edit Todo";
 "edit.field.title" = "Title";
+"repeat.label" = "Repeat";
+"subtasks.title" = "Subtasks";
+"subtasks.add.placeholder" = "Add a subtask";
+"subtasks.add.button" = "Add";
+"tags.title" = "Tags";
+"tags.add.placeholder" = "Add a tag";
+"tags.add.button" = "Add";
 "edit.cancel" = "Cancel";
 "edit.save" = "Save";
 

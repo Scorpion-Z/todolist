@@ -822,6 +822,11 @@ struct ContentView: View {
 
     @ViewBuilder
     private func editSheet(for item: TodoItem) -> some View {
+        // Localization keys used in edit sheet:
+        // edit.title, edit.field.title, markdown.description, markdown.preview, priority.label, duedate.label,
+        // quickfill.title, quickfill.today, quickfill.tomorrow, quickfill.nextweek, repeat.label,
+        // subtasks.title, subtasks.add.placeholder, subtasks.add.button, tags.title,
+        // tags.add.placeholder, tags.add.button, edit.cancel, edit.save.
         VStack(alignment: .leading, spacing: 16) {
             Text("edit.title")
                 .font(.title2)
