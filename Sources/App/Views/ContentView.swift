@@ -139,8 +139,7 @@ struct ContentView: View {
             }
 
             guard matchesCompletionAndDateFilter else { return false }
-            if viewMode == .today {
-                guard let dueDate = item.dueDate else { return false }
+            if viewMode == .today, let dueDate = item.dueDate {
                 guard dueDate >= startOfToday && dueDate < startOfTomorrow else { return false }
             }
             if viewMode == .week {
@@ -204,7 +203,7 @@ struct ContentView: View {
         switch viewMode {
         case .today:
             return filteredItems.filter { item in
-                guard let dueDate = item.dueDate else { return false }
+                guard let dueDate = item.dueDate else { return true }
                 return dueDate >= startOfToday && dueDate < startOfTomorrow
             }
         case .week:
