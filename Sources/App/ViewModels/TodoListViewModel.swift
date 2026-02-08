@@ -61,7 +61,7 @@ struct CloudTodoStorage: TodoStorage {
         static let createdAt = "createdAt"
     }
 
-    init(container: CKContainer = .default()) {
+    init(container: CKContainer) {
         database = container.privateCloudDatabase
     }
 
@@ -166,7 +166,7 @@ final class TodoListViewModel: ObservableObject {
     init(
         items: [TodoItem] = [],
         quickAddParser: QuickAddParser = QuickAddParser(),
-        storage: TodoStorage = DualWriteStorage(primary: LocalTodoStorage(), secondary: CloudTodoStorage())
+        storage: TodoStorage = LocalTodoStorage()
     ) {
         self.quickAddParser = quickAddParser
         self.notificationCenter = UNUserNotificationCenter.current()
