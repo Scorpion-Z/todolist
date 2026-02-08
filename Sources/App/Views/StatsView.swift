@@ -95,14 +95,9 @@ struct StatsView: View {
         }
     }
 
+    @ViewBuilder
     private var tagStatsSection: some View {
-        if tagStats.isEmpty {
-            return AnyView(EmptyView())
-        }
-        return AnyView(tagStatsGrid)
-    }
-
-    private var tagStatsGrid: some View {
+        guard !tagStats.isEmpty else { return }
         VStack(alignment: .leading, spacing: 8) {
             Text("tag.stats.title")
                 .font(.headline)
