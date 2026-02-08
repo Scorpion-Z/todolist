@@ -549,6 +549,9 @@ final class TodoListViewModel: ObservableObject {
             repeatRule: item.repeatRule
         )
         items.append(newItem)
+        if newItem.dueDate != nil, !newItem.isCompleted {
+            scheduleNotification(for: newItem)
+        }
         rebuildTags()
     }
 
