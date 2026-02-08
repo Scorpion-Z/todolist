@@ -3,12 +3,13 @@
 "language.english" = "English";
 "language.chinese" = "Simplified Chinese";
 
-"quickadd.placeholder" = "Quick add: tomorrow 17:00 submit report p1";
+"quickadd.placeholder" = "Quick add: tomorrow 9am meeting p1";
 "quickadd.button" = "Quick Add";
 "quickadd.help" = "Press Enter to add";
 "quickadd.focus" = "Focus quick add";
 "quickadd.clear" = "Clear";
-"quickadd.hint.example" = "Example: tomorrow 17:00 submit report p1";
+"quickadd.hint.example" = "Example: tomorrow 9am meeting p1";
+"quickadd.floating" = "Quick Add";
 "quickadd.hint.missingtitle" = "Enter a title before submitting";
 "quickadd.hint.unrecognized" = "No date/priority recognized. Created as a plain title.";
 "quickadd.hint.recognized" = "Recognized: %@";
@@ -16,6 +17,24 @@
 
 "newtodo.placeholder" = "New todo";
 "add.button" = "Add";
+"quickfill.title" = "Quick fill";
+"quickfill.today" = "Today";
+"quickfill.tomorrow" = "Tomorrow";
+"quickfill.nextweek" = "Next Week";
+"template.title" = "Default templates";
+"template.hint" = "Tap a template to insert a starter checklist.";
+"template.work" = "Work";
+"template.life" = "Life";
+"template.shopping" = "Shopping list";
+"template.work.item1" = "Review priorities";
+"template.work.item2" = "Reply to email";
+"template.work.item3" = "Update project status";
+"template.life.item1" = "Workout for 30 minutes";
+"template.life.item2" = "Tidy up the room";
+"template.life.item3" = "Read and relax";
+"template.shopping.item1" = "Produce";
+"template.shopping.item2" = "Household items";
+"template.shopping.item3" = "Snacks and drinks";
 "priority.label" = "Priority";
 "duedate.label" = "Due date";
 "filter.label" = "Filter";

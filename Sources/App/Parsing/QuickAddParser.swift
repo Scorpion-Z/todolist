@@ -26,9 +26,7 @@ struct QuickAddParser {
             return QuickAddParseResult(title: "", priority: .medium, dueDate: nil, recognizedTokens: [])
         }
 
-        var remainingTokens = normalized
-            .split(whereSeparator: { $0.isWhitespace })
-            .map(String.init)
+        var remainingTokens = tokenize(normalized)
         var recognizedTokens: [String] = []
 
         let priority = parsePriority(from: &remainingTokens, recognizedTokens: &recognizedTokens) ?? .medium
@@ -97,18 +95,26 @@ struct QuickAddParser {
     }
 
     private func isDateKeyword(_ token: String) -> Bool {
-        if token == "今天" || token == "明天" {
+        if token == "今天" || token == "明天" || token == "后天" || token == "下周" {
             return true
         }
         if token.hasPrefix("周") || token.hasPrefix("星期") {
+            return weekdayNumber(from: token) != nil
+        }
+        if token.hasPrefix("下周") {
             return weekdayNumber(from: token) != nil
         }
         return false
     }
 
     private func isTimeToken(_ token: String) -> Bool {
-        let pattern = #"^([01]?\d|2[0-3]):([0-5]\d)$"#
-        return token.range(of: pattern, options: .regularExpression) != nil
+        let normalized = token.replacingOccurrences(of: "：", with: ":")
+        let colonPattern = #"^([01]?\d|2[0-3]):([0-5]\d)$"#
+        if normalized.range(of: colonPattern, options: .regularExpression) != nil {
+            return true
+        }
+        let chinesePattern = #"^(上午|下午|晚上|中午)?([01]?\d|2[0-3])点(半|([0-5]?\d)分?)?$"#
+        return normalized.range(of: chinesePattern, options: .regularExpression) != nil
     }
 
     private func resolveDate(from token: String) -> Date? {
@@ -122,7 +128,15 @@ struct QuickAddParser {
             return tomorrow
         }
 
-        guard let targetWeekday = weekdayNumber(from: token) else {
+        if token == "后天", let dayAfterTomorrow = calendar.date(byAdding: .day, value: 2, to: calendar.startOfDay(for: now)) {
+            return dayAfterTomorrow
+        }
+
+        if token == "下周", let nextWeek = calendar.date(byAdding: .day, value: 7, to: calendar.startOfDay(for: now)) {
+            return nextWeek
+        }
+
+        guard let (targetWeekday, forceNextWeek) = weekdayMatch(from: token) else {
             return nil
         }
 
@@ -132,14 +146,18 @@ struct QuickAddParser {
         if delta == 0 {
             delta = 7
         }
+        if forceNextWeek {
+            delta += 7
+        }
 
         return calendar.date(byAdding: .day, value: delta, to: startToday)
     }
 
     private func weekdayNumber(from token: String) -> Int? {
         let normalized = token.replacingOccurrences(of: "星期", with: "周")
-        guard normalized.count >= 2 else { return nil }
-        let suffix = String(normalized.dropFirst())
+        let trimmed = normalized.replacingOccurrences(of: "下周", with: "周")
+        guard trimmed.count >= 2 else { return nil }
+        let suffix = String(trimmed.dropFirst())
 
         switch suffix {
         case "一": return 2
@@ -153,19 +171,97 @@ struct QuickAddParser {
         }
     }
 
+    private func weekdayMatch(from token: String) -> (weekday: Int, forceNextWeek: Bool)? {
+        let isNextWeek = token.hasPrefix("下周")
+        guard let weekday = weekdayNumber(from: token) else { return nil }
+        return (weekday, isNextWeek)
+    }
+
     private func applyTime(_ token: String, to date: Date) -> Date? {
-        let parts = token.split(separator: ":")
-        guard parts.count == 2,
-              let hour = Int(parts[0]),
-              let minute = Int(parts[1]) else {
+        let normalized = token.replacingOccurrences(of: "：", with: ":")
+        if normalized.contains(":") {
+            let parts = normalized.split(separator: ":")
+            guard parts.count == 2,
+                  let hour = Int(parts[0]),
+                  let minute = Int(parts[1]) else {
+                return nil
+            }
+
+            return calendar.date(
+                bySettingHour: hour,
+                minute: minute,
+                second: 0,
+                of: date
+            )
+        }
+
+        guard let components = parseChineseTime(normalized) else {
             return nil
         }
 
         return calendar.date(
-            bySettingHour: hour,
-            minute: minute,
+            bySettingHour: components.hour,
+            minute: components.minute,
             second: 0,
             of: date
         )
+    }
+
+    private func parseChineseTime(_ token: String) -> (hour: Int, minute: Int)? {
+        let pattern = #"^(上午|下午|晚上|中午)?([01]?\d|2[0-3])点(半|([0-5]?\d)分?)?$"#
+        guard let regex = try? NSRegularExpression(pattern: pattern),
+              let match = regex.firstMatch(in: token, range: NSRange(token.startIndex..., in: token)) else {
+            return nil
+        }
+
+        let periodRange = Range(match.range(at: 1), in: token)
+        let hourRange = Range(match.range(at: 2), in: token)
+        let minuteTokenRange = Range(match.range(at: 4), in: token)
+        let halfRange = Range(match.range(at: 3), in: token)
+
+        guard let hourRange,
+              let hour = Int(token[hourRange]) else {
+            return nil
+        }
+
+        var minute = 0
+        if let halfRange, token[halfRange].contains("半") {
+            minute = 30
+        } else if let minuteTokenRange, let parsedMinute = Int(token[minuteTokenRange]) {
+            minute = parsedMinute
+        }
+
+        var adjustedHour = hour
+        if let periodRange {
+            let period = token[periodRange]
+            if (period == "下午" || period == "晚上") && hour < 12 {
+                adjustedHour = hour + 12
+            }
+            if period == "中午", hour < 11 {
+                adjustedHour = hour + 12
+            }
+            if period == "上午", hour == 12 {
+                adjustedHour = 0
+            }
+        }
+
+        return (adjustedHour, minute)
+    }
+
+    private func tokenize(_ text: String) -> [String] {
+        let spacingPatterns = [
+            #"(今天|明天|后天|下周[一二三四五六日天]?|周[一二三四五六日天]|星期[一二三四五六日天])"#,
+            #"([01]?\d|2[0-3])[:：][0-5]\d"#,
+            #"(上午|下午|晚上|中午)?([01]?\d|2[0-3])点(半|([0-5]?\d)分?)?"#
+        ]
+
+        var spaced = text
+        for pattern in spacingPatterns {
+            spaced = spaced.replacingOccurrences(of: pattern, with: " $0 ", options: .regularExpression)
+        }
+
+        return spaced
+            .split(whereSeparator: { $0.isWhitespace })
+            .map(String.init)
     }
 }
