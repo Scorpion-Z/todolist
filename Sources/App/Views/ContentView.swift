@@ -451,7 +451,7 @@ struct ContentView: View {
                             onEdit: beginEditing(_:)
                         )
                     } else {
-                        List {
+                        List(selection: $selectedItemID) {
                             Section(sectionTitleKey) {
                                 let canReorder = sortOption == .manual && !hasActiveFilters
                                 let rows = ForEach(filteredItems) { item in
@@ -497,6 +497,7 @@ struct ContentView: View {
                                         .controlSize(.small)
                                     }
                                     .padding(.vertical, 8)
+                                    .tag(item.id)
                                     .contextMenu {
                                         let markKey: LocalizedStringKey = item.isCompleted ? "mark.open" : "mark.done"
                                         Button("edit.button") {
