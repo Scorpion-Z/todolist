@@ -62,7 +62,7 @@
 "filter.tags.selected" = "标签（%d）";
 "filter.tags.empty" = "暂无标签";
 "filter.tags.clear" = "清除标签";
-"reorder.notice" = "仅在“手动”排序下可拖动排序。";
+"reorder.notice" = "仅在“手动”排序且未筛选时可拖动排序。";
 "view.mode" = "视图";
 "view.today" = "今日";
 "view.week" = "本周";

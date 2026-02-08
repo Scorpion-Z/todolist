@@ -62,7 +62,7 @@
 "filter.tags.selected" = "Tags (%d)";
 "filter.tags.empty" = "No tags";
 "filter.tags.clear" = "Clear tags";
-"reorder.notice" = "Reordering is available only in Manual sort.";
+"reorder.notice" = "Reordering is available only in Manual sort with no filters.";
 "view.mode" = "View";
 "view.today" = "Today";
 "view.week" = "This Week";
