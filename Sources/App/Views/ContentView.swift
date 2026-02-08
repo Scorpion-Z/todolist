@@ -326,6 +326,13 @@ struct ContentView: View {
         set { layoutModeRawValue = newValue.rawValue }
     }
 
+    private var layoutModeBinding: Binding<LayoutMode> {
+        Binding(
+            get: { layoutMode },
+            set: { layoutModeRawValue = $0.rawValue }
+        )
+    }
+
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             VStack(alignment: .leading, spacing: 16) {
@@ -410,10 +417,7 @@ struct ContentView: View {
 
                     Spacer()
 
-                    Picker("view.mode", selection: Binding(
-                        get: { layoutMode },
-                        set: { layoutModeRawValue = $0.rawValue }
-                    )) {
+                    Picker("view.mode", selection: layoutModeBinding) {
                         ForEach(LayoutMode.allCases) { option in
                             Text(option.titleKey).tag(option)
                         }
