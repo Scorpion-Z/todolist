@@ -253,7 +253,7 @@ final class TodoListViewModel: ObservableObject {
         items.remove(atOffsets: offsets)
         rebuildTags()
         persistItems()
-        removedItems.forEach(cancelNotification)
+        removedItems.forEach(cancelNotification(for:))
     }
 
     func deleteItems(withIDs ids: [TodoItem.ID]) {
@@ -261,7 +261,7 @@ final class TodoListViewModel: ObservableObject {
         items.removeAll { ids.contains($0.id) }
         rebuildTags()
         persistItems()
-        removedItems.forEach(cancelNotification)
+        removedItems.forEach(cancelNotification(for:))
     }
 
     func deleteItem(_ item: TodoItem) {
@@ -269,7 +269,7 @@ final class TodoListViewModel: ObservableObject {
         items.remove(at: index)
         rebuildTags()
         persistItems()
-        cancelNotification(item)
+        cancelNotification(for: item)
     }
 
     func moveItems(from source: IndexSet, to destination: Int) {

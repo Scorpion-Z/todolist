@@ -497,6 +497,10 @@ struct ContentView: View {
                                         .controlSize(.small)
                                     }
                                     .padding(.vertical, 8)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        selectedItemID = item.id
+                                    }
                                     .tag(item.id)
                                     .contextMenu {
                                         let markKey: LocalizedStringKey = item.isCompleted ? "mark.open" : "mark.done"
