@@ -441,7 +441,7 @@ struct ContentView: View {
                             onEdit: beginEditing(_:)
                         )
                     } else {
-                        List {
+                        List(selection: $selectedItemID) {
                             Section(sectionTitleKey) {
                                 ForEach(filteredItems) { item in
                                     HStack(alignment: .top, spacing: 12) {
@@ -486,6 +486,7 @@ struct ContentView: View {
                                         .controlSize(.small)
                                     }
                                     .padding(.vertical, 8)
+                                    .tag(item.id)
                                     .contextMenu {
                                         let markKey: LocalizedStringKey = item.isCompleted ? "mark.open" : "mark.done"
                                         Button("edit.button") {
