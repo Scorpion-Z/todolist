@@ -198,6 +198,14 @@ final class TodoListViewModel: ObservableObject {
         var id: Date { date }
     }
 
+    struct TagStat: Identifiable {
+        let tag: Tag
+        let totalCount: Int
+        let completedCount: Int
+
+        var id: UUID { tag.id }
+    }
+
     func addItem(title: String, descriptionMarkdown: String, priority: TodoItem.Priority, dueDate: Date?) {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
@@ -297,6 +305,7 @@ final class TodoListViewModel: ObservableObject {
         items[index].subtasks = subtasks
         items[index].tags = tags
         items[index].repeatRule = repeatRule
+        applyTagColors(from: tags)
         rebuildTags()
         persistItems()
     }
@@ -354,6 +363,32 @@ final class TodoListViewModel: ObservableObject {
             guard let dueDate = item.dueDate else { return false }
             return !item.isCompleted && dueDate < startOfToday
         }.count
+    }
+
+    func tagStats() -> [TagStat] {
+        let groupedTags = Dictionary(grouping: items.flatMap(\.tags)) { tag in
+            normalizedTagName(tag.name)
+        }
+
+        let normalizedToTag = groupedTags.compactMapValues { tags in
+            tags.first
+        }
+
+        let stats = normalizedToTag.compactMap { normalizedName, tag -> TagStat? in
+            let taggedItems = items.filter { item in
+                item.tags.contains { normalizedTagName($0.name) == normalizedName }
+            }
+            guard !taggedItems.isEmpty else { return nil }
+            let completedCount = taggedItems.filter(\.isCompleted).count
+            return TagStat(tag: tag, totalCount: taggedItems.count, completedCount: completedCount)
+        }
+
+        return stats.sorted {
+            if $0.totalCount != $1.totalCount {
+                return $0.totalCount > $1.totalCount
+            }
+            return $0.tag.name.localizedCaseInsensitiveCompare($1.tag.name) == .orderedAscending
+        }
     }
 
     func sevenDayCompletionTrend(referenceDate: Date = Date(), calendar: Calendar = .current) -> [DailyCompletionStat] {
@@ -469,12 +504,34 @@ final class TodoListViewModel: ObservableObject {
         var seen = Set<String>()
         var collected: [Tag] = []
         for tag in items.flatMap(\.tags) {
-            let normalized = tag.name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            let normalized = normalizedTagName(tag.name)
             guard !normalized.isEmpty, !seen.contains(normalized) else { continue }
             seen.insert(normalized)
             collected.append(tag)
         }
         return collected.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
+
+    private func applyTagColors(from tags: [Tag]) {
+        let colorMap = Dictionary(uniqueKeysWithValues: tags.map { (normalizedTagName($0.name), $0.color) })
+        guard !colorMap.isEmpty else { return }
+        for index in items.indices {
+            var updated = items[index]
+            updated.tags = updated.tags.map { tag in
+                let normalized = normalizedTagName(tag.name)
+                guard let color = colorMap[normalized] else { return tag }
+                return Tag(id: tag.id, name: tag.name, color: color)
+            }
+            items[index] = updated
+        }
+    }
+
+    private static func normalizedTagName(_ name: String) -> String {
+        name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    private func normalizedTagName(_ name: String) -> String {
+        Self.normalizedTagName(name)
     }
 
     private func handleRepeat(for item: TodoItem) {
