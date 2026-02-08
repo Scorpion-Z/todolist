@@ -414,7 +414,7 @@ struct ContentView: View {
         .padding(24)
         .frame(minWidth: 520, minHeight: 420)
         .searchable(text: $searchText)
-        .searchFocused($searchFieldFocused)
+        .applySearchFocus($searchFieldFocused)
         .sheet(item: $editingItem) { item in
             editSheet(for: item)
         }
@@ -908,4 +908,15 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
+}
+
+private extension View {
+    @ViewBuilder
+    func applySearchFocus(_ isFocused: FocusState<Bool>.Binding) -> some View {
+        if #available(macOS 15.0, *) {
+            self.searchFocused(isFocused)
+        } else {
+            self
+        }
+    }
 }

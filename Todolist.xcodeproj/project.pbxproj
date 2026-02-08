@@ -13,8 +13,13 @@
 		C1C1C1C1C1C1C1C1C1C1C112 /* CardListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C1C1C1C1C1C1C1C1C1C102 /* CardListView.swift */; };
 		C1C1C1C1C1C1C1C1C1C1C113 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C1C1C1C1C1C1C1C1C1C103 /* StatsView.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1A5 /* TodoItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1A6 /* TodoItem.swift */; };
+<<<<<<< codex/fix-build-errors-in-xcode-lbywei
+		C1C1C1C1C1C1C1C1C1C1C114 /* Tag.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C1C1C1C1C1C1C1C1C1C104 /* Tag.swift */; };
+		C1C1C1C1C1C1C1C1C1C1C115 /* Subtask.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C1C1C1C1C1C1C1C1C1C105 /* Subtask.swift */; };
+=======
 		A1A1A1A1A1A1A1A1A1A1A1C5 /* Tag.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1C4 /* Tag.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1C7 /* Subtask.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1C6 /* Subtask.swift */; };
+>>>>>>> main
 		A1A1A1A1A1A1A1A1A1A1A1A7 /* TodoListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1A8 /* TodoListViewModel.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1C1 /* QuickAddParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1C2 /* QuickAddParser.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1A9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1AA /* Assets.xcassets */; };
@@ -29,8 +34,13 @@
 		C1C1C1C1C1C1C1C1C1C1C102 /* CardListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardListView.swift; sourceTree = "<group>"; };
 		C1C1C1C1C1C1C1C1C1C1C103 /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1A6 /* TodoItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoItem.swift; sourceTree = "<group>"; };
+<<<<<<< codex/fix-build-errors-in-xcode-lbywei
+		C1C1C1C1C1C1C1C1C1C1C104 /* Tag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tag.swift; sourceTree = "<group>"; };
+		C1C1C1C1C1C1C1C1C1C1C105 /* Subtask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Subtask.swift; sourceTree = "<group>"; };
+=======
 		A1A1A1A1A1A1A1A1A1A1A1C4 /* Tag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tag.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1C6 /* Subtask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Subtask.swift; sourceTree = "<group>"; };
+>>>>>>> main
 		A1A1A1A1A1A1A1A1A1A1A1A8 /* TodoListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoListViewModel.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1C2 /* QuickAddParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickAddParser.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1AA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -96,8 +106,13 @@
 			isa = PBXGroup;
 			children = (
 				A1A1A1A1A1A1A1A1A1A1A1A6 /* TodoItem.swift */,
+<<<<<<< codex/fix-build-errors-in-xcode-lbywei
+				C1C1C1C1C1C1C1C1C1C1C104 /* Tag.swift */,
+				C1C1C1C1C1C1C1C1C1C1C105 /* Subtask.swift */,
+=======
 				A1A1A1A1A1A1A1A1A1A1A1C4 /* Tag.swift */,
 				A1A1A1A1A1A1A1A1A1A1A1C6 /* Subtask.swift */,
+>>>>>>> main
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -207,10 +222,18 @@
 				A1A1A1A1A1A1A1A1A1A1A1A1 /* TodolistApp.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1A3 /* ContentView.swift in Sources */,
 				C1C1C1C1C1C1C1C1C1C1C111 /* CalendarView.swift in Sources */,
+<<<<<<< codex/fix-build-errors-in-xcode-lbywei
+				C1C1C1C1C1C1C1C1C1C1C112 /* CardListView.swift in Sources */,
+				C1C1C1C1C1C1C1C1C1C1C113 /* StatsView.swift in Sources */,
+				A1A1A1A1A1A1A1A1A1A1A1A5 /* TodoItem.swift in Sources */,
+				C1C1C1C1C1C1C1C1C1C1C114 /* Tag.swift in Sources */,
+				C1C1C1C1C1C1C1C1C1C1C115 /* Subtask.swift in Sources */,
+=======
 				C1C1C1C1C1C1C1C1C1C1C113 /* StatsView.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1A5 /* TodoItem.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1C5 /* Tag.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1C7 /* Subtask.swift in Sources */,
+>>>>>>> main
 				A1A1A1A1A1A1A1A1A1A1A1A7 /* TodoListViewModel.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1C1 /* QuickAddParser.swift in Sources */,
 			);
