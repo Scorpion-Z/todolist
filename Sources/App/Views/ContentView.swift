@@ -90,7 +90,7 @@ struct ContentView: View {
     @State private var searchText = ""
     @State private var filter: Filter = .all
     @State private var sortOption: SortOption = .manual
-    @State private var viewMode: ViewMode = .today
+    @State private var viewMode: ViewMode = .calendar
     @State private var editingItem: TodoItem?
     @State private var inlineEditingItemID: TodoItem.ID?
     @State private var editTitle = ""
