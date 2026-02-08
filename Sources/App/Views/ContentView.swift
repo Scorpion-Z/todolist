@@ -187,12 +187,23 @@ struct ContentView: View {
     @State private var templateSelections: [TemplateSelection] = []
     @AppStorage("templateConfigs") private var storedTemplateConfigs = ""
 
+    private var normalizedSearchText: String {
+        searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var hasActiveFilters: Bool {
+        completionFilter != .all
+            || timeFilter != .anytime
+            || priorityFilter != .all
+            || !selectedTagNames.isEmpty
+            || !normalizedSearchText.isEmpty
+    }
+
     private var filteredItems: [TodoItem] {
         let calendar = Calendar.current
         let startOfToday = calendar.startOfDay(for: Date())
         let startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday) ?? startOfToday
         let endOfWeek = calendar.date(byAdding: .day, value: 7, to: startOfToday) ?? startOfTomorrow
-        let normalizedSearchText = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
 
         let filtered = viewModel.items.filter { item in
             let matchesCompletionFilter: Bool
@@ -294,7 +305,6 @@ struct ContentView: View {
     }
 
     private var emptyStateText: (titleKey: LocalizedStringKey, systemImage: String) {
-        let normalizedSearchText = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         if !normalizedSearchText.isEmpty {
             return ("empty.search", "magnifyingglass")
         }
@@ -413,7 +423,7 @@ struct ContentView: View {
                     .frame(width: 200)
                 }
 
-                if sortOption != .manual && layoutMode != .calendar {
+                if (sortOption != .manual || hasActiveFilters) && layoutMode != .calendar {
                     Text("reorder.notice")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -443,7 +453,8 @@ struct ContentView: View {
                     } else {
                         List {
                             Section(sectionTitleKey) {
-                                ForEach(filteredItems) { item in
+                                let canReorder = sortOption == .manual && !hasActiveFilters
+                                let rows = ForEach(filteredItems) { item in
                                     HStack(alignment: .top, spacing: 12) {
                                         Button {
                                             viewModel.toggleCompletion(for: item)
@@ -496,8 +507,12 @@ struct ContentView: View {
                                         }
                                     }
                                 }
-                                .onDelete(perform: viewModel.deleteItems)
-                                .onMove(perform: viewModel.moveItems)
+                                .onDelete(perform: deleteItems(at:))
+                                if canReorder {
+                                    rows.onMove(perform: moveItems(from:to:))
+                                } else {
+                                    rows
+                                }
                             }
                         }
                         .listStyle(.inset)
@@ -919,6 +934,33 @@ struct ContentView: View {
     private func clearQuickInput() {
         quickInputText = ""
         quickInputHint = String(localized: "quickadd.hint.example", locale: selectedLocale)
+    }
+
+    private func deleteItems(at offsets: IndexSet) {
+        let ids = offsets.compactMap { index in
+            filteredItems.indices.contains(index) ? filteredItems[index].id : nil
+        }
+        guard !ids.isEmpty else { return }
+        viewModel.deleteItems(withIDs: ids)
+    }
+
+    private func moveItems(from source: IndexSet, to destination: Int) {
+        let sourceIDs = source.compactMap { index in
+            filteredItems.indices.contains(index) ? filteredItems[index].id : nil
+        }
+        guard !sourceIDs.isEmpty else { return }
+        let sourceIndices = IndexSet(sourceIDs.compactMap { id in
+            viewModel.items.firstIndex { $0.id == id }
+        })
+        guard !sourceIndices.isEmpty else { return }
+        let targetIndex: Int
+        if destination < filteredItems.count {
+            let destinationID = filteredItems[destination].id
+            targetIndex = viewModel.items.firstIndex { $0.id == destinationID } ?? viewModel.items.count
+        } else {
+            targetIndex = viewModel.items.count
+        }
+        viewModel.moveItems(from: sourceIndices, to: targetIndex)
     }
 
     private struct TemplateManagerView: View {
