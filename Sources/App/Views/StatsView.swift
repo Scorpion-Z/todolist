@@ -38,9 +38,9 @@ struct StatsView: View {
 
     private var summaryCards: some View {
         HStack(spacing: 12) {
-            StatCard(title: "今日完成率", value: todayCompletionRate)
-            StatCard(title: "逾期", value: overdueCount)
-            StatCard(title: "总任务", value: totalCount)
+            StatCard(titleKey: "stats.today.completion.rate", value: todayCompletionRate)
+            StatCard(titleKey: "stats.overdue", value: overdueCount)
+            StatCard(titleKey: "stats.total", value: totalCount)
         }
     }
 
@@ -48,18 +48,18 @@ struct StatsView: View {
     private var trendSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("7日完成趋势")
+                Text("stats.trend.title")
                     .font(.headline)
                 Spacer()
-                Text("今日完成数 \(todayCompletedCount)")
+                (Text("stats.today.completed.count") + Text(" \(todayCompletedCount)"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
             if #available(macOS 13.0, *) {
                 Chart(sevenDayTrend) { stat in
                     BarMark(
-                        x: .value("日期", stat.date, unit: .day),
-                        y: .value("完成数", stat.completedCount)
+                        x: .value(String(localized: "stats.chart.date"), stat.date, unit: .day),
+                        y: .value(String(localized: "stats.chart.completed"), stat.completedCount)
                     )
                     .foregroundStyle(Color.accentColor.gradient)
                 }
@@ -135,22 +135,22 @@ private struct StatCard: View {
         case percent(Double)
     }
 
-    let title: String
+    let titleKey: LocalizedStringKey
     let displayValue: DisplayValue
 
-    init(title: String, value: Int) {
-        self.title = title
+    init(titleKey: LocalizedStringKey, value: Int) {
+        self.titleKey = titleKey
         self.displayValue = .count(value)
     }
 
-    init(title: String, value: Double) {
-        self.title = title
+    init(titleKey: LocalizedStringKey, value: Double) {
+        self.titleKey = titleKey
         self.displayValue = .percent(value)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title)
+            Text(titleKey)
                 .font(.caption)
                 .foregroundStyle(.secondary)
             switch displayValue {

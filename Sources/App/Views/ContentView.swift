@@ -300,8 +300,8 @@ struct ContentView: View {
         LanguageOption(id: "en", nameKey: "language.english"),
     ]
 
-    private var manageTemplateTitle: String {
-        appLanguage == "zh-Hans" ? "管理模板" : "Manage Templates"
+    private var manageTemplateTitle: LocalizedStringKey {
+        "template.manager.title"
     }
 
     private var emptyStateText: (titleKey: LocalizedStringKey, systemImage: String) {
@@ -564,8 +564,7 @@ struct ContentView: View {
         .sheet(isPresented: $showingTemplateManager) {
             TemplateManagerView(
                 templates: $templates,
-                locale: selectedLocale,
-                title: manageTemplateTitle
+                titleKey: manageTemplateTitle
             )
         }
         .sheet(isPresented: $showingTemplatePreview) {
@@ -810,7 +809,7 @@ struct ContentView: View {
             if let previewTemplate {
                 Text(previewTemplate.title)
                     .font(.headline)
-                Text("Select the items you want to create.")
+                Text("template.preview.hint")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 List {
@@ -819,24 +818,24 @@ struct ContentView: View {
                     }
                 }
                 HStack {
-                    Button("Select All") {
+                    Button("template.preview.selectAll") {
                         selectAllTemplateItems(true)
                     }
-                    Button("Clear") {
+                    Button("template.preview.clear") {
                         selectAllTemplateItems(false)
                     }
                     Spacer()
-                    Button("Cancel") {
+                    Button("template.preview.cancel") {
                         dismissTemplatePreview()
                     }
-                    Button("Create") {
+                    Button("template.preview.create") {
                         addSelectedTemplateItems()
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(templateSelections.allSatisfy { !$0.isSelected })
                 }
             } else {
-                Text("No template selected.")
+                Text("template.preview.none")
             }
         }
         .padding()
@@ -967,8 +966,7 @@ struct ContentView: View {
     private struct TemplateManagerView: View {
         @Environment(\.dismiss) private var dismiss
         @Binding var templates: [TemplateConfig]
-        let locale: Locale
-        let title: String
+        let titleKey: LocalizedStringKey
 
         @State private var isPresentingEditor = false
         @State private var editingTemplate: TemplateConfig?
@@ -980,7 +978,7 @@ struct ContentView: View {
             NavigationStack {
                 List {
                     if templates.isEmpty {
-                        Text(locale.identifier == "zh-Hans" ? "还没有模板。" : "No templates yet.")
+                        Text("template.manager.empty")
                             .foregroundStyle(.secondary)
                     } else {
                         ForEach(templates) { template in
@@ -993,7 +991,7 @@ struct ContentView: View {
                                         .foregroundStyle(.secondary)
                                 }
                                 Spacer()
-                                Button(locale.identifier == "zh-Hans" ? "编辑" : "Edit") {
+                                Button("template.manager.edit") {
                                     startEditing(template)
                                 }
                                 .buttonStyle(.bordered)
@@ -1003,15 +1001,15 @@ struct ContentView: View {
                         .onDelete(perform: deleteTemplates)
                     }
                 }
-                .navigationTitle(title)
+                .navigationTitle(titleKey)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
-                        Button(locale.identifier == "zh-Hans" ? "完成" : "Done") {
+                        Button("template.manager.done") {
                             dismiss()
                         }
                     }
                     ToolbarItem(placement: .primaryAction) {
-                        Button(locale.identifier == "zh-Hans" ? "新增" : "Add") {
+                        Button("template.manager.add") {
                             startNewTemplate()
                         }
                     }
@@ -1020,22 +1018,22 @@ struct ContentView: View {
             .sheet(isPresented: $isPresentingEditor) {
                 NavigationStack {
                     Form {
-                        Section(locale.identifier == "zh-Hans" ? "模板名称" : "Template Name") {
+                        Section("template.manager.name.section") {
                             TextField(
-                                locale.identifier == "zh-Hans" ? "请输入名称" : "Enter a name",
+                                "template.manager.name.placeholder",
                                 text: $draftTitle
                             )
                         }
 
-                        Section(locale.identifier == "zh-Hans" ? "模板事项" : "Template Items") {
+                        Section("template.manager.items.section") {
                             if draftItems.isEmpty {
-                                Text(locale.identifier == "zh-Hans" ? "尚无事项。" : "No items yet.")
+                                Text("template.manager.items.empty")
                                     .foregroundStyle(.secondary)
                             } else {
                                 ForEach(draftItems.indices, id: \.self) { index in
                                     HStack {
                                         TextField(
-                                            locale.identifier == "zh-Hans" ? "事项" : "Item",
+                                            "template.manager.item.placeholder",
                                             text: Binding(
                                                 get: { draftItems[index] },
                                                 set: { draftItems[index] = $0 }
@@ -1053,10 +1051,10 @@ struct ContentView: View {
 
                             HStack {
                                 TextField(
-                                    locale.identifier == "zh-Hans" ? "新增事项" : "New item",
+                                    "template.manager.newItem.placeholder",
                                     text: $newItemText
                                 )
-                                Button(locale.identifier == "zh-Hans" ? "添加" : "Add") {
+                                Button("template.manager.newItem.add") {
                                     addDraftItem()
                                 }
                                 .disabled(newItemText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -1064,17 +1062,17 @@ struct ContentView: View {
                         }
                     }
                     .navigationTitle(editingTemplate == nil
-                        ? (locale.identifier == "zh-Hans" ? "新增模板" : "New Template")
-                        : (locale.identifier == "zh-Hans" ? "编辑模板" : "Edit Template")
+                        ? "template.manager.new.title"
+                        : "template.manager.edit.title"
                     )
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
-                            Button(locale.identifier == "zh-Hans" ? "取消" : "Cancel") {
+                            Button("template.manager.cancel") {
                                 isPresentingEditor = false
                             }
                         }
                         ToolbarItem(placement: .primaryAction) {
-                            Button(locale.identifier == "zh-Hans" ? "保存" : "Save") {
+                            Button("template.manager.save") {
                                 saveTemplate()
                             }
                             .disabled(!canSaveDraft)
