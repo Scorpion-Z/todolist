@@ -104,6 +104,15 @@ struct QuickAddParser {
         if token.hasPrefix("下周") {
             return weekdayNumber(from: token) != nil
         }
+        if shouldUseEnglishRules(for: token) {
+            let lower = token.lowercased()
+            if lower == "today" || lower == "tomorrow" || lower == "next_week" || lower == "day_after_tomorrow" {
+                return true
+            }
+            if weekdayMatch(from: lower) != nil {
+                return true
+            }
+        }
         return false
     }
 
@@ -136,6 +145,23 @@ struct QuickAddParser {
             return nextWeek
         }
 
+        if shouldUseEnglishRules(for: token) {
+            let lower = token.lowercased()
+            if lower == "today" {
+                return calendar.startOfDay(for: now)
+            }
+            if lower == "tomorrow", let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now)) {
+                return tomorrow
+            }
+            if lower == "day_after_tomorrow",
+               let dayAfterTomorrow = calendar.date(byAdding: .day, value: 2, to: calendar.startOfDay(for: now)) {
+                return dayAfterTomorrow
+            }
+            if lower == "next_week", let nextWeek = calendar.date(byAdding: .day, value: 7, to: calendar.startOfDay(for: now)) {
+                return nextWeek
+            }
+        }
+
         guard let (targetWeekday, forceNextWeek) = weekdayMatch(from: token) else {
             return nil
         }
@@ -154,6 +180,13 @@ struct QuickAddParser {
     }
 
     private func weekdayNumber(from token: String) -> Int? {
+        if shouldUseEnglishRules(for: token) {
+            let trimmed = token.lowercased().replacingOccurrences(of: "next_", with: "")
+            if let englishWeekday = englishWeekdayNumber(from: trimmed) {
+                return englishWeekday
+            }
+        }
+
         let normalized = token.replacingOccurrences(of: "星期", with: "周")
         let trimmed = normalized.replacingOccurrences(of: "下周", with: "周")
         guard trimmed.count >= 2 else { return nil }
@@ -172,8 +205,10 @@ struct QuickAddParser {
     }
 
     private func weekdayMatch(from token: String) -> (weekday: Int, forceNextWeek: Bool)? {
-        let isNextWeek = token.hasPrefix("下周")
-        guard let weekday = weekdayNumber(from: token) else { return nil }
+        let lower = token.lowercased()
+        let isNextWeek = token.hasPrefix("下周") || lower.hasPrefix("next_")
+        let weekdayToken = lower.hasPrefix("next_") ? String(lower.dropFirst(5)) : token
+        guard let weekday = weekdayNumber(from: weekdayToken) else { return nil }
         return (weekday, isNextWeek)
     }
 
@@ -249,13 +284,22 @@ struct QuickAddParser {
     }
 
     private func tokenize(_ text: String) -> [String] {
-        let spacingPatterns = [
+        let useEnglish = shouldUseEnglishRules(for: text)
+        var spaced = text
+        if useEnglish {
+            spaced = applyEnglishPhraseSpacing(to: spaced)
+        }
+
+        var spacingPatterns = [
             #"(今天|明天|后天|下周[一二三四五六日天]?|周[一二三四五六日天]|星期[一二三四五六日天])"#,
             #"([01]?\d|2[0-3])[:：][0-5]\d"#,
             #"(上午|下午|晚上|中午)?([01]?\d|2[0-3])点(半|([0-5]?\d)分?)?"#
         ]
 
-        var spaced = text
+        if useEnglish {
+            spacingPatterns.append(#"(?i)\b(today|tomorrow|next_week|day_after_tomorrow|mon(day)?|tue(s(day)?)?|wed(nesday)?|thu(r(s(day)?)?)?|fri(day)?|sat(urday)?|sun(day)?|next_(mon(day)?|tue(s(day)?)?|wed(nesday)?|thu(r(s(day)?)?)?|fri(day)?|sat(urday)?|sun(day)?))\b"#)
+        }
+
         for pattern in spacingPatterns {
             spaced = spaced.replacingOccurrences(of: pattern, with: " $0 ", options: .regularExpression)
         }
@@ -263,5 +307,44 @@ struct QuickAddParser {
         return spaced
             .split(whereSeparator: { $0.isWhitespace })
             .map(String.init)
+    }
+
+    private func shouldUseEnglishRules(for text: String) -> Bool {
+        let localeIsEnglish = Locale.current.languageCode?.hasPrefix("en") ?? false
+        let hasLatinLetters = text.range(of: #"[A-Za-z]"#, options: .regularExpression) != nil
+        return localeIsEnglish || hasLatinLetters
+    }
+
+    private func englishWeekdayNumber(from token: String) -> Int? {
+        switch token {
+        case "mon", "monday": return 2
+        case "tue", "tues", "tuesday": return 3
+        case "wed", "weds", "wednesday": return 4
+        case "thu", "thur", "thurs", "thursday": return 5
+        case "fri", "friday": return 6
+        case "sat", "saturday": return 7
+        case "sun", "sunday": return 1
+        default: return nil
+        }
+    }
+
+    private func applyEnglishPhraseSpacing(to text: String) -> String {
+        var result = text
+        result = replaceRegex(#"(?i)\bday\s+after\s+tomorrow\b"#, in: result, with: " day_after_tomorrow ")
+        result = replaceRegex(#"(?i)\bnext\s+week\b"#, in: result, with: " next_week ")
+        result = replaceRegex(
+            #"(?i)\bnext\s+(mon(day)?|tue(s(day)?)?|wed(nesday)?|thu(r(s(day)?)?)?|fri(day)?|sat(urday)?|sun(day)?)\b"#,
+            in: result,
+            with: " next_$1 "
+        )
+        return result
+    }
+
+    private func replaceRegex(_ pattern: String, in text: String, with template: String) -> String {
+        guard let regex = try? NSRegularExpression(pattern: pattern) else {
+            return text
+        }
+        let range = NSRange(text.startIndex..., in: text)
+        return regex.stringByReplacingMatches(in: text, range: range, withTemplate: template)
     }
 }
