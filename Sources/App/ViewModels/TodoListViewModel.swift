@@ -160,7 +160,8 @@ final class TodoListViewModel: ObservableObject {
 
     private let quickAddParser: QuickAddParser
     private let notificationCenter: UNUserNotificationCenter
-    private static let storageFilename = "todos.json"
+    private let storage: TodoStorage
+    private let eventStore = EKEventStore()
 
     init(
         items: [TodoItem] = [],
@@ -169,17 +170,21 @@ final class TodoListViewModel: ObservableObject {
     ) {
         self.quickAddParser = quickAddParser
         self.notificationCenter = UNUserNotificationCenter.current()
+        self.storage = storage
 
         if items.isEmpty {
             self.items = []
+            self.tags = []
             Task {
                 let loaded = await storage.loadItems()
                 if !loaded.isEmpty {
                     self.items = loaded
+                    self.tags = Self.collectTags(from: loaded)
                 }
             }
         } else {
             self.items = items
+            self.tags = Self.collectTags(from: items)
         }
 
         requestNotificationAuthorization()
@@ -362,6 +367,23 @@ final class TodoListViewModel: ObservableObject {
         notificationCenter.requestAuthorization(options: [.alert, .sound]) { _, _ in }
     }
 
+    private func scheduleNotification(for item: TodoItem) {
+        scheduleNotificationIfNeeded(for: item)
+    }
+
+    private func updateNotification(for item: TodoItem) {
+        removeNotification(for: item.id)
+        scheduleNotificationIfNeeded(for: item)
+    }
+
+    private func cancelNotification(for item: TodoItem) {
+        removeNotification(for: item.id)
+    }
+
+    private func rescheduleNotifications(for items: [TodoItem]) {
+        items.forEach { scheduleNotificationIfNeeded(for: $0) }
+    }
+
     private func scheduleNotificationIfNeeded(for item: TodoItem) {
         guard let dueDate = item.dueDate, !item.isCompleted else { return }
         if dueDate <= Date() {
@@ -471,10 +493,13 @@ final class TodoListViewModel: ObservableObject {
         }
     }
 
-    private static var storageURL: URL? {
-        guard let baseURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
-            return nil
-        }
+    func exportToCalendar(item: TodoItem, calendar: EKCalendar? = nil) throws {
+        let event = EKEvent(eventStore: eventStore)
+        event.title = item.title
+        event.notes = item.descriptionMarkdown
+        let startDate = item.dueDate ?? Date()
+        event.startDate = startDate
+        event.endDate = Calendar.current.date(byAdding: .hour, value: 1, to: startDate) ?? startDate
         event.calendar = calendar ?? eventStore.defaultCalendarForNewEvents
         try eventStore.save(event, span: .thisEvent)
     }
