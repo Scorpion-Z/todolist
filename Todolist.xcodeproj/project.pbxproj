@@ -206,6 +206,8 @@
 			files = (
 				A1A1A1A1A1A1A1A1A1A1A1A1 /* TodolistApp.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1A3 /* ContentView.swift in Sources */,
+				C1C1C1C1C1C1C1C1C1C1C111 /* CalendarView.swift in Sources */,
+				C1C1C1C1C1C1C1C1C1C1C113 /* StatsView.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1A5 /* TodoItem.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1C5 /* Tag.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1C7 /* Subtask.swift in Sources */,
