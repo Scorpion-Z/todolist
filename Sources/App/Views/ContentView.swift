@@ -412,7 +412,7 @@ struct ContentView: View {
 
                     Picker("view.mode", selection: Binding(
                         get: { layoutMode },
-                        set: { layoutMode = $0 }
+                        set: { layoutModeRawValue = $0.rawValue }
                     )) {
                         ForEach(LayoutMode.allCases) { option in
                             Text(option.titleKey).tag(option)
