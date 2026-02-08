@@ -2,34 +2,6 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct ContentView: View {
-    private enum Filter: String, CaseIterable, Identifiable {
-        case all
-        case open
-        case completed
-        case today
-        case upcoming
-        case overdue
-
-        var id: String { rawValue }
-
-        var titleKey: LocalizedStringKey {
-            switch self {
-            case .all:
-                return "filter.all"
-            case .open:
-                return "filter.open"
-            case .completed:
-                return "filter.completed"
-            case .today:
-                return "filter.today"
-            case .upcoming:
-                return "filter.upcoming"
-            case .overdue:
-                return "filter.overdue"
-            }
-        }
-    }
-
     private enum SortOption: String, CaseIterable, Identifiable {
         case manual
         case dueDate
@@ -52,21 +24,103 @@ struct ContentView: View {
         }
     }
 
-    private enum ViewMode: String, CaseIterable, Identifiable {
+    private enum CompletionFilter: String, CaseIterable, Identifiable {
+        case all
+        case open
+        case completed
+
+        var id: String { rawValue }
+
+        var titleKey: LocalizedStringKey {
+            switch self {
+            case .all:
+                return "filter.all"
+            case .open:
+                return "filter.open"
+            case .completed:
+                return "filter.completed"
+            }
+        }
+    }
+
+    private enum TimeFilter: String, CaseIterable, Identifiable {
+        case anytime
         case today
-        case week
+        case thisWeek
+        case overdue
+
+        var id: String { rawValue }
+
+        var titleKey: LocalizedStringKey {
+            switch self {
+            case .anytime:
+                return "filter.anytime"
+            case .today:
+                return "filter.today"
+            case .thisWeek:
+                return "filter.thisWeek"
+            case .overdue:
+                return "filter.overdue"
+            }
+        }
+    }
+
+    private enum PriorityFilter: String, CaseIterable, Identifiable {
+        case all
+        case low
+        case medium
+        case high
+
+        var id: String { rawValue }
+
+        var titleKey: LocalizedStringKey {
+            switch self {
+            case .all:
+                return "filter.all"
+            case .low:
+                return "priority.low"
+            case .medium:
+                return "priority.medium"
+            case .high:
+                return "priority.high"
+            }
+        }
+    }
+
+    private enum LayoutMode: String, CaseIterable, Identifiable {
+        case list
         case calendar
 
         var id: String { rawValue }
 
         var titleKey: LocalizedStringKey {
             switch self {
-            case .today:
-                return "view.today"
-            case .week:
-                return "view.week"
+            case .list:
+                return "view.list"
             case .calendar:
                 return "view.calendar"
+            }
+        }
+    }
+
+    private enum QuickView: String, CaseIterable, Identifiable {
+        case today
+        case thisWeek
+        case overdue
+        case completed
+
+        var id: String { rawValue }
+
+        var titleKey: LocalizedStringKey {
+            switch self {
+            case .today:
+                return "filter.today"
+            case .thisWeek:
+                return "filter.thisWeek"
+            case .overdue:
+                return "filter.overdue"
+            case .completed:
+                return "filter.completed"
             }
         }
     }
@@ -94,9 +148,12 @@ struct ContentView: View {
     @State private var newDueDate = Date()
     @State private var newDescription = ""
     @State private var searchText = ""
-    @State private var filter: Filter = .all
+    @State private var completionFilter: CompletionFilter = .all
+    @State private var timeFilter: TimeFilter = .anytime
+    @State private var priorityFilter: PriorityFilter = .all
+    @State private var selectedTagNames: Set<String> = []
     @State private var sortOption: SortOption = .manual
-    @State private var viewMode: ViewMode = .calendar
+    @AppStorage("layoutMode") private var layoutModeRawValue = LayoutMode.list.rawValue
     @State private var editingItem: TodoItem?
     @State private var inlineEditingItemID: TodoItem.ID?
     @State private var editTitle = ""
@@ -125,33 +182,46 @@ struct ContentView: View {
         let normalizedSearchText = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
 
         let filtered = viewModel.items.filter { item in
-            let matchesCompletionAndDateFilter: Bool
-            switch filter {
+            let matchesCompletionFilter: Bool
+            switch completionFilter {
             case .all:
-                matchesCompletionAndDateFilter = true
+                matchesCompletionFilter = true
             case .open:
-                matchesCompletionAndDateFilter = !item.isCompleted
+                matchesCompletionFilter = !item.isCompleted
             case .completed:
-                matchesCompletionAndDateFilter = item.isCompleted
-            case .today:
-                guard !item.isCompleted, let dueDate = item.dueDate else { return false }
-                matchesCompletionAndDateFilter = dueDate >= startOfToday && dueDate < startOfTomorrow
-            case .upcoming:
-                guard !item.isCompleted, let dueDate = item.dueDate else { return false }
-                matchesCompletionAndDateFilter = dueDate >= startOfTomorrow
-            case .overdue:
-                guard !item.isCompleted, let dueDate = item.dueDate else { return false }
-                matchesCompletionAndDateFilter = dueDate < startOfToday
+                matchesCompletionFilter = item.isCompleted
             }
 
-            guard matchesCompletionAndDateFilter else { return false }
-            if viewMode == .today, let dueDate = item.dueDate {
-                guard dueDate >= startOfToday && dueDate < startOfTomorrow else { return false }
-            }
-            if viewMode == .week {
+            guard matchesCompletionFilter else { return false }
+
+            let matchesTimeFilter: Bool
+            switch timeFilter {
+            case .anytime:
+                matchesTimeFilter = true
+            case .today:
                 guard let dueDate = item.dueDate else { return false }
-                guard dueDate >= startOfToday && dueDate < endOfWeek else { return false }
+                matchesTimeFilter = dueDate >= startOfToday && dueDate < startOfTomorrow
+            case .thisWeek:
+                guard let dueDate = item.dueDate else { return false }
+                matchesTimeFilter = dueDate >= startOfToday && dueDate < endOfWeek
+            case .overdue:
+                guard let dueDate = item.dueDate else { return false }
+                matchesTimeFilter = dueDate < startOfToday
             }
+
+            guard matchesTimeFilter else { return false }
+
+            if priorityFilter != .all, priorityFilter.rawValue != item.priority.rawValue {
+                return false
+            }
+
+            if !selectedTagNames.isEmpty {
+                let tagNames = Set(item.tags.map { normalizedTagName($0.name) })
+                if tagNames.isDisjoint(with: selectedTagNames) {
+                    return false
+                }
+            }
+
             guard !normalizedSearchText.isEmpty else { return true }
             return item.title.localizedCaseInsensitiveContains(normalizedSearchText)
         }
@@ -198,30 +268,6 @@ struct ContentView: View {
                 }
                 return priorityRank(lhs.priority) > priorityRank(rhs.priority)
             }
-        }
-    }
-
-    private var viewModeItems: [TodoItem] {
-        let calendar = Calendar.current
-        let startOfToday = calendar.startOfDay(for: Date())
-        let startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday) ?? startOfToday
-
-        switch viewMode {
-        case .today:
-            return filteredItems.filter { item in
-                guard let dueDate = item.dueDate else { return true }
-                return dueDate >= startOfToday && dueDate < startOfTomorrow
-            }
-        case .week:
-            guard let weekInterval = calendar.dateInterval(of: .weekOfYear, for: Date()) else {
-                return filteredItems
-            }
-            return filteredItems.filter { item in
-                guard let dueDate = item.dueDate else { return false }
-                return weekInterval.contains(dueDate)
-            }
-        case .calendar:
-            return filteredItems
         }
     }
 
@@ -273,6 +319,11 @@ struct ContentView: View {
 
     private var selectedLocale: Locale {
         Locale(identifier: appLanguage)
+    }
+
+    private var layoutMode: LayoutMode {
+        get { LayoutMode(rawValue: layoutModeRawValue) ?? .list }
+        set { layoutModeRawValue = newValue.rawValue }
     }
 
     var body: some View {
@@ -331,46 +382,53 @@ struct ContentView: View {
                     .keyboardShortcut(.return, modifiers: [.command])
                 }
 
-                Picker("view.label", selection: $viewMode) {
-                    ForEach(ViewMode.allCases) { mode in
-                        Text(mode.titleKey).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
+                quickViewSection
 
                 HStack {
-                    Picker("filter.label", selection: $filter) {
-                        ForEach(Filter.allCases) { option in
+                    Picker("filter.status", selection: $completionFilter) {
+                        ForEach(CompletionFilter.allCases) { option in
                             Text(option.titleKey).tag(option)
                         }
                     }
                     .pickerStyle(.menu)
 
-                    Picker("sort.label", selection: $sortOption) {
-                        ForEach(SortOption.allCases) { option in
+                    Picker("filter.time", selection: $timeFilter) {
+                        ForEach(TimeFilter.allCases) { option in
                             Text(option.titleKey).tag(option)
                         }
                     }
                     .pickerStyle(.menu)
+
+                    Picker("filter.priority", selection: $priorityFilter) {
+                        ForEach(PriorityFilter.allCases) { option in
+                            Text(option.titleKey).tag(option)
+                        }
+                    }
+                    .pickerStyle(.menu)
+
+                    tagFilterMenu
 
                     Spacer()
 
-                    Picker("view.mode", selection: $viewMode) {
-                        ForEach(ViewMode.allCases) { option in
+                    Picker("view.mode", selection: Binding(
+                        get: { layoutMode },
+                        set: { layoutMode = $0 }
+                    )) {
+                        ForEach(LayoutMode.allCases) { option in
                             Text(option.titleKey).tag(option)
                         }
                     }
                     .pickerStyle(.segmented)
-                    .frame(width: 240)
+                    .frame(width: 200)
                 }
 
-                if sortOption != .manual && viewMode != .calendar {
+                if sortOption != .manual && layoutMode != .calendar {
                     Text("reorder.notice")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
 
-                if viewModeItems.isEmpty {
+                if filteredItems.isEmpty {
                     if #available(macOS 14.0, *) {
                         ContentUnavailableView(emptyStateText.titleKey, systemImage: emptyStateText.systemImage)
                     } else {
@@ -384,9 +442,9 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
                 } else {
-                    if viewMode == .calendar {
+                    if layoutMode == .calendar {
                         CalendarView(
-                            items: viewModeItems,
+                            items: filteredItems,
                             onDelete: viewModel.deleteItems(withIDs:),
                             onToggleCompletion: viewModel.toggleCompletion(for:),
                             onEdit: beginEditing(_:)
@@ -394,7 +452,7 @@ struct ContentView: View {
                     } else {
                         List {
                             Section(sectionTitleKey) {
-                                ForEach(viewModeItems) { item in
+                                ForEach(filteredItems) { item in
                                     HStack(alignment: .top, spacing: 12) {
                                         Button {
                                             viewModel.toggleCompletion(for: item)
@@ -418,8 +476,10 @@ struct ContentView: View {
                                                 }
                                             }
                                             if !item.tags.isEmpty {
-                                                ForEach(item.tags) { tag in
-                                                    tagLabel(tag.name)
+                                                HStack(spacing: 6) {
+                                                    ForEach(item.tags) { tag in
+                                                        tagLabel(tag)
+                                                    }
                                                 }
                                             }
                                             if !item.subtasks.isEmpty {
@@ -565,6 +625,58 @@ struct ContentView: View {
         }
     }
 
+    private var quickViewSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("quickview.title")
+                .font(.headline)
+            HStack(spacing: 12) {
+                ForEach(QuickView.allCases) { quickView in
+                    Button(quickView.titleKey) {
+                        applyQuickView(quickView)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(isQuickViewActive(quickView) ? .accentColor : .gray)
+                }
+            }
+        }
+    }
+
+    private var tagFilterMenu: some View {
+        Menu {
+            if viewModel.tags.isEmpty {
+                Text("filter.tags.empty")
+            } else {
+                ForEach(viewModel.tags) { tag in
+                    let normalizedName = normalizedTagName(tag.name)
+                    Toggle(tag.name, isOn: Binding(
+                        get: { selectedTagNames.contains(normalizedName) },
+                        set: { isSelected in
+                            if isSelected {
+                                selectedTagNames.insert(normalizedName)
+                            } else {
+                                selectedTagNames.remove(normalizedName)
+                            }
+                        }
+                    ))
+                }
+                if !selectedTagNames.isEmpty {
+                    Divider()
+                    Button("filter.tags.clear") {
+                        selectedTagNames.removeAll()
+                    }
+                }
+            }
+        } label: {
+            Label(
+                selectedTagNames.isEmpty
+                    ? String(localized: "filter.tags")
+                    : String(format: String(localized: "filter.tags.selected"), selectedTagNames.count),
+                systemImage: "tag"
+            )
+        }
+        .menuStyle(.borderlessButton)
+    }
+
     private var headerSection: some View {
         HStack(spacing: 12) {
             Text("app.title")
@@ -578,6 +690,36 @@ struct ContentView: View {
             }
             .pickerStyle(.segmented)
             .frame(width: 200)
+        }
+    }
+
+    private func applyQuickView(_ quickView: QuickView) {
+        switch quickView {
+        case .today:
+            timeFilter = .today
+            completionFilter = .open
+        case .thisWeek:
+            timeFilter = .thisWeek
+            completionFilter = .open
+        case .overdue:
+            timeFilter = .overdue
+            completionFilter = .open
+        case .completed:
+            timeFilter = .anytime
+            completionFilter = .completed
+        }
+    }
+
+    private func isQuickViewActive(_ quickView: QuickView) -> Bool {
+        switch quickView {
+        case .today:
+            return timeFilter == .today && completionFilter == .open
+        case .thisWeek:
+            return timeFilter == .thisWeek && completionFilter == .open
+        case .overdue:
+            return timeFilter == .overdue && completionFilter == .open
+        case .completed:
+            return timeFilter == .anytime && completionFilter == .completed
         }
     }
 
@@ -761,12 +903,33 @@ struct ContentView: View {
                 Text("tags.title")
                     .font(.headline)
                 ForEach(editAvailableTags) { tag in
-                    Toggle(tag.name, isOn: Binding(
-                        get: { editTags.contains(where: { $0.id == tag.id }) },
-                        set: { isSelected in
-                            updateTagSelection(tag: tag, isSelected: isSelected)
+                    HStack {
+                        Toggle(isOn: Binding(
+                            get: { editTags.contains(where: { $0.id == tag.id }) },
+                            set: { isSelected in
+                                updateTagSelection(tag: tag, isSelected: isSelected)
+                            }
+                        )) {
+                            tagLabel(tag)
                         }
-                    ))
+                        Spacer()
+                        Menu {
+                            ForEach(Tag.TagColor.allCases) { color in
+                                Button {
+                                    updateTagColor(tag: tag, color: color)
+                                } label: {
+                                    Label(color.displayNameKey, systemImage: "circle.fill")
+                                        .foregroundStyle(color.tint)
+                                }
+                            }
+                        } label: {
+                            Circle()
+                                .fill(tag.color.tint)
+                                .frame(width: 12, height: 12)
+                                .overlay(Circle().stroke(Color.primary.opacity(0.2), lineWidth: 1))
+                        }
+                        .menuStyle(.borderlessButton)
+                    }
                 }
                 HStack {
                     TextField("tags.add.placeholder", text: $newTagName)
@@ -915,29 +1078,23 @@ struct ContentView: View {
     }
 
     private var sectionTitleKey: LocalizedStringKey {
-        switch viewMode {
-        case .today:
-            return "view.section.today"
-        case .week:
-            return "view.section.week"
-        case .calendar:
-            break
-        }
-
-        switch filter {
-        case .all:
-            return "section.allTodos"
-        case .open:
-            return "section.open"
-        case .completed:
+        if completionFilter == .completed {
             return "section.completed"
+        }
+        switch timeFilter {
         case .today:
             return "section.dueToday"
-        case .upcoming:
-            return "section.upcoming"
+        case .thisWeek:
+            return "section.thisWeek"
         case .overdue:
             return "section.overdue"
+        case .anytime:
+            break
         }
+        if completionFilter == .open {
+            return "section.open"
+        }
+        return "section.allTodos"
     }
 
     private func tagLabel(
@@ -963,6 +1120,17 @@ struct ContentView: View {
             .padding(.horizontal, 8)
             .padding(.vertical, 2)
             .background(.thinMaterial)
+            .clipShape(Capsule())
+    }
+
+    private func tagLabel(_ tag: Tag) -> some View {
+        let tint = tag.color.tint
+        return Text(tag.name)
+            .font(.caption)
+            .foregroundStyle(tint)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 2)
+            .background(tint.opacity(0.15))
             .clipShape(Capsule())
     }
 
@@ -1000,11 +1168,22 @@ struct ContentView: View {
                 editTags.append(existing)
             }
         } else {
-            let newTag = Tag(name: trimmed)
+            let newTag = Tag(name: trimmed, color: nextTagColor())
             editAvailableTags.append(newTag)
             editTags.append(newTag)
         }
         newTagName = ""
+    }
+
+    private func updateTagColor(tag: Tag, color: Tag.TagColor) {
+        editAvailableTags = editAvailableTags.map { existingTag in
+            guard existingTag.id == tag.id else { return existingTag }
+            return Tag(id: existingTag.id, name: existingTag.name, color: color)
+        }
+        editTags = editTags.map { existingTag in
+            guard existingTag.id == tag.id else { return existingTag }
+            return Tag(id: existingTag.id, name: existingTag.name, color: color)
+        }
     }
 
     private func updateTagSelection(tag: Tag, isSelected: Bool) {
@@ -1021,12 +1200,25 @@ struct ContentView: View {
         var seen = Set<String>()
         var merged: [Tag] = []
         for tag in first + second {
-            let normalized = tag.name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            let normalized = normalizedTagName(tag.name)
             guard !normalized.isEmpty, !seen.contains(normalized) else { continue }
             seen.insert(normalized)
             merged.append(tag)
         }
         return merged.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
+
+    private func normalizedTagName(_ name: String) -> String {
+        name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    private func nextTagColor() -> Tag.TagColor {
+        let palette = Tag.TagColor.allCases
+        let usedColors = Set(editAvailableTags.map(\.color))
+        if let available = palette.first(where: { !usedColors.contains($0) }) {
+            return available
+        }
+        return palette[editAvailableTags.count % palette.count]
     }
 }
 

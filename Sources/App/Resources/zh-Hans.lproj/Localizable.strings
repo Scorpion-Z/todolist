@@ -21,6 +21,7 @@
 "quickfill.today" = "今日";
 "quickfill.tomorrow" = "明日";
 "quickfill.nextweek" = "下周";
+"quickview.title" = "快捷视图";
 "template.title" = "默认模板";
 "template.hint" = "点击模板可快速生成常用清单。";
 "template.work" = "工作";
@@ -38,6 +39,9 @@
 "priority.label" = "优先级";
 "duedate.label" = "截止日期";
 "filter.label" = "筛选";
+"filter.status" = "完成状态";
+"filter.time" = "时间";
+"filter.priority" = "优先级";
 "sort.label" = "排序";
 "view.title" = "视图";
 "view.list" = "列表";
@@ -50,8 +54,14 @@
 "filter.open" = "未完成";
 "filter.completed" = "已完成";
 "filter.today" = "今天";
+"filter.anytime" = "不限时间";
+"filter.thisWeek" = "本周";
 "filter.upcoming" = "将来";
 "filter.overdue" = "已逾期";
+"filter.tags" = "标签";
+"filter.tags.selected" = "标签（%d）";
+"filter.tags.empty" = "暂无标签";
+"filter.tags.clear" = "清除标签";
 "reorder.notice" = "仅在“手动”排序下可拖动排序。";
 "view.mode" = "视图";
 "view.today" = "今日";
@@ -69,6 +79,7 @@
 "section.open" = "未完成";
 "section.completed" = "已完成";
 "section.dueToday" = "今天到期";
+"section.thisWeek" = "本周";
 "section.upcoming" = "即将到期";
 "section.overdue" = "已逾期";
 
@@ -92,5 +103,17 @@
 "priority.low" = "低";
 "priority.medium" = "中";
 "priority.high" = "高";
+"tag.stats.title" = "标签统计";
+"tag.stats.detail" = "已完成 %d/%d";
+
+"tag.color.red" = "红色";
+"tag.color.orange" = "橙色";
+"tag.color.yellow" = "黄色";
+"tag.color.green" = "绿色";
+"tag.color.teal" = "青色";
+"tag.color.blue" = "蓝色";
+"tag.color.purple" = "紫色";
+"tag.color.pink" = "粉色";
+"tag.color.gray" = "灰色";
 
 "notification.body" = "待办提醒";
