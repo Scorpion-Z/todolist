@@ -24,10 +24,15 @@ struct StatsView: View {
         viewModel.sevenDayCompletionTrend()
     }
 
+    private var tagStats: [TodoListViewModel.TagStat] {
+        viewModel.tagStats()
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             summaryCards
             trendSection
+            tagStatsSection
         }
     }
 
@@ -86,6 +91,36 @@ struct StatsView: View {
                 .padding()
                 .background(.thinMaterial)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var tagStatsSection: some View {
+        if !tagStats.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("tag.stats.title")
+                    .font(.headline)
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 12)], spacing: 12) {
+                    ForEach(tagStats) { stat in
+                        HStack(spacing: 8) {
+                            Circle()
+                                .fill(stat.tag.color.tint)
+                                .frame(width: 8, height: 8)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(stat.tag.name)
+                                    .font(.subheadline)
+                                Text(String(format: String(localized: "tag.stats.detail"), stat.completedCount, stat.totalCount))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                        }
+                        .padding(10)
+                        .background(.thinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+                }
             }
         }
     }
