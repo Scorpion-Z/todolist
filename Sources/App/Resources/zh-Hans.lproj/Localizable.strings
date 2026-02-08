@@ -90,6 +90,13 @@
 "mark.done" = "标记完成";
 "edit.title" = "编辑待办";
 "edit.field.title" = "标题";
+"repeat.label" = "重复";
+"subtasks.title" = "子任务";
+"subtasks.add.placeholder" = "添加子任务";
+"subtasks.add.button" = "添加";
+"tags.title" = "标签";
+"tags.add.placeholder" = "添加标签";
+"tags.add.button" = "添加";
 "edit.cancel" = "取消";
 "edit.save" = "保存";
 
