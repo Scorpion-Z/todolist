@@ -130,10 +130,10 @@ struct ContentView: View {
         let nameKey: LocalizedStringKey
     }
 
-    private struct TemplateOption: Identifiable {
-        let id: String
-        let titleKey: LocalizedStringKey
-        let itemKeys: [String]
+    private struct TemplateConfig: Identifiable, Codable, Equatable {
+        let id: UUID
+        var title: String
+        var items: [String]
     }
 
     @FocusState private var quickInputFocused: Bool
@@ -173,6 +173,10 @@ struct ContentView: View {
     @State private var draggingItemID: TodoItem.ID?
     @State private var dropTargetItemID: TodoItem.ID?
     @State private var exportErrorMessage: String?
+    @State private var templates: [TemplateConfig] = []
+    @State private var hasLoadedTemplates = false
+    @State private var showingTemplateManager = false
+    @AppStorage("templateConfigs") private var storedTemplateConfigs = ""
 
     private var filteredItems: [TodoItem] {
         let calendar = Calendar.current
@@ -276,35 +280,9 @@ struct ContentView: View {
         LanguageOption(id: "en", nameKey: "language.english"),
     ]
 
-    private let templateOptions: [TemplateOption] = [
-        TemplateOption(
-            id: "work",
-            titleKey: "template.work",
-            itemKeys: [
-                "template.work.item1",
-                "template.work.item2",
-                "template.work.item3"
-            ]
-        ),
-        TemplateOption(
-            id: "life",
-            titleKey: "template.life",
-            itemKeys: [
-                "template.life.item1",
-                "template.life.item2",
-                "template.life.item3"
-            ]
-        ),
-        TemplateOption(
-            id: "shopping",
-            titleKey: "template.shopping",
-            itemKeys: [
-                "template.shopping.item1",
-                "template.shopping.item2",
-                "template.shopping.item3"
-            ]
-        )
-    ]
+    private var manageTemplateTitle: String {
+        appLanguage == "zh-Hans" ? "管理模板" : "Manage Templates"
+    }
 
     private var emptyStateText: (titleKey: LocalizedStringKey, systemImage: String) {
         let normalizedSearchText = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -558,6 +536,17 @@ struct ContentView: View {
             .help("quickadd.focus")
             .padding(24)
         }
+        .sheet(isPresented: $showingTemplateManager) {
+            TemplateManagerView(
+                templates: $templates,
+                locale: selectedLocale,
+                title: manageTemplateTitle
+            )
+        }
+        .onAppear(perform: loadTemplatesIfNeeded)
+        .onChange(of: templates) { _ in
+            persistTemplates()
+        }
     }
 
     private var quickAddSection: some View {
@@ -613,12 +602,21 @@ struct ContentView: View {
 
     private var templateSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("template.title")
-                .font(.headline)
+            HStack {
+                Text("template.title")
+                    .font(.headline)
+                Spacer()
+                Button(manageTemplateTitle) {
+                    showingTemplateManager = true
+                }
+                .font(.caption)
+            }
             HStack(spacing: 12) {
-                ForEach(templateOptions) { template in
-                    Button(template.titleKey) {
+                ForEach(templates) { template in
+                    Button {
                         addTemplate(template)
+                    } label: {
+                        Text(template.title)
                     }
                     .buttonStyle(.bordered)
                 }
@@ -747,11 +745,61 @@ struct ContentView: View {
         quickInputFocused = true
     }
 
-    private func addTemplate(_ template: TemplateOption) {
-        let titles = template.itemKeys.map { key in
-            String(localized: .init(key), locale: selectedLocale)
+    private func addTemplate(_ template: TemplateConfig) {
+        viewModel.addTemplateItems(template.items)
+    }
+
+    private func loadTemplatesIfNeeded() {
+        guard !hasLoadedTemplates else { return }
+        hasLoadedTemplates = true
+        if let data = storedTemplateConfigs.data(using: .utf8),
+           let decoded = try? JSONDecoder().decode([TemplateConfig].self, from: data),
+           !decoded.isEmpty {
+            templates = decoded
+        } else {
+            templates = defaultTemplates(locale: selectedLocale)
+            persistTemplates()
         }
-        viewModel.addTemplateItems(titles)
+    }
+
+    private func persistTemplates() {
+        guard let data = try? JSONEncoder().encode(templates),
+              let encoded = String(data: data, encoding: .utf8) else {
+            return
+        }
+        storedTemplateConfigs = encoded
+    }
+
+    private func defaultTemplates(locale: Locale) -> [TemplateConfig] {
+        [
+            TemplateConfig(
+                id: UUID(),
+                title: String(localized: "template.work", locale: locale),
+                items: [
+                    String(localized: "template.work.item1", locale: locale),
+                    String(localized: "template.work.item2", locale: locale),
+                    String(localized: "template.work.item3", locale: locale)
+                ]
+            ),
+            TemplateConfig(
+                id: UUID(),
+                title: String(localized: "template.life", locale: locale),
+                items: [
+                    String(localized: "template.life.item1", locale: locale),
+                    String(localized: "template.life.item2", locale: locale),
+                    String(localized: "template.life.item3", locale: locale)
+                ]
+            ),
+            TemplateConfig(
+                id: UUID(),
+                title: String(localized: "template.shopping", locale: locale),
+                items: [
+                    String(localized: "template.shopping.item1", locale: locale),
+                    String(localized: "template.shopping.item2", locale: locale),
+                    String(localized: "template.shopping.item3", locale: locale)
+                ]
+            )
+        ]
     }
 
     private func setQuickDueDate(_ offsetDays: Int) {
@@ -790,6 +838,184 @@ struct ContentView: View {
     private func clearQuickInput() {
         quickInputText = ""
         quickInputHint = String(localized: "quickadd.hint.example", locale: selectedLocale)
+    }
+
+    private struct TemplateManagerView: View {
+        @Environment(\.dismiss) private var dismiss
+        @Binding var templates: [TemplateConfig]
+        let locale: Locale
+        let title: String
+
+        @State private var isPresentingEditor = false
+        @State private var editingTemplate: TemplateConfig?
+        @State private var draftTitle = ""
+        @State private var draftItems: [String] = []
+        @State private var newItemText = ""
+
+        var body: some View {
+            NavigationStack {
+                List {
+                    if templates.isEmpty {
+                        Text(locale.identifier == "zh-Hans" ? "还没有模板。" : "No templates yet.")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(templates) { template in
+                            HStack(alignment: .top) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(template.title)
+                                        .font(.headline)
+                                    Text(template.items.joined(separator: " · "))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Button(locale.identifier == "zh-Hans" ? "编辑" : "Edit") {
+                                    startEditing(template)
+                                }
+                                .buttonStyle(.bordered)
+                            }
+                            .padding(.vertical, 4)
+                        }
+                        .onDelete(perform: deleteTemplates)
+                    }
+                }
+                .navigationTitle(title)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(locale.identifier == "zh-Hans" ? "完成" : "Done") {
+                            dismiss()
+                        }
+                    }
+                    ToolbarItem(placement: .primaryAction) {
+                        Button(locale.identifier == "zh-Hans" ? "新增" : "Add") {
+                            startNewTemplate()
+                        }
+                    }
+                }
+            }
+            .sheet(isPresented: $isPresentingEditor) {
+                NavigationStack {
+                    Form {
+                        Section(locale.identifier == "zh-Hans" ? "模板名称" : "Template Name") {
+                            TextField(
+                                locale.identifier == "zh-Hans" ? "请输入名称" : "Enter a name",
+                                text: $draftTitle
+                            )
+                        }
+
+                        Section(locale.identifier == "zh-Hans" ? "模板事项" : "Template Items") {
+                            if draftItems.isEmpty {
+                                Text(locale.identifier == "zh-Hans" ? "尚无事项。" : "No items yet.")
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                ForEach(draftItems.indices, id: \.self) { index in
+                                    HStack {
+                                        TextField(
+                                            locale.identifier == "zh-Hans" ? "事项" : "Item",
+                                            text: Binding(
+                                                get: { draftItems[index] },
+                                                set: { draftItems[index] = $0 }
+                                            )
+                                        )
+                                        Button(role: .destructive) {
+                                            draftItems.remove(at: index)
+                                        } label: {
+                                            Image(systemName: "trash")
+                                        }
+                                        .buttonStyle(.borderless)
+                                    }
+                                }
+                            }
+
+                            HStack {
+                                TextField(
+                                    locale.identifier == "zh-Hans" ? "新增事项" : "New item",
+                                    text: $newItemText
+                                )
+                                Button(locale.identifier == "zh-Hans" ? "添加" : "Add") {
+                                    addDraftItem()
+                                }
+                                .disabled(newItemText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                            }
+                        }
+                    }
+                    .navigationTitle(editingTemplate == nil
+                        ? (locale.identifier == "zh-Hans" ? "新增模板" : "New Template")
+                        : (locale.identifier == "zh-Hans" ? "编辑模板" : "Edit Template")
+                    )
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button(locale.identifier == "zh-Hans" ? "取消" : "Cancel") {
+                                isPresentingEditor = false
+                            }
+                        }
+                        ToolbarItem(placement: .primaryAction) {
+                            Button(locale.identifier == "zh-Hans" ? "保存" : "Save") {
+                                saveTemplate()
+                            }
+                            .disabled(!canSaveDraft)
+                        }
+                    }
+                }
+            }
+        }
+
+        private var canSaveDraft: Bool {
+            let trimmedTitle = draftTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+            let cleanedItems = cleanedDraftItems()
+            return !trimmedTitle.isEmpty && !cleanedItems.isEmpty
+        }
+
+        private func cleanedDraftItems() -> [String] {
+            draftItems
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+        }
+
+        private func startNewTemplate() {
+            editingTemplate = nil
+            draftTitle = ""
+            draftItems = []
+            newItemText = ""
+            isPresentingEditor = true
+        }
+
+        private func startEditing(_ template: TemplateConfig) {
+            editingTemplate = template
+            draftTitle = template.title
+            draftItems = template.items
+            newItemText = ""
+            isPresentingEditor = true
+        }
+
+        private func addDraftItem() {
+            let trimmed = newItemText.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return }
+            draftItems.append(trimmed)
+            newItemText = ""
+        }
+
+        private func saveTemplate() {
+            let trimmedTitle = draftTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+            let cleanedItems = cleanedDraftItems()
+            guard !trimmedTitle.isEmpty, !cleanedItems.isEmpty else { return }
+
+            if let editingTemplate {
+                if let index = templates.firstIndex(where: { $0.id == editingTemplate.id }) {
+                    templates[index].title = trimmedTitle
+                    templates[index].items = cleanedItems
+                }
+            } else {
+                let newTemplate = TemplateConfig(id: UUID(), title: trimmedTitle, items: cleanedItems)
+                templates.append(newTemplate)
+            }
+
+            isPresentingEditor = false
+        }
+
+        private func deleteTemplates(at offsets: IndexSet) {
+            templates.remove(atOffsets: offsets)
+        }
     }
 
     private func prepareEditing(_ item: TodoItem) {
