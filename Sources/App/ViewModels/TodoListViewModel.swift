@@ -259,6 +259,7 @@ final class TodoListViewModel: ObservableObject {
     func deleteItems(withIDs ids: [TodoItem.ID]) {
         let removedItems = items.filter { ids.contains($0.id) }
         items.removeAll { ids.contains($0.id) }
+        rebuildTags()
         persistItems()
         removedItems.forEach(cancelNotification)
     }
@@ -266,7 +267,9 @@ final class TodoListViewModel: ObservableObject {
     func deleteItem(_ item: TodoItem) {
         guard let index = items.firstIndex(of: item) else { return }
         items.remove(at: index)
+        rebuildTags()
         persistItems()
+        cancelNotification(item)
     }
 
     func moveItems(from source: IndexSet, to destination: Int) {
