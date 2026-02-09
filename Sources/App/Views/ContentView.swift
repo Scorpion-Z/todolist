@@ -103,9 +103,10 @@ struct ContentView: View {
         }
     }
 
-    private enum QuickView: String, CaseIterable, Identifiable {
+    private enum SecondaryFilter: String, CaseIterable, Identifiable {
+        case all
         case today
-        case thisWeek
+        case upcoming
         case overdue
         case completed
 
@@ -113,14 +114,42 @@ struct ContentView: View {
 
         var titleKey: LocalizedStringKey {
             switch self {
+            case .all:
+                return "filter.all"
             case .today:
                 return "filter.today"
-            case .thisWeek:
-                return "filter.thisWeek"
+            case .upcoming:
+                return "filter.upcoming"
             case .overdue:
                 return "filter.overdue"
             case .completed:
                 return "filter.completed"
+            }
+        }
+
+        var completionFilter: CompletionFilter {
+            switch self {
+            case .all:
+                return .all
+            case .completed:
+                return .completed
+            case .today, .upcoming, .overdue:
+                return .open
+            }
+        }
+
+        var timeFilter: TimeFilter {
+            switch self {
+            case .all:
+                return .anytime
+            case .today:
+                return .today
+            case .upcoming:
+                return .anytime
+            case .overdue:
+                return .overdue
+            case .completed:
+                return .anytime
             }
         }
     }
@@ -160,6 +189,8 @@ struct ContentView: View {
     @State private var selectedTagNames: Set<String> = []
     @State private var sortOption: SortOption = .manual
     @AppStorage("layoutMode") private var layoutModeRawValue = LayoutMode.list.rawValue
+    @State private var secondaryFilter: SecondaryFilter = .all
+    @State private var isSyncingSecondaryFilter = false
     @State private var editingItem: TodoItem?
     @State private var inlineEditingItemID: TodoItem.ID?
     @State private var editTitle = ""
@@ -386,42 +417,7 @@ struct ContentView: View {
                     .keyboardShortcut(.return, modifiers: [.command])
                 }
 
-                quickViewSection
-
-                HStack {
-                    Picker("filter.status", selection: $completionFilter) {
-                        ForEach(CompletionFilter.allCases) { option in
-                            Text(option.titleKey).tag(option)
-                        }
-                    }
-                    .pickerStyle(.menu)
-
-                    Picker("filter.time", selection: $timeFilter) {
-                        ForEach(TimeFilter.allCases) { option in
-                            Text(option.titleKey).tag(option)
-                        }
-                    }
-                    .pickerStyle(.menu)
-
-                    Picker("filter.priority", selection: $priorityFilter) {
-                        ForEach(PriorityFilter.allCases) { option in
-                            Text(option.titleKey).tag(option)
-                        }
-                    }
-                    .pickerStyle(.menu)
-
-                    tagFilterMenu
-
-                    Spacer()
-
-                    Picker("view.mode", selection: layoutModeBinding) {
-                        ForEach(LayoutMode.allCases) { option in
-                            Text(option.titleKey).tag(option)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .frame(width: 200)
-                }
+                filterPanel
 
                 if (sortOption != .manual || hasActiveFilters) && layoutMode != .calendar {
                     Text("reorder.notice")
@@ -578,6 +574,18 @@ struct ContentView: View {
         .onChange(of: templates) { _ in
             persistTemplates()
         }
+        .onAppear {
+            applySecondaryFilter(secondaryFilter)
+        }
+        .onChange(of: secondaryFilter) { _, newValue in
+            applySecondaryFilter(newValue)
+        }
+        .onChange(of: completionFilter) { _, _ in
+            syncSecondaryFilter()
+        }
+        .onChange(of: timeFilter) { _, _ in
+            syncSecondaryFilter()
+        }
     }
 
     private var quickAddSection: some View {
@@ -658,19 +666,70 @@ struct ContentView: View {
         }
     }
 
-    private var quickViewSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("quickview.title")
-                .font(.headline)
-            HStack(spacing: 12) {
-                ForEach(QuickView.allCases) { quickView in
-                    Button(quickView.titleKey) {
-                        applyQuickView(quickView)
+    private var filterPanel: some View {
+        GroupBox {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("view.title")
+                        .font(.headline)
+                    Spacer()
+                    Picker("view.mode", selection: layoutModeBinding) {
+                        ForEach(LayoutMode.allCases) { option in
+                            Text(option.titleKey).tag(option)
+                        }
                     }
-                    .buttonStyle(.bordered)
-                    .tint(isQuickViewActive(quickView) ? .accentColor : .gray)
+                    .pickerStyle(.segmented)
+                    .frame(width: 200)
+                }
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("quickview.title")
+                        .font(.headline)
+                    Picker("quickview.title", selection: $secondaryFilter) {
+                        ForEach(SecondaryFilter.allCases) { filter in
+                            Text(filter.titleKey).tag(filter)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("filter.label")
+                        .font(.headline)
+                    HStack(spacing: 12) {
+                        Text("filter.priority")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Picker("filter.priority", selection: $priorityFilter) {
+                            ForEach(PriorityFilter.allCases) { option in
+                                Text(option.titleKey).tag(option)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                    }
+
+                    HStack(spacing: 12) {
+                        Text("filter.time")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Picker("filter.time", selection: $timeFilter) {
+                            ForEach(TimeFilter.allCases) { option in
+                                Text(option.titleKey).tag(option)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                    }
+
+                    HStack(spacing: 12) {
+                        tagFilterMenu
+                    }
                 }
             }
+            .padding(.vertical, 4)
         }
     }
 
@@ -726,33 +785,30 @@ struct ContentView: View {
         }
     }
 
-    private func applyQuickView(_ quickView: QuickView) {
-        switch quickView {
-        case .today:
-            timeFilter = .today
-            completionFilter = .open
-        case .thisWeek:
-            timeFilter = .thisWeek
-            completionFilter = .open
-        case .overdue:
-            timeFilter = .overdue
-            completionFilter = .open
-        case .completed:
-            timeFilter = .anytime
-            completionFilter = .completed
-        }
+    private func applySecondaryFilter(_ filter: SecondaryFilter) {
+        isSyncingSecondaryFilter = true
+        completionFilter = filter.completionFilter
+        timeFilter = filter.timeFilter
+        isSyncingSecondaryFilter = false
     }
 
-    private func isQuickViewActive(_ quickView: QuickView) -> Bool {
-        switch quickView {
+    private func syncSecondaryFilter() {
+        guard !isSyncingSecondaryFilter else { return }
+        if completionFilter == .all {
+            secondaryFilter = .all
+            return
+        }
+        if completionFilter == .completed {
+            secondaryFilter = .completed
+            return
+        }
+        switch timeFilter {
         case .today:
-            return timeFilter == .today && completionFilter == .open
-        case .thisWeek:
-            return timeFilter == .thisWeek && completionFilter == .open
+            secondaryFilter = .today
         case .overdue:
-            return timeFilter == .overdue && completionFilter == .open
-        case .completed:
-            return timeFilter == .anytime && completionFilter == .completed
+            secondaryFilter = .overdue
+        case .anytime, .thisWeek:
+            secondaryFilter = .upcoming
         }
     }
 
