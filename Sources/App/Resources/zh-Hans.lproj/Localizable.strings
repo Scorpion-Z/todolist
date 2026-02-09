@@ -117,6 +117,7 @@
 "edit.button" = "编辑";
 "delete.button" = "删除";
 "search.focus" = "聚焦搜索";
+"search.placeholder" = "搜索";
 "mark.open" = "标记未完成";
 "mark.done" = "标记完成";
 "edit.title" = "编辑待办";

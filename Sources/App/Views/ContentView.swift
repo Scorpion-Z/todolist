@@ -1039,13 +1039,41 @@ struct ContentView: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Picker("language.title", selection: $appLanguage) {
-                ForEach(languageOptions) { option in
-                    Text(option.nameKey).tag(option.id)
+            HStack(spacing: 10) {
+                HStack(spacing: 6) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(.secondary)
+                    TextField("search.placeholder", text: $searchText)
+                        .textFieldStyle(.plain)
+                        .frame(width: 180)
+                        .focused($searchFieldFocused)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color(nsColor: .textBackgroundColor))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                )
+                .controlSize(.small)
+
+                HStack(spacing: 6) {
+                    Image(systemName: "globe")
+                        .foregroundStyle(.secondary)
+                    Picker("language.title", selection: $appLanguage) {
+                        ForEach(languageOptions) { option in
+                            Text(option.nameKey).tag(option.id)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
+                    .controlSize(.small)
+                    .frame(width: 160)
                 }
             }
-            .pickerStyle(.segmented)
-            .frame(width: 200)
         }
     }
 
