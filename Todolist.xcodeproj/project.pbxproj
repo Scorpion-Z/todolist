@@ -9,6 +9,9 @@
 /* Begin PBXBuildFile section */
 		A1A1A1A1A1A1A1A1A1A1A1A1 /* TodolistApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1A2 /* TodolistApp.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1A3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1A4 /* ContentView.swift */; };
+		E1E1E1E1E1E1E1E1E1E1E1E1 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1E1E1E1E1E1E1E1E1E1E1E2 /* RootView.swift */; };
+		E1E1E1E1E1E1E1E1E1E1E1E3 /* OverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1E1E1E1E1E1E1E1E1E1E1E4 /* OverviewView.swift */; };
+		E1E1E1E1E1E1E1E1E1E1E1E5 /* AnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1E1E1E1E1E1E1E1E1E1E1E6 /* AnalyticsView.swift */; };
 		C1C1C1C1C1C1C1C1C1C1C111 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C1C1C1C1C1C1C1C1C1C101 /* CalendarView.swift */; };
 		C1C1C1C1C1C1C1C1C1C1C112 /* CardListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C1C1C1C1C1C1C1C1C1C102 /* CardListView.swift */; };
 		C1C1C1C1C1C1C1C1C1C1C113 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C1C1C1C1C1C1C1C1C1C103 /* StatsView.swift */; };
@@ -26,6 +29,9 @@
 		A1A1A1A1A1A1A1A1A1A1A1AB /* Todolist.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Todolist.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1A1A1A1A1A1A1A1A1A1A1A2 /* TodolistApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodolistApp.swift; sourceTree = "<group>"; };
 		A1A1A1A1A1A1A1A1A1A1A1A4 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		E1E1E1E1E1E1E1E1E1E1E1E2 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		E1E1E1E1E1E1E1E1E1E1E1E4 /* OverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewView.swift; sourceTree = "<group>"; };
+		E1E1E1E1E1E1E1E1E1E1E1E6 /* AnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsView.swift; sourceTree = "<group>"; };
 		C1C1C1C1C1C1C1C1C1C1C101 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
 		C1C1C1C1C1C1C1C1C1C1C102 /* CardListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardListView.swift; sourceTree = "<group>"; };
 		C1C1C1C1C1C1C1C1C1C1C103 /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
@@ -87,6 +93,9 @@
 			isa = PBXGroup;
 			children = (
 				A1A1A1A1A1A1A1A1A1A1A1A4 /* ContentView.swift */,
+				E1E1E1E1E1E1E1E1E1E1E1E2 /* RootView.swift */,
+				E1E1E1E1E1E1E1E1E1E1E1E4 /* OverviewView.swift */,
+				E1E1E1E1E1E1E1E1E1E1E1E6 /* AnalyticsView.swift */,
 				C1C1C1C1C1C1C1C1C1C1C101 /* CalendarView.swift */,
 				C1C1C1C1C1C1C1C1C1C1C102 /* CardListView.swift */,
 				C1C1C1C1C1C1C1C1C1C1C103 /* StatsView.swift */,
@@ -209,6 +218,9 @@
 			files = (
 				A1A1A1A1A1A1A1A1A1A1A1A1 /* TodolistApp.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1A3 /* ContentView.swift in Sources */,
+				E1E1E1E1E1E1E1E1E1E1E1E1 /* RootView.swift in Sources */,
+				E1E1E1E1E1E1E1E1E1E1E1E3 /* OverviewView.swift in Sources */,
+				E1E1E1E1E1E1E1E1E1E1E1E5 /* AnalyticsView.swift in Sources */,
 				C1C1C1C1C1C1C1C1C1C1C111 /* CalendarView.swift in Sources */,
 				C1C1C1C1C1C1C1C1C1C1C112 /* CardListView.swift in Sources */,
 				C1C1C1C1C1C1C1C1C1C1C113 /* StatsView.swift in Sources */,
