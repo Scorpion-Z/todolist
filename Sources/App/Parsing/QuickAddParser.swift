@@ -169,11 +169,8 @@ struct QuickAddParser {
         let startToday = calendar.startOfDay(for: now)
         let currentWeekday = calendar.component(.weekday, from: startToday)
         var delta = (targetWeekday - currentWeekday + 7) % 7
-        if delta == 0 {
+        if forceNextWeek && delta == 0 {
             delta = 7
-        }
-        if forceNextWeek {
-            delta += 7
         }
 
         return calendar.date(byAdding: .day, value: delta, to: startToday)
