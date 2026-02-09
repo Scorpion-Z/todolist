@@ -183,6 +183,13 @@
 "myday.suggestions.empty" = "No suggestions right now.";
 "myday.add" = "Add to My Day";
 "myday.remove" = "Remove from My Day";
+"myday.reason.overdue" = "Overdue";
+"myday.reason.today" = "Due Today";
+"myday.reason.important" = "Important";
+"myday.progress.title" = "My Day Progress";
+"myday.progress.empty" = "Nothing in My Day yet. Add suggested tasks to start.";
+"myday.progress.count" = "%d of %d done";
+"myday.progress.celebrate" = "Great work. My Day is complete.";
 
 "settings.title" = "Settings";
 "settings.language.section" = "Language";
@@ -191,6 +198,11 @@
 "settings.language.zh" = "简体中文";
 "settings.language.en" = "English";
 "settings.language.hint" = "Use System follows macOS language preference.";
+"settings.sync.section" = "Sync";
+"settings.sync.enable" = "Enable iCloud Sync";
+"settings.sync.state.on" = "Sync is enabled";
+"settings.sync.state.off" = "Sync is disabled";
+"settings.sync.hint" = "When enabled, local and iCloud data are merged with conflict protection.";
 
 "detail.title" = "Task Details";
 "detail.revert" = "Revert";
@@ -203,8 +215,19 @@
 
 "search.scope.global" = "Search all lists";
 "search.clear" = "Clear Search";
+"task.filter.showcompleted" = "Show completed tasks";
 
 "stats.open" = "Open Tasks";
 "sort.completedAt" = "Completed Time";
 "subtasks.empty" = "No subtasks yet.";
 "template.editor.items.hint" = "Enter one item per line.";
+"overview.momentum.title" = "Momentum";
+"overview.streak.days" = "%d-day streak";
+"overview.completion.rate" = "Completion rate: %d%%";
+"overview.weekly.title" = "Weekly Review";
+"overview.weekly.window" = "Last 7 days";
+"overview.weekly.created" = "Created";
+"overview.weekly.completed" = "Completed";
+"overview.weekly.carry" = "Carry-over Done";
+"overview.weekly.important" = "Important Done";
+"overview.weekly.overdue" = "Overdue Resolved";

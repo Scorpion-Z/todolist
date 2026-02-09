@@ -3,6 +3,7 @@ import SwiftUI
 struct SidebarView: View {
     @ObservedObject var store: TaskStore
     @ObservedObject var shell: AppShellViewModel
+    private let queryEngine = ListQueryEngine()
 
     var body: some View {
         List(selection: selectionBinding) {
@@ -64,8 +65,7 @@ struct SidebarView: View {
     }
 
     private func count(for list: SmartListID) -> Int {
-        let engine = ListQueryEngine()
-        return engine.tasks(
+        queryEngine.tasks(
             from: store.items,
             list: list,
             query: TaskQuery(searchText: "", sort: .manual, tagFilter: [], showCompleted: true),

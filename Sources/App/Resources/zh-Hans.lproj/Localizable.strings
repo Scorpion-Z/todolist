@@ -183,6 +183,13 @@
 "myday.suggestions.empty" = "当前没有建议任务。";
 "myday.add" = "加入今天";
 "myday.remove" = "移出今天";
+"myday.reason.overdue" = "逾期任务";
+"myday.reason.today" = "今天到期";
+"myday.reason.important" = "重要任务";
+"myday.progress.title" = "今日进度";
+"myday.progress.empty" = "今天列表还是空的，可从建议里加入任务。";
+"myday.progress.count" = "已完成 %d/%d";
+"myday.progress.celebrate" = "做得很好，今天任务已全部完成。";
 
 "settings.title" = "设置";
 "settings.language.section" = "语言";
@@ -191,6 +198,11 @@
 "settings.language.zh" = "简体中文";
 "settings.language.en" = "English";
 "settings.language.hint" = "“跟随系统”会使用 macOS 当前语言。";
+"settings.sync.section" = "同步";
+"settings.sync.enable" = "启用 iCloud 同步";
+"settings.sync.state.on" = "同步已开启";
+"settings.sync.state.off" = "同步已关闭";
+"settings.sync.hint" = "开启后会在本地与 iCloud 间双写，并进行冲突保护合并。";
 
 "detail.title" = "任务详情";
 "detail.revert" = "恢复";
@@ -203,8 +215,19 @@
 
 "search.scope.global" = "在全部列表中搜索";
 "search.clear" = "清除搜索";
+"task.filter.showcompleted" = "显示已完成任务";
 
 "stats.open" = "未完成";
 "sort.completedAt" = "完成时间";
 "subtasks.empty" = "还没有子任务。";
 "template.editor.items.hint" = "每行输入一个事项。";
+"overview.momentum.title" = "连续动能";
+"overview.streak.days" = "连续完成 %d 天";
+"overview.completion.rate" = "完成率：%d%%";
+"overview.weekly.title" = "周回顾";
+"overview.weekly.window" = "最近 7 天";
+"overview.weekly.created" = "新建任务";
+"overview.weekly.completed" = "完成任务";
+"overview.weekly.carry" = "历史遗留完成";
+"overview.weekly.important" = "重要任务完成";
+"overview.weekly.overdue" = "逾期已处理";

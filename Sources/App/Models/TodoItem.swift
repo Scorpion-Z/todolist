@@ -55,6 +55,7 @@ struct TodoItem: Identifiable, Codable, Equatable {
     var isImportant: Bool
     var myDayDate: Date?
     var completedAt: Date?
+    var updatedAt: Date
     var createdAt: Date
 
     init(
@@ -67,6 +68,7 @@ struct TodoItem: Identifiable, Codable, Equatable {
         isImportant: Bool = false,
         myDayDate: Date? = nil,
         completedAt: Date? = nil,
+        updatedAt: Date? = nil,
         createdAt: Date = Date(),
         subtasks: [Subtask] = [],
         tags: [Tag] = [],
@@ -81,6 +83,7 @@ struct TodoItem: Identifiable, Codable, Equatable {
         self.isImportant = isImportant
         self.myDayDate = myDayDate
         self.completedAt = completedAt
+        self.updatedAt = updatedAt ?? createdAt
         self.createdAt = createdAt
         self.subtasks = subtasks
         self.tags = tags
@@ -100,6 +103,7 @@ struct TodoItem: Identifiable, Codable, Equatable {
         case isImportant
         case myDayDate
         case completedAt
+        case updatedAt
         case createdAt
     }
 
@@ -124,6 +128,7 @@ struct TodoItem: Identifiable, Codable, Equatable {
         }
         repeatRule = try container.decodeIfPresent(RepeatRule.self, forKey: .repeatRule) ?? .none
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
+        updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? createdAt
     }
 
     func encode(to encoder: Encoder) throws {
@@ -137,6 +142,7 @@ struct TodoItem: Identifiable, Codable, Equatable {
         try container.encode(isImportant, forKey: .isImportant)
         try container.encodeIfPresent(myDayDate, forKey: .myDayDate)
         try container.encodeIfPresent(completedAt, forKey: .completedAt)
+        try container.encode(updatedAt, forKey: .updatedAt)
         try container.encode(tags, forKey: .tags)
         try container.encode(subtasks, forKey: .subtasks)
         try container.encode(repeatRule, forKey: .repeatRule)

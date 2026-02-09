@@ -69,11 +69,19 @@ struct CloudTodoStorage: TodoStorage {
     private static let recordType = "TodoItem"
 
     private enum Field {
+        static let payload = "payload"
+        static let updatedAt = "updatedAt"
+
+        // Legacy fields kept for backward compatibility.
         static let title = "title"
         static let descriptionMarkdown = "descriptionMarkdown"
         static let isCompleted = "isCompleted"
         static let priority = "priority"
         static let dueDate = "dueDate"
+        static let repeatRule = "repeatRule"
+        static let isImportant = "isImportant"
+        static let myDayDate = "myDayDate"
+        static let completedAt = "completedAt"
         static let createdAt = "createdAt"
     }
 
@@ -115,13 +123,24 @@ struct CloudTodoStorage: TodoStorage {
     }
 
     private static func todoItem(from record: CKRecord) -> TodoItem? {
+        if let payloadData = record[Field.payload] as? Data,
+           let decoded = try? JSONDecoder().decode(TodoItem.self, from: payloadData) {
+            return decoded
+        }
+
         guard let title = record[Field.title] as? String else { return nil }
         let description = record[Field.descriptionMarkdown] as? String ?? ""
         let isCompleted = record[Field.isCompleted] as? Bool ?? false
         let priorityRawValue = record[Field.priority] as? String ?? TodoItem.Priority.medium.rawValue
         let priority = TodoItem.Priority(rawValue: priorityRawValue) ?? .medium
         let dueDate = record[Field.dueDate] as? Date
+        let repeatRuleRawValue = record[Field.repeatRule] as? String ?? TodoItem.RepeatRule.none.rawValue
+        let repeatRule = TodoItem.RepeatRule(rawValue: repeatRuleRawValue) ?? .none
+        let isImportant = record[Field.isImportant] as? Bool ?? false
+        let myDayDate = record[Field.myDayDate] as? Date
+        let completedAt = record[Field.completedAt] as? Date
         let createdAt = record[Field.createdAt] as? Date ?? Date()
+        let updatedAt = record[Field.updatedAt] as? Date ?? createdAt
         let id = UUID(uuidString: record.recordID.recordName) ?? UUID()
 
         return TodoItem(
@@ -131,19 +150,38 @@ struct CloudTodoStorage: TodoStorage {
             isCompleted: isCompleted,
             priority: priority,
             dueDate: dueDate,
-            createdAt: createdAt
+            isImportant: isImportant,
+            myDayDate: myDayDate,
+            completedAt: completedAt,
+            updatedAt: updatedAt,
+            createdAt: createdAt,
+            repeatRule: repeatRule
         )
     }
 
     private static func record(from item: TodoItem) -> CKRecord {
         let recordID = CKRecord.ID(recordName: item.id.uuidString)
         let record = CKRecord(recordType: recordType, recordID: recordID)
+        if let payloadData = try? JSONEncoder().encode(item) {
+            record[Field.payload] = payloadData as CKRecordValue
+        }
+        record[Field.updatedAt] = item.updatedAt as CKRecordValue
+
+        // Keep legacy fields to support migration from older records.
         record[Field.title] = item.title as CKRecordValue
         record[Field.descriptionMarkdown] = item.descriptionMarkdown as CKRecordValue
         record[Field.isCompleted] = item.isCompleted as CKRecordValue
         record[Field.priority] = item.priority.rawValue as CKRecordValue
+        record[Field.repeatRule] = item.repeatRule.rawValue as CKRecordValue
+        record[Field.isImportant] = item.isImportant as CKRecordValue
         if let dueDate = item.dueDate {
             record[Field.dueDate] = dueDate as CKRecordValue
+        }
+        if let myDayDate = item.myDayDate {
+            record[Field.myDayDate] = myDayDate as CKRecordValue
+        }
+        if let completedAt = item.completedAt {
+            record[Field.completedAt] = completedAt as CKRecordValue
         }
         record[Field.createdAt] = item.createdAt as CKRecordValue
         return record
@@ -161,6 +199,128 @@ struct DualWriteStorage: TodoStorage {
     func persistItems(_ items: [TodoItem]) async {
         await primary.persistItems(items)
         await secondary.persistItems(items)
+    }
+}
+
+struct ConflictAwareDualStorage: TodoStorage {
+    let local: TodoStorage
+    let cloud: TodoStorage
+
+    func loadItems() async -> [TodoItem] {
+        async let localItems = local.loadItems()
+        async let cloudItems = cloud.loadItems()
+
+        let merged = Self.merge(local: await localItems, remote: await cloudItems)
+
+        await local.persistItems(merged)
+        await cloud.persistItems(merged)
+        return merged
+    }
+
+    func persistItems(_ items: [TodoItem]) async {
+        await local.persistItems(items)
+
+        let remoteItems = await cloud.loadItems()
+        let merged = Self.merge(local: items, remote: remoteItems)
+
+        await local.persistItems(merged)
+        await cloud.persistItems(merged)
+    }
+
+    private static func merge(local: [TodoItem], remote: [TodoItem]) -> [TodoItem] {
+        var remoteMap = Dictionary(uniqueKeysWithValues: remote.map { ($0.id, $0) })
+        var merged: [TodoItem] = []
+        merged.reserveCapacity(max(local.count, remote.count))
+
+        for localItem in local {
+            if let remoteItem = remoteMap.removeValue(forKey: localItem.id) {
+                merged.append(merge(local: localItem, remote: remoteItem))
+            } else {
+                merged.append(localItem)
+            }
+        }
+
+        if !remoteMap.isEmpty {
+            let remaining = remoteMap.values.sorted { lhs, rhs in
+                if lhs.updatedAt != rhs.updatedAt {
+                    return lhs.updatedAt < rhs.updatedAt
+                }
+                return lhs.createdAt < rhs.createdAt
+            }
+            merged.append(contentsOf: remaining)
+        }
+
+        return merged
+    }
+
+    private static func merge(local: TodoItem, remote: TodoItem) -> TodoItem {
+        let newer = local.updatedAt >= remote.updatedAt ? local : remote
+        let older = local.updatedAt >= remote.updatedAt ? remote : local
+        var merged = newer
+
+        let timestampGap = abs(local.updatedAt.timeIntervalSince(remote.updatedAt))
+        if timestampGap <= 1 {
+            // Local merge protection for near-simultaneous edits.
+            merged.tags = mergeTags(merged.tags, older.tags)
+            merged.subtasks = mergeSubtasks(merged.subtasks, older.subtasks)
+            if merged.descriptionMarkdown.isEmpty, !older.descriptionMarkdown.isEmpty {
+                merged.descriptionMarkdown = older.descriptionMarkdown
+            }
+            merged.myDayDate = maxDate(local.myDayDate, remote.myDayDate)
+            merged.completedAt = maxDate(local.completedAt, remote.completedAt)
+        }
+
+        merged.updatedAt = maxDate(local.updatedAt, remote.updatedAt) ?? merged.updatedAt
+
+        return merged
+    }
+
+    private static func mergeTags(_ lhs: [Tag], _ rhs: [Tag]) -> [Tag] {
+        var seen = Set<String>()
+        var merged: [Tag] = []
+
+        for tag in lhs + rhs {
+            let normalized = normalizedTagName(tag.name)
+            guard !normalized.isEmpty, !seen.contains(normalized) else { continue }
+            seen.insert(normalized)
+            merged.append(tag)
+        }
+
+        return merged.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
+
+    private static func mergeSubtasks(_ lhs: [Subtask], _ rhs: [Subtask]) -> [Subtask] {
+        var mergedByID = Dictionary(uniqueKeysWithValues: lhs.map { ($0.id, $0) })
+        for subtask in rhs {
+            if let existing = mergedByID[subtask.id] {
+                mergedByID[subtask.id] = Subtask(
+                    id: existing.id,
+                    title: existing.title.isEmpty ? subtask.title : existing.title,
+                    isCompleted: existing.isCompleted || subtask.isCompleted
+                )
+            } else {
+                mergedByID[subtask.id] = subtask
+            }
+        }
+
+        return mergedByID.values.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+    }
+
+    private static func maxDate(_ lhs: Date?, _ rhs: Date?) -> Date? {
+        switch (lhs, rhs) {
+        case let (left?, right?):
+            return max(left, right)
+        case let (left?, nil):
+            return left
+        case let (nil, right?):
+            return right
+        case (nil, nil):
+            return nil
+        }
+    }
+
+    private static func normalizedTagName(_ name: String) -> String {
+        name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 }
 

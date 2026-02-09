@@ -1,5 +1,5 @@
 import Foundation
-import Combine
+import SwiftUI
 import UserNotifications
 
 struct TaskDraft {
@@ -42,6 +42,62 @@ struct TaskQuickAddResult {
     let createdTaskID: UUID?
 }
 
+struct MyDaySuggestion: Identifiable {
+    enum Reason {
+        case overdue
+        case dueToday
+        case important
+
+        var priority: Int {
+            switch self {
+            case .overdue: return 0
+            case .dueToday: return 1
+            case .important: return 2
+            }
+        }
+
+        var titleKey: LocalizedStringKey {
+            switch self {
+            case .overdue:
+                return "myday.reason.overdue"
+            case .dueToday:
+                return "myday.reason.today"
+            case .important:
+                return "myday.reason.important"
+            }
+        }
+    }
+
+    let item: TodoItem
+    let reason: Reason
+
+    var id: UUID { item.id }
+}
+
+struct MyDayProgress {
+    let completedCount: Int
+    let totalCount: Int
+
+    var completionRate: Double {
+        guard totalCount > 0 else { return 0 }
+        return Double(completedCount) / Double(totalCount)
+    }
+
+    var isAllDone: Bool {
+        totalCount > 0 && completedCount == totalCount
+    }
+}
+
+struct WeeklyReviewSnapshot {
+    let startDate: Date
+    let endDate: Date
+    let createdCount: Int
+    let completedCount: Int
+    let carriedOverCompletedCount: Int
+    let importantCompletedCount: Int
+    let overdueResolvedCount: Int
+}
+
 @MainActor
 final class TaskStore: ObservableObject {
     @Published private(set) var items: [TodoItem]
@@ -49,19 +105,21 @@ final class TaskStore: ObservableObject {
 
     private let storage: TodoStorage
     private let quickAddParser: QuickAddParser
-    private let notificationCenter: UNUserNotificationCenter
+    private let notificationCenter: UNUserNotificationCenter?
+
+    private var persistTask: Task<Void, Never>?
 
     init(
         items: [TodoItem] = [],
         storage: TodoStorage = LocalTodoStorage(),
         quickAddParser: QuickAddParser = QuickAddParser(),
-        notificationCenter: UNUserNotificationCenter = .current()
+        notificationCenter: UNUserNotificationCenter? = nil
     ) {
         self.items = items
         self.tags = []
         self.storage = storage
         self.quickAddParser = quickAddParser
-        self.notificationCenter = notificationCenter
+        self.notificationCenter = notificationCenter ?? Self.makeNotificationCenter()
 
         rebuildTags()
         if items.isEmpty {
@@ -84,6 +142,7 @@ final class TaskStore: ObservableObject {
         let trimmedTitle = draft.title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedTitle.isEmpty else { return }
 
+        let now = Date()
         let item = TodoItem(
             title: trimmedTitle,
             descriptionMarkdown: draft.descriptionMarkdown.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -91,6 +150,8 @@ final class TaskStore: ObservableObject {
             dueDate: draft.dueDate,
             isImportant: draft.isImportant,
             myDayDate: normalizeToStartOfDay(draft.myDayDate),
+            updatedAt: now,
+            createdAt: now,
             subtasks: draft.subtasks,
             tags: draft.tags,
             repeatRule: draft.repeatRule
@@ -98,7 +159,7 @@ final class TaskStore: ObservableObject {
 
         items.append(item)
         rebuildTags()
-        persistItems()
+        schedulePersist()
         scheduleNotification(for: item)
     }
 
@@ -112,16 +173,20 @@ final class TaskStore: ObservableObject {
             return TaskQuickAddResult(created: false, recognizedTokens: parsed.recognizedTokens, createdTaskID: nil)
         }
 
+        let now = Date()
         let item = TodoItem(
             title: finalTitle,
             priority: parsed.priority,
             dueDate: parsed.dueDate,
-            myDayDate: normalizeToStartOfDay(preferredMyDayDate)
+            myDayDate: normalizeToStartOfDay(preferredMyDayDate),
+            updatedAt: now,
+            createdAt: now,
+            repeatRule: parsed.repeatRule
         )
 
         items.append(item)
         rebuildTags()
-        persistItems()
+        schedulePersist()
         scheduleNotification(for: item)
 
         return TaskQuickAddResult(created: true, recognizedTokens: parsed.recognizedTokens, createdTaskID: item.id)
@@ -130,9 +195,18 @@ final class TaskStore: ObservableObject {
     func updateTask(id: UUID, mutate: (inout TodoItem) -> Void) {
         guard let index = items.firstIndex(where: { $0.id == id }) else { return }
         mutate(&items[index])
+
         items[index].myDayDate = normalizeToStartOfDay(items[index].myDayDate)
+        if items[index].isCompleted, items[index].completedAt == nil {
+            items[index].completedAt = Date()
+        }
+        if !items[index].isCompleted {
+            items[index].completedAt = nil
+        }
+        items[index].updatedAt = Date()
+
         rebuildTags()
-        persistItems()
+        schedulePersist()
         updateNotification(for: items[index])
     }
 
@@ -141,7 +215,7 @@ final class TaskStore: ObservableObject {
         let removed = items.filter { ids.contains($0.id) }
         items.removeAll { ids.contains($0.id) }
         rebuildTags()
-        persistItems()
+        schedulePersist()
         removed.forEach(cancelNotification(for:))
     }
 
@@ -151,31 +225,36 @@ final class TaskStore: ObservableObject {
 
         if items[index].isCompleted {
             items[index].completedAt = Date()
+            items[index].updatedAt = Date()
             handleRepeat(for: items[index])
         } else {
             items[index].completedAt = nil
+            items[index].updatedAt = Date()
         }
 
-        persistItems()
+        schedulePersist()
         updateNotification(for: items[index])
     }
 
     func toggleImportant(id: UUID) {
         guard let index = items.firstIndex(where: { $0.id == id }) else { return }
         items[index].isImportant.toggle()
-        persistItems()
+        items[index].updatedAt = Date()
+        schedulePersist()
     }
 
     func addToMyDay(id: UUID, date: Date = Date()) {
         guard let index = items.firstIndex(where: { $0.id == id }) else { return }
         items[index].myDayDate = normalizeToStartOfDay(date)
-        persistItems()
+        items[index].updatedAt = Date()
+        schedulePersist()
     }
 
     func removeFromMyDay(id: UUID) {
         guard let index = items.firstIndex(where: { $0.id == id }) else { return }
         items[index].myDayDate = nil
-        persistItems()
+        items[index].updatedAt = Date()
+        schedulePersist()
     }
 
     func item(withID id: UUID?) -> TodoItem? {
@@ -204,40 +283,115 @@ final class TaskStore: ObservableObject {
         tags.map(\.name)
     }
 
-    func myDaySuggestions(limit: Int = 5, referenceDate: Date = Date(), calendar: Calendar = .current) -> [TodoItem] {
+    func myDaySuggestions(limit: Int = 5, referenceDate: Date = Date(), calendar: Calendar = .current) -> [MyDaySuggestion] {
         let todayStart = calendar.startOfDay(for: referenceDate)
+        let tomorrowStart = calendar.date(byAdding: .day, value: 1, to: todayStart) ?? todayStart
 
-        let candidates = items.filter { item in
-            guard !item.isCompleted else { return false }
+        let candidates = items.compactMap { item -> MyDaySuggestion? in
+            guard !item.isCompleted else { return nil }
             if let myDayDate = item.myDayDate, calendar.isDate(myDayDate, inSameDayAs: referenceDate) {
-                return false
+                return nil
+            }
+
+            if let dueDate = item.dueDate, dueDate < todayStart {
+                return MyDaySuggestion(item: item, reason: .overdue)
+            }
+
+            if let dueDate = item.dueDate, dueDate >= todayStart && dueDate < tomorrowStart {
+                return MyDaySuggestion(item: item, reason: .dueToday)
             }
 
             if item.isImportant {
-                return true
+                return MyDaySuggestion(item: item, reason: .important)
             }
 
-            if let dueDate = item.dueDate {
-                return dueDate < todayStart || calendar.isDate(dueDate, inSameDayAs: referenceDate)
-            }
-
-            return false
+            return nil
         }
 
         return candidates
-            .sorted {
-                if $0.isImportant != $1.isImportant {
-                    return $0.isImportant
+            .sorted { lhs, rhs in
+                if lhs.reason.priority != rhs.reason.priority {
+                    return lhs.reason.priority < rhs.reason.priority
                 }
-                let lhsDue = $0.dueDate ?? .distantFuture
-                let rhsDue = $1.dueDate ?? .distantFuture
+                let lhsDue = lhs.item.dueDate ?? .distantFuture
+                let rhsDue = rhs.item.dueDate ?? .distantFuture
                 if lhsDue != rhsDue {
                     return lhsDue < rhsDue
                 }
-                return $0.createdAt > $1.createdAt
+                return lhs.item.updatedAt > rhs.item.updatedAt
             }
             .prefix(limit)
             .map { $0 }
+    }
+
+    func myDayProgress(referenceDate: Date = Date(), calendar: Calendar = .current) -> MyDayProgress {
+        let todaysItems = items.filter { item in
+            guard let myDayDate = item.myDayDate else { return false }
+            return calendar.isDate(myDayDate, inSameDayAs: referenceDate)
+        }
+
+        let completedCount = todaysItems.filter(\.isCompleted).count
+        return MyDayProgress(completedCount: completedCount, totalCount: todaysItems.count)
+    }
+
+    func completionStreak(referenceDate: Date = Date(), calendar: Calendar = .current) -> Int {
+        let completionDays = Set(items.compactMap { item -> Date? in
+            guard let completedAt = item.completedAt else { return nil }
+            return calendar.startOfDay(for: completedAt)
+        })
+
+        guard !completionDays.isEmpty else { return 0 }
+
+        let today = calendar.startOfDay(for: referenceDate)
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: today) ?? today
+        let anchor: Date
+
+        if completionDays.contains(today) {
+            anchor = today
+        } else if completionDays.contains(yesterday) {
+            anchor = yesterday
+        } else {
+            return 0
+        }
+
+        var streak = 0
+        var cursor = anchor
+        while completionDays.contains(cursor) {
+            streak += 1
+            guard let previous = calendar.date(byAdding: .day, value: -1, to: cursor) else { break }
+            cursor = previous
+        }
+
+        return streak
+    }
+
+    func weeklyReview(referenceDate: Date = Date(), calendar: Calendar = .current) -> WeeklyReviewSnapshot {
+        let endDate = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: referenceDate)) ?? referenceDate
+        let startDate = calendar.date(byAdding: .day, value: -7, to: endDate) ?? endDate
+
+        let createdCount = items.filter { $0.createdAt >= startDate && $0.createdAt < endDate }.count
+        let completedItems = items.filter {
+            guard let completedAt = $0.completedAt else { return false }
+            return completedAt >= startDate && completedAt < endDate
+        }
+
+        let completedCount = completedItems.count
+        let carriedOverCompletedCount = completedItems.filter { $0.createdAt < startDate }.count
+        let importantCompletedCount = completedItems.filter(\.isImportant).count
+        let overdueResolvedCount = completedItems.filter { item in
+            guard let dueDate = item.dueDate, let completedAt = item.completedAt else { return false }
+            return dueDate < completedAt
+        }.count
+
+        return WeeklyReviewSnapshot(
+            startDate: startDate,
+            endDate: endDate,
+            createdCount: createdCount,
+            completedCount: completedCount,
+            carriedOverCompletedCount: carriedOverCompletedCount,
+            importantCompletedCount: importantCompletedCount,
+            overdueResolvedCount: overdueResolvedCount
+        )
     }
 
     var totalCount: Int {
@@ -264,10 +418,12 @@ final class TaskStore: ObservableObject {
     }
 
     private func requestNotificationAuthorization() {
+        guard let notificationCenter else { return }
         notificationCenter.requestAuthorization(options: [.alert, .sound]) { _, _ in }
     }
 
     private func scheduleNotification(for item: TodoItem) {
+        guard let notificationCenter else { return }
         guard let dueDate = item.dueDate, !item.isCompleted else { return }
         if dueDate <= Date() {
             removeNotification(for: item.id)
@@ -296,6 +452,7 @@ final class TaskStore: ObservableObject {
     }
 
     private func removeNotification(for id: UUID) {
+        guard let notificationCenter else { return }
         notificationCenter.removePendingNotificationRequests(withIdentifiers: [id.uuidString])
     }
 
@@ -303,9 +460,12 @@ final class TaskStore: ObservableObject {
         items.forEach { scheduleNotification(for: $0) }
     }
 
-    private func persistItems() {
+    private func schedulePersist() {
         let snapshot = items
-        Task {
+        persistTask?.cancel()
+        persistTask = Task { [storage] in
+            try? await Task.sleep(nanoseconds: 220_000_000)
+            guard !Task.isCancelled else { return }
             await storage.persistItems(snapshot)
         }
     }
@@ -347,6 +507,8 @@ final class TaskStore: ObservableObject {
             priority: item.priority,
             dueDate: nextDueDate,
             isImportant: item.isImportant,
+            myDayDate: item.myDayDate,
+            updatedAt: Date(),
             subtasks: repeatedSubtasks,
             tags: item.tags,
             repeatRule: item.repeatRule
@@ -371,5 +533,10 @@ final class TaskStore: ObservableObject {
         case .monthly:
             return calendar.date(byAdding: .month, value: 1, to: baseDate)
         }
+    }
+
+    private static func makeNotificationCenter() -> UNUserNotificationCenter? {
+        guard Bundle.main.bundleURL.pathExtension == "app" else { return nil }
+        return UNUserNotificationCenter.current()
     }
 }

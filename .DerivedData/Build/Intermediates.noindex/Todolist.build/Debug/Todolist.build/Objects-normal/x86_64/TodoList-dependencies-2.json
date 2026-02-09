@@ -11,11 +11,6 @@
   },
   {
     "isFramework" : true,
-    "moduleName" : "Charts",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.2\/Charts.swiftmodule\/x86_64-apple-macos.swiftmodule"
-  },
-  {
-    "isFramework" : true,
     "moduleName" : "CloudKit",
     "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.2\/CloudKit.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },

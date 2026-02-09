@@ -14,6 +14,9 @@ final class AppShellViewModel: ObservableObject {
     @Published var selectedTaskID: TodoItem.ID?
     @Published var query: TaskQuery
     @Published var useGlobalSearch: Bool
+    @Published var searchInput: String
+
+    private var cancellables = Set<AnyCancellable>()
 
     init(
         selection: SidebarSelection = .smartList(.inbox),
@@ -25,6 +28,9 @@ final class AppShellViewModel: ObservableObject {
         self.selectedTaskID = selectedTaskID
         self.query = query
         self.useGlobalSearch = useGlobalSearch
+        self.searchInput = query.searchText
+
+        bindSearchDebounce()
     }
 
     var activeList: SmartListID {
@@ -68,6 +74,7 @@ final class AppShellViewModel: ObservableObject {
     }
 
     func clearSearch() {
+        searchInput = ""
         query.searchText = ""
     }
 
@@ -85,5 +92,15 @@ final class AppShellViewModel: ObservableObject {
     func toggleSelectedTaskImportant(using store: TaskStore) {
         guard let selectedTaskID else { return }
         store.toggleImportant(id: selectedTaskID)
+    }
+
+    private func bindSearchDebounce() {
+        $searchInput
+            .removeDuplicates()
+            .debounce(for: .milliseconds(220), scheduler: RunLoop.main)
+            .sink { [weak self] value in
+                self?.query.searchText = value
+            }
+            .store(in: &cancellables)
     }
 }

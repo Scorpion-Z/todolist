@@ -1,3 +1,4 @@
+import CloudKit
 import SwiftUI
 
 struct AppShellView: View {
@@ -7,6 +8,7 @@ struct AppShellView: View {
     @State private var quickAddFocusToken = 0
     @FocusState private var searchFocused: Bool
     @AppStorage("appLanguagePreference") private var appLanguagePreference = "system"
+    @AppStorage("cloudSyncEnabled") private var cloudSyncEnabled = false
 
     private let queryEngine = ListQueryEngine()
 
@@ -62,6 +64,11 @@ struct AppShellView: View {
                 selectedTaskID: $shell.selectedTaskID,
                 focusRequestToken: $quickAddFocusToken
             )
+
+            if showingMyDayEnhancements {
+                myDayProgressBanner
+                myDaySuggestionsPanel
+            }
 
             taskToolbar
 
@@ -132,12 +139,9 @@ struct AppShellView: View {
             HStack(spacing: 6) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(AppTheme.secondaryText)
-                TextField("search.placeholder", text: Binding(
-                    get: { shell.query.searchText },
-                    set: { shell.query.searchText = $0 }
-                ))
-                .textFieldStyle(.plain)
-                .focused($searchFocused)
+                TextField("search.placeholder", text: $shell.searchInput)
+                    .textFieldStyle(.plain)
+                    .focused($searchFocused)
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
@@ -150,7 +154,14 @@ struct AppShellView: View {
 
             Menu {
                 Toggle("search.scope.global", isOn: $shell.useGlobalSearch)
-                if !shell.query.searchText.isEmpty {
+                Toggle(
+                    "task.filter.showcompleted",
+                    isOn: Binding(
+                        get: { shell.query.showCompleted },
+                        set: { shell.query.showCompleted = $0 }
+                    )
+                )
+                if !shell.searchInput.isEmpty {
                     Button("search.clear") {
                         shell.clearSearch()
                     }
@@ -172,6 +183,125 @@ struct AppShellView: View {
             .frame(width: 170)
 
             Spacer()
+        }
+    }
+
+    private var showingMyDayEnhancements: Bool {
+        shell.selection == .smartList(.myDay)
+    }
+
+    private var myDayProgressBanner: some View {
+        let progress = store.myDayProgress()
+
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("myday.progress.title")
+                .font(AppTypography.sectionTitle)
+
+            if progress.totalCount == 0 {
+                Text("myday.progress.empty")
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppTheme.secondaryText)
+            } else {
+                Text(
+                    String(
+                        format: String(localized: "myday.progress.count"),
+                        progress.completedCount,
+                        progress.totalCount
+                    )
+                )
+                .font(AppTypography.body)
+
+                ProgressView(value: progress.completionRate)
+                    .tint(AppTheme.accentStrong)
+
+                if progress.isAllDone {
+                    Text("myday.progress.celebrate")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppTheme.accentStrong)
+                }
+            }
+        }
+        .padding(12)
+        .background(AppTheme.surface1)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(AppTheme.strokeSubtle, lineWidth: 1)
+        )
+    }
+
+    private var myDaySuggestionsPanel: some View {
+        let suggestions = store.myDaySuggestions(limit: 5)
+
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("myday.suggestions")
+                    .font(AppTypography.sectionTitle)
+                Spacer()
+            }
+
+            if suggestions.isEmpty {
+                Text("myday.suggestions.empty")
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppTheme.secondaryText)
+            } else {
+                ForEach(suggestions) { suggestion in
+                    HStack(spacing: 10) {
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(suggestion.item.title)
+                                .font(AppTypography.body)
+
+                            HStack(spacing: 6) {
+                                Text(suggestion.reason.titleKey)
+                                    .font(AppTypography.caption)
+                                    .foregroundStyle(reasonColor(suggestion.reason))
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 2)
+                                    .background(AppTheme.pillBackground)
+                                    .clipShape(Capsule())
+
+                                if let dueDate = suggestion.item.dueDate {
+                                    Text(dueDate, style: .date)
+                                        .font(AppTypography.caption)
+                                        .foregroundStyle(AppTheme.secondaryText)
+                                }
+                            }
+                        }
+
+                        Spacer()
+
+                        Button("myday.add") {
+                            store.addToMyDay(id: suggestion.id)
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                    .padding(10)
+                    .background(AppTheme.surface0)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .stroke(AppTheme.strokeSubtle, lineWidth: 1)
+                    )
+                }
+            }
+        }
+        .padding(12)
+        .background(AppTheme.surface1)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(AppTheme.strokeSubtle, lineWidth: 1)
+        )
+    }
+
+    private func reasonColor(_ reason: MyDaySuggestion.Reason) -> Color {
+        switch reason {
+        case .overdue:
+            return .red
+        case .dueToday:
+            return .orange
+        case .important:
+            return .yellow
         }
     }
 
@@ -236,6 +366,21 @@ struct AppShellView: View {
                     .font(AppTypography.caption)
                     .foregroundStyle(AppTheme.secondaryText)
             }
+
+            Section("settings.sync.section") {
+                Toggle("settings.sync.enable", isOn: $cloudSyncEnabled)
+
+                Label(
+                    cloudSyncEnabled ? "settings.sync.state.on" : "settings.sync.state.off",
+                    systemImage: cloudSyncEnabled ? "icloud.fill" : "icloud.slash"
+                )
+                .font(AppTypography.caption)
+                .foregroundStyle(cloudSyncEnabled ? AppTheme.accentStrong : AppTheme.secondaryText)
+
+                Text("settings.sync.hint")
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppTheme.secondaryText)
+            }
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
@@ -245,10 +390,41 @@ struct AppShellView: View {
 }
 
 struct RootView: View {
-    @StateObject private var store = TaskStore()
+    @AppStorage("cloudSyncEnabled") private var cloudSyncEnabled = false
+    @State private var store: TaskStore
+
+    init() {
+        let enabled = UserDefaults.standard.bool(forKey: "cloudSyncEnabled")
+        _store = State(initialValue: RootView.makeStore(syncEnabled: enabled))
+    }
 
     var body: some View {
         AppShellView(store: store)
+            .id(cloudSyncEnabled)
+            .onChange(of: cloudSyncEnabled) { _, enabled in
+                let snapshot = store.items
+                store = RootView.makeStore(syncEnabled: enabled, preloadItems: snapshot)
+            }
+    }
+
+    private static func makeStore(syncEnabled: Bool, preloadItems: [TodoItem] = []) -> TaskStore {
+        let local = LocalTodoStorage()
+        let storage: TodoStorage
+
+        if syncEnabled {
+            let cloud = CloudTodoStorage(container: CKContainer.default())
+            storage = ConflictAwareDualStorage(local: local, cloud: cloud)
+        } else {
+            storage = local
+        }
+
+        if !preloadItems.isEmpty {
+            Task {
+                await storage.persistItems(preloadItems)
+            }
+        }
+
+        return TaskStore(items: preloadItems, storage: storage)
     }
 }
 

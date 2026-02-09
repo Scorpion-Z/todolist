@@ -1,0 +1,63 @@
+{
+  "buildCommand" : {
+    "command" : "build",
+    "skipDependencies" : false,
+    "style" : "buildOnly"
+  },
+  "configuredTargets" : [
+    {
+      "guid" : "d1bc89f352c85502de858f2649cf66fdccd07855ca3eb09b8a480bf9ab2f02ac"
+    }
+  ],
+  "containerPath" : "/Users/zhanglibo/vscode/todolist-1/Todolist.xcodeproj",
+  "continueBuildingAfterErrors" : false,
+  "dependencyScope" : "workspace",
+  "enableIndexBuildArena" : false,
+  "hideShellScriptEnvironment" : false,
+  "parameters" : {
+    "action" : "build",
+    "activeArchitecture" : "arm64",
+    "activeRunDestination" : {
+      "disableOnlyActiveArch" : false,
+      "platform" : "macosx",
+      "sdk" : "macosx26.2",
+      "sdkVariant" : "macos",
+      "supportedArchitectures" : [
+        "arm64e",
+        "arm64",
+        "x86_64"
+      ],
+      "targetArchitecture" : "arm64"
+    },
+    "arenaInfo" : {
+      "buildIntermediatesPath" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex",
+      "buildProductsPath" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Products",
+      "derivedDataPath" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData",
+      "indexDataStoreFolderPath" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Index.noindex/DataStore",
+      "indexEnableDataStore" : true,
+      "indexPCHPath" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Index.noindex/PrecompiledHeaders",
+      "pchPath" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/PrecompiledHeaders"
+    },
+    "configurationName" : "Debug",
+    "overrides" : {
+      "commandLine" : {
+        "table" : {
+
+        }
+      },
+      "synthesized" : {
+        "table" : {
+          "ACTION" : "build",
+          "ENABLE_PREVIEWS" : "NO",
+          "ENABLE_XOJIT_PREVIEWS" : "YES"
+        }
+      }
+    }
+  },
+  "schemeCommand" : "launch",
+  "showNonLoggedProgress" : true,
+  "useDryRun" : false,
+  "useImplicitDependencies" : true,
+  "useLegacyBuildLocations" : false,
+  "useParallelTargets" : true
+}

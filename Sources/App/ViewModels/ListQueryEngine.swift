@@ -90,7 +90,16 @@ struct TaskQuery: Equatable, Codable {
     }
 }
 
-struct ListQueryEngine {
+final class ListQueryEngine {
+    private struct SortCacheKey: Hashable {
+        let option: TaskSortOption
+        let signature: String
+    }
+
+    private var sortCache: [SortCacheKey: [TodoItem]] = [:]
+    private var sortCacheOrder: [SortCacheKey] = []
+    private let maxSortCacheEntries = 20
+
     func tasks(
         from items: [TodoItem],
         list: SmartListID,
@@ -188,7 +197,9 @@ struct ListQueryEngine {
     ) -> Bool {
         switch list {
         case .inbox:
-            return !item.isCompleted && item.dueDate == nil && !isInMyDay(item, referenceDate: referenceDate, calendar: calendar)
+            return !item.isCompleted
+                && item.dueDate == nil
+                && !isInMyDay(item, referenceDate: referenceDate, calendar: calendar)
         case .myDay:
             return !item.isCompleted && isInMyDay(item, referenceDate: referenceDate, calendar: calendar)
         case .important:
@@ -203,11 +214,19 @@ struct ListQueryEngine {
     }
 
     private func sort(items: [TodoItem], by option: TaskSortOption) -> [TodoItem] {
+        let signature = buildSortSignature(for: items)
+        let key = SortCacheKey(option: option, signature: signature)
+
+        if let cached = sortCache[key] {
+            return cached
+        }
+
+        let sorted: [TodoItem]
         switch option {
         case .manual:
-            return items
+            sorted = items
         case .dueDate:
-            return items.sorted { lhs, rhs in
+            sorted = items.sorted { lhs, rhs in
                 let lhsDue = lhs.dueDate ?? .distantFuture
                 let rhsDue = rhs.dueDate ?? .distantFuture
                 if lhsDue != rhsDue {
@@ -222,7 +241,7 @@ struct ListQueryEngine {
                 return lhs.createdAt > rhs.createdAt
             }
         case .priority:
-            return items.sorted { lhs, rhs in
+            sorted = items.sorted { lhs, rhs in
                 if lhs.isImportant != rhs.isImportant {
                     return lhs.isImportant
                 }
@@ -237,16 +256,34 @@ struct ListQueryEngine {
                 return lhs.createdAt > rhs.createdAt
             }
         case .createdAt:
-            return items.sorted { lhs, rhs in
-                lhs.createdAt > rhs.createdAt
-            }
+            sorted = items.sorted { $0.createdAt > $1.createdAt }
         case .completedAt:
-            return items.sorted { lhs, rhs in
+            sorted = items.sorted { lhs, rhs in
                 let lhsCompleted = lhs.completedAt ?? .distantPast
                 let rhsCompleted = rhs.completedAt ?? .distantPast
                 return lhsCompleted > rhsCompleted
             }
         }
+
+        sortCache[key] = sorted
+        sortCacheOrder.append(key)
+        if sortCacheOrder.count > maxSortCacheEntries {
+            let dropCount = sortCacheOrder.count - maxSortCacheEntries
+            let dropped = sortCacheOrder.prefix(dropCount)
+            sortCacheOrder.removeFirst(dropCount)
+            for oldKey in dropped {
+                sortCache.removeValue(forKey: oldKey)
+            }
+        }
+
+        return sorted
+    }
+
+    private func buildSortSignature(for items: [TodoItem]) -> String {
+        items.map { item in
+            "\(item.id.uuidString)-\(item.updatedAt.timeIntervalSince1970)-\(item.isCompleted ? 1 : 0)-\(item.isImportant ? 1 : 0)"
+        }
+        .joined(separator: "|")
     }
 
     private func priorityRank(_ priority: TodoItem.Priority) -> Int {
