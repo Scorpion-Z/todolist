@@ -209,7 +209,7 @@ struct ContentView: View {
     @FocusState private var newTitleFocused: Bool
     @FocusState private var searchFieldFocused: Bool
     @AppStorage("appLanguage") private var appLanguage = Locale.current.language.languageCode?.identifier == "zh" ? "zh-Hans" : "en"
-    @StateObject private var viewModel = TodoListViewModel()
+    @ObservedObject var viewModel: TodoListViewModel
     @State private var newTitle = ""
     @State private var newPriority: TodoItem.Priority = .medium
     @State private var newDueDateEnabled = false
@@ -252,6 +252,10 @@ struct ContentView: View {
     @State private var templateSelections: [TemplateSelection] = []
     @AppStorage("templateConfigs") private var storedTemplateConfigs = ""
     @State private var selectedTab: AppTab = .tasks
+
+    init(viewModel: TodoListViewModel) {
+        self.viewModel = viewModel
+    }
 
     private var normalizedSearchText: String {
         searchText.trimmingCharacters(in: .whitespacesAndNewlines)
