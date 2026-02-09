@@ -21,6 +21,8 @@
 
 "newtodo.placeholder" = "New todo";
 "add.button" = "Add";
+"newtask.focus" = "Focus new task";
+"newtask.moreOptions" = "More options";
 "quickfill.title" = "Quick fill";
 "quickfill.today" = "Today";
 "quickfill.tomorrow" = "Tomorrow";
