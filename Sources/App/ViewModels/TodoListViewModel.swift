@@ -311,6 +311,7 @@ final class TodoListViewModel: ObservableObject {
         applyTagColors(from: tags)
         rebuildTags()
         persistItems()
+        updateNotification(for: items[index])
     }
 
     func addSubtask(to item: TodoItem, title: String) {
