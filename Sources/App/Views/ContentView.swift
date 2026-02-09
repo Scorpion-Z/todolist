@@ -103,9 +103,10 @@ struct ContentView: View {
         }
     }
 
-    private enum QuickView: String, CaseIterable, Identifiable {
+    private enum SecondaryFilter: String, CaseIterable, Identifiable {
+        case all
         case today
-        case thisWeek
+        case upcoming
         case overdue
         case completed
 
@@ -113,14 +114,42 @@ struct ContentView: View {
 
         var titleKey: LocalizedStringKey {
             switch self {
+            case .all:
+                return "filter.all"
             case .today:
                 return "filter.today"
-            case .thisWeek:
-                return "filter.thisWeek"
+            case .upcoming:
+                return "filter.upcoming"
             case .overdue:
                 return "filter.overdue"
             case .completed:
                 return "filter.completed"
+            }
+        }
+
+        var completionFilter: CompletionFilter {
+            switch self {
+            case .all:
+                return .all
+            case .completed:
+                return .completed
+            case .today, .upcoming, .overdue:
+                return .open
+            }
+        }
+
+        var timeFilter: TimeFilter {
+            switch self {
+            case .all:
+                return .anytime
+            case .today:
+                return .today
+            case .upcoming:
+                return .anytime
+            case .overdue:
+                return .overdue
+            case .completed:
+                return .anytime
             }
         }
     }
@@ -194,6 +223,8 @@ struct ContentView: View {
     @State private var selectedTagNames: Set<String> = []
     @State private var sortOption: SortOption = .manual
     @AppStorage("layoutMode") private var layoutModeRawValue = LayoutMode.list.rawValue
+    @State private var secondaryFilter: SecondaryFilter = .all
+    @State private var isSyncingSecondaryFilter = false
     @State private var editingItem: TodoItem?
     @State private var inlineEditingItemID: TodoItem.ID?
     @State private var editTitle = ""
@@ -495,42 +526,7 @@ struct ContentView: View {
 
                 shortcutSection
 
-                quickViewSection
-
-                HStack {
-                    Picker("filter.status", selection: $completionFilter) {
-                        ForEach(CompletionFilter.allCases) { option in
-                            Text(option.titleKey).tag(option)
-                        }
-                    }
-                    .pickerStyle(.menu)
-
-                    Picker("filter.time", selection: $timeFilter) {
-                        ForEach(TimeFilter.allCases) { option in
-                            Text(option.titleKey).tag(option)
-                        }
-                    }
-                    .pickerStyle(.menu)
-
-                    Picker("filter.priority", selection: $priorityFilter) {
-                        ForEach(PriorityFilter.allCases) { option in
-                            Text(option.titleKey).tag(option)
-                        }
-                    }
-                    .pickerStyle(.menu)
-
-                    tagFilterMenu
-
-                    Spacer()
-
-                    Picker("view.mode", selection: layoutModeBinding) {
-                        ForEach(LayoutMode.allCases) { option in
-                            Text(option.titleKey).tag(option)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .frame(width: 200)
-                }
+                filterPanel
 
                 if (sortOption != .manual || hasActiveFilters) && layoutMode != .calendar {
                     Text("reorder.notice")
@@ -686,6 +682,18 @@ struct ContentView: View {
         .onAppear(perform: loadTemplatesIfNeeded)
         .onChange(of: templates) { _ in
             persistTemplates()
+        }
+        .onAppear {
+            applySecondaryFilter(secondaryFilter)
+        }
+        .onChange(of: secondaryFilter) { _, newValue in
+            applySecondaryFilter(newValue)
+        }
+        .onChange(of: completionFilter) { _, _ in
+            syncSecondaryFilter()
+        }
+        .onChange(of: timeFilter) { _, _ in
+            syncSecondaryFilter()
         }
     }
 
@@ -978,10 +986,9 @@ struct ContentView: View {
                     Button(quickView.titleKey) {
                         applyQuickView(quickView)
                     }
-                    .buttonStyle(.bordered)
-                    .tint(isQuickViewActive(quickView) ? .accentColor : .gray)
                 }
             }
+            .padding(.vertical, 4)
         }
     }
 
@@ -1104,16 +1111,23 @@ struct ContentView: View {
         }
     }
 
-    private func isQuickViewActive(_ quickView: QuickView) -> Bool {
-        switch quickView {
+    private func syncSecondaryFilter() {
+        guard !isSyncingSecondaryFilter else { return }
+        if completionFilter == .all {
+            secondaryFilter = .all
+            return
+        }
+        if completionFilter == .completed {
+            secondaryFilter = .completed
+            return
+        }
+        switch timeFilter {
         case .today:
-            return timeFilter == .today && completionFilter == .open
-        case .thisWeek:
-            return timeFilter == .thisWeek && completionFilter == .open
+            secondaryFilter = .today
         case .overdue:
-            return timeFilter == .overdue && completionFilter == .open
-        case .completed:
-            return timeFilter == .anytime && completionFilter == .completed
+            secondaryFilter = .overdue
+        case .anytime, .thisWeek:
+            secondaryFilter = .upcoming
         }
     }
 
