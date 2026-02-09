@@ -125,6 +125,15 @@ struct ContentView: View {
         }
     }
 
+    private enum SidebarRoute: Hashable {
+        case inbox
+        case today
+        case planned
+        case completed
+        case overview
+        case tag(String)
+    }
+
     private struct LanguageOption: Identifiable {
         let id: String
         let nameKey: LocalizedStringKey
@@ -186,6 +195,7 @@ struct ContentView: View {
     @State private var previewTemplate: TemplateConfig?
     @State private var templateSelections: [TemplateSelection] = []
     @AppStorage("templateConfigs") private var storedTemplateConfigs = ""
+    @State private var sidebarSelection: SidebarRoute? = .inbox
 
     private var normalizedSearchText: String {
         searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -331,10 +341,70 @@ struct ContentView: View {
     }
 
     var body: some View {
+        NavigationSplitView {
+            sidebar
+        } detail: {
+            detailView
+        }
+        .frame(minWidth: 960, minHeight: 540)
+        .onAppear {
+            applySidebarSelection(sidebarSelection)
+        }
+        .onChange(of: sidebarSelection) { _, newValue in
+            applySidebarSelection(newValue)
+        }
+    }
+
+    private var sidebar: some View {
+        List(selection: $sidebarSelection) {
+            Section("列表") {
+                Label("收件箱", systemImage: "tray")
+                    .tag(SidebarRoute.inbox)
+                Label("今天", systemImage: "sun.max")
+                    .tag(SidebarRoute.today)
+                Label("计划", systemImage: "calendar")
+                    .tag(SidebarRoute.planned)
+                Label("已完成", systemImage: "checkmark.circle")
+                    .tag(SidebarRoute.completed)
+            }
+
+            Section("标签") {
+                if viewModel.tags.isEmpty {
+                    Text("暂无标签")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(viewModel.tags) { tag in
+                        Label(tag.name, systemImage: "tag")
+                            .tag(SidebarRoute.tag(normalizedTagName(tag.name)))
+                    }
+                }
+            }
+
+            Section("概览") {
+                Label("概览 / 分析", systemImage: "chart.bar.xaxis")
+                    .tag(SidebarRoute.overview)
+            }
+        }
+        .listStyle(.sidebar)
+        .frame(minWidth: 220)
+    }
+
+    private var detailView: some View {
+        Group {
+            if sidebarSelection == .overview {
+                OverviewView(viewModel: viewModel)
+                    .padding(24)
+            } else {
+                mainContentView
+            }
+        }
+        .environment(\.locale, selectedLocale)
+    }
+
+    private var mainContentView: some View {
         ZStack(alignment: .bottomTrailing) {
             VStack(alignment: .leading, spacing: 16) {
                 headerSection
-                StatsView(viewModel: viewModel)
                 quickAddSection
                 templateSection
 
@@ -553,7 +623,6 @@ struct ContentView: View {
             } message: {
                 Text(exportErrorMessage ?? "")
             }
-            .environment(\.locale, selectedLocale)
 
             Button {
                 quickInputFocused = true
@@ -712,9 +781,14 @@ struct ContentView: View {
 
     private var headerSection: some View {
         HStack(spacing: 12) {
-            Text("app.title")
-                .font(.title3)
-                .fontWeight(.semibold)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("app.title")
+                    .font(.title3)
+                    .fontWeight(.semibold)
+                Text(currentSectionTitle)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
             Spacer()
             Picker("language.title", selection: $appLanguage) {
                 ForEach(languageOptions) { option in
@@ -723,6 +797,51 @@ struct ContentView: View {
             }
             .pickerStyle(.segmented)
             .frame(width: 200)
+        }
+    }
+
+    private var currentSectionTitle: String {
+        switch sidebarSelection ?? .inbox {
+        case .inbox:
+            return "收件箱"
+        case .today:
+            return String(localized: "filter.today", locale: selectedLocale)
+        case .planned:
+            return "计划"
+        case .completed:
+            return String(localized: "filter.completed", locale: selectedLocale)
+        case .tag(let name):
+            return name
+        case .overview:
+            return "概览 / 分析"
+        }
+    }
+
+    private func applySidebarSelection(_ selection: SidebarRoute?) {
+        guard let selection else { return }
+        switch selection {
+        case .inbox:
+            completionFilter = .open
+            timeFilter = .anytime
+            selectedTagNames.removeAll()
+        case .today:
+            completionFilter = .open
+            timeFilter = .today
+            selectedTagNames.removeAll()
+        case .planned:
+            completionFilter = .open
+            timeFilter = .thisWeek
+            selectedTagNames.removeAll()
+        case .completed:
+            completionFilter = .completed
+            timeFilter = .anytime
+            selectedTagNames.removeAll()
+        case .tag(let name):
+            completionFilter = .all
+            timeFilter = .anytime
+            selectedTagNames = [name]
+        case .overview:
+            break
         }
     }
 
