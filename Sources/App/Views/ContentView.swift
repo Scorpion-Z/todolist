@@ -661,7 +661,7 @@ struct ContentView: View {
 
     private var taskList: some View {
         List(selection: $selectedItemID) {
-            Section(header: Text(sectionTitleKey).font(AppTypography.sectionTitle)) {
+            Section {
                 let canReorder = sortOption == .manual && !hasActiveFilters
                 let rows = ForEach(filteredItems) { item in
                     taskRow(for: item)
@@ -674,6 +674,9 @@ struct ContentView: View {
                     rows
                 }
             }
+        } header: {
+            Text(sectionTitleKey)
+                .font(AppTypography.sectionTitle)
         }
         .listStyle(.inset)
         .listRowSeparatorTint(AppTheme.divider)
