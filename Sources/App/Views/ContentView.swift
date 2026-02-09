@@ -189,6 +189,37 @@ struct ContentView: View {
         }
     }
 
+    private enum SidebarRoute: Hashable {
+        case inbox
+        case today
+        case planned
+        case completed
+        case overview
+        case tag(String)
+    }
+
+    private enum QuickView: String, CaseIterable, Identifiable {
+        case today
+        case thisWeek
+        case overdue
+        case completed
+
+        var id: String { rawValue }
+
+        var titleKey: LocalizedStringKey {
+            switch self {
+            case .today:
+                return "filter.today"
+            case .thisWeek:
+                return "filter.thisWeek"
+            case .overdue:
+                return "filter.overdue"
+            case .completed:
+                return "filter.completed"
+            }
+        }
+    }
+
     private struct LanguageOption: Identifiable {
         let id: String
         let nameKey: LocalizedStringKey
@@ -252,9 +283,14 @@ struct ContentView: View {
     @State private var templateSelections: [TemplateSelection] = []
     @AppStorage("templateConfigs") private var storedTemplateConfigs = ""
     @State private var selectedTab: AppTab = .tasks
+    @State private var sidebarSelection: SidebarRoute? = .inbox
+    @State private var quickInputText = ""
+    @State private var quickInputHint: String
+    @FocusState private var quickInputFocused: Bool
 
     init(viewModel: TodoListViewModel) {
         self.viewModel = viewModel
+        _quickInputHint = State(initialValue: String(localized: "quickadd.hint.example"))
     }
 
     private var normalizedSearchText: String {
@@ -688,6 +724,9 @@ struct ContentView: View {
             persistTemplates()
         }
         .onAppear {
+            if quickInputHint.isEmpty {
+                quickInputHint = String(localized: "quickadd.hint.example", locale: selectedLocale)
+            }
             applySecondaryFilter(secondaryFilter)
         }
         .onChange(of: secondaryFilter) { _, newValue in
@@ -724,6 +763,84 @@ struct ContentView: View {
         .buttonStyle(.borderless)
         .font(.caption)
         .foregroundStyle(.secondary)
+    }
+
+    private var quickAddSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("quickadd.title")
+                    .font(AppTypography.sectionTitle)
+                Spacer()
+                Button("quickadd.clear") {
+                    clearQuickInput()
+                }
+                .font(AppTypography.caption)
+            }
+
+            HStack(spacing: 8) {
+                TextField("quickadd.placeholder", text: $quickInputText)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($quickInputFocused)
+
+                Button("quickadd.button") {
+                    submitQuickInput()
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(quickInputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+
+            Text(quickInputHint)
+                .font(AppTypography.caption)
+                .foregroundStyle(AppTheme.secondaryText)
+        }
+        .padding(16)
+        .background(AppTheme.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius, style: .continuous)
+                .stroke(AppTheme.cardBorder, lineWidth: 1)
+        )
+    }
+
+    private var templateSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            templateOptions
+        }
+        .padding(16)
+        .background(AppTheme.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius, style: .continuous)
+                .stroke(AppTheme.cardBorder, lineWidth: 1)
+        )
+    }
+
+    private var filterPanel: some View {
+        HStack(spacing: 12) {
+            Picker("filter.status", selection: $secondaryFilter) {
+                ForEach(SecondaryFilter.allCases) { option in
+                    Text(option.titleKey).tag(option)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            Picker("sort.label", selection: $sortOption) {
+                ForEach(SortOption.allCases) { option in
+                    Text(option.titleKey).tag(option)
+                }
+            }
+            .pickerStyle(.menu)
+
+            Picker("view.mode", selection: layoutModeBinding) {
+                ForEach(LayoutMode.allCases) { option in
+                    Text(option.titleKey).tag(option)
+                }
+            }
+            .pickerStyle(.segmented)
+            .frame(width: 200)
+
+            Spacer()
+        }
     }
 
     private var templateOptions: some View {
@@ -1141,6 +1258,15 @@ struct ContentView: View {
             timeFilter = .anytime
             completionFilter = .completed
         }
+    }
+
+    private func applySecondaryFilter(_ filter: SecondaryFilter) {
+        guard !isSyncingSecondaryFilter else { return }
+        isSyncingSecondaryFilter = true
+        defer { isSyncingSecondaryFilter = false }
+
+        completionFilter = filter.completionFilter
+        timeFilter = filter.timeFilter
     }
 
     private func syncSecondaryFilter() {
