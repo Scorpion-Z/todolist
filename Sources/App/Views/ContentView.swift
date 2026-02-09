@@ -499,215 +499,8 @@ struct ContentView: View {
 
     private var mainContentView: some View {
         ZStack(alignment: .bottomTrailing) {
-            VStack(alignment: .leading, spacing: 16) {
-                headerSection
-                quickAddSection
-                templateSection
-
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        TextField("newtodo.placeholder", text: $newTitle)
-                            .textFieldStyle(.roundedBorder)
-                            .focused($newTitleFocused)
-                        Text("markdown.description")
-                            .font(AppTypography.subtitle)
-                            .foregroundStyle(AppTheme.secondaryText)
-                        TextEditor(text: $newDescription)
-                            .frame(minHeight: 80)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(AppTheme.divider, lineWidth: 1)
-                            )
-                        HStack(spacing: 12) {
-                            Picker("priority.label", selection: $newPriority) {
-                                ForEach(TodoItem.Priority.allCases) { priority in
-                                    Text(priority.displayNameKey).tag(priority)
-                                }
-                            }
-                            .pickerStyle(.segmented)
-
-                            Toggle("duedate.label", isOn: $newDueDateEnabled)
-                            if newDueDateEnabled {
-                                DatePicker("", selection: $newDueDate, displayedComponents: .date)
-                                    .labelsHidden()
-                            }
-                        }
-                        quickDateFillSection(
-                            titleKey: "quickfill.title",
-                            setDate: { setQuickDueDate($0) }
-                        )
-                        DisclosureGroup("newtask.moreOptions", isExpanded: $showingNewTaskOptions) {
-                            templateOptions
-                        }
-                    }
-                    Button("add.button") {
-                        viewModel.addItem(
-                            title: newTitle,
-                            descriptionMarkdown: newDescription,
-                            priority: newPriority,
-                            dueDate: newDueDateEnabled ? newDueDate : nil
-                        )
-                        print("Debug: items count \(viewModel.items.count)")
-                        newTitle = ""
-                        newDescription = ""
-                        newPriority = .medium
-                        newDueDateEnabled = false
-                        newTitleFocused = true
-                    }
-                    .keyboardShortcut(.return, modifiers: [.command])
-                }
-                .padding(16)
-                .background(AppTheme.cardBackground)
-                .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius, style: .continuous)
-                        .stroke(AppTheme.cardBorder, lineWidth: 1)
-                )
-
-                shortcutSection
-
-                filterPanel
-
-                if (sortOption != .manual || hasActiveFilters) && layoutMode != .calendar {
-                    Text("reorder.notice")
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppTheme.secondaryText)
-                }
-
-                if filteredItems.isEmpty {
-                    if #available(macOS 14.0, *) {
-                        ContentUnavailableView(emptyStateText.titleKey, systemImage: emptyStateText.systemImage)
-                    } else {
-                        VStack(spacing: 8) {
-                            Image(systemName: emptyStateText.systemImage)
-                                .font(.largeTitle)
-                                .foregroundStyle(AppTheme.secondaryText)
-                            Text(emptyStateText.titleKey)
-                                .foregroundStyle(AppTheme.secondaryText)
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    }
-                } else {
-                    if layoutMode == .calendar {
-                        CalendarView(
-                            items: filteredItems,
-                            onDelete: viewModel.deleteItems(withIDs:),
-                            onToggleCompletion: viewModel.toggleCompletion(for:),
-                            onEdit: beginEditing(_:)
-                        )
-                    } else {
-                        List(selection: $selectedItemID) {
-                            Section {
-                                let canReorder = sortOption == .manual && !hasActiveFilters
-                                let rows = ForEach(filteredItems) { item in
-                                    HStack(alignment: .top, spacing: 12) {
-                                        Button {
-                                            viewModel.toggleCompletion(for: item)
-                                        } label: {
-                                            Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
-                                        }
-                                        .buttonStyle(.plain)
-
-                                        VStack(alignment: .leading, spacing: 8) {
-                                            Text(item.title)
-                                                .strikethrough(item.isCompleted, color: .secondary)
-                                                .foregroundStyle(item.isCompleted ? .secondary : .primary)
-
-                                            HStack(spacing: 6) {
-                                                tagLabel(
-                                                    item.priority.displayNameKey,
-                                                    foreground: priorityColor(item.priority)
-                                                )
-                                                if let dueDate = item.dueDate {
-                                                    tagLabel(dueDate, style: .date)
-                                                }
-                                            }
-                                            if !item.tags.isEmpty {
-                                                HStack(spacing: 6) {
-                                                    ForEach(item.tags) { tag in
-                                                        tagLabel(tag)
-                                                    }
-                                                }
-                                            }
-                                            if !item.subtasks.isEmpty {
-                                                let completedCount = item.subtasks.filter(\.isCompleted).count
-                                                tagLabel("\(completedCount)/\(item.subtasks.count)")
-                                            }
-                                        }
-                                        Spacer()
-                                        Button("edit.button") {
-                                            beginEditing(item)
-                                        }
-                                        .buttonStyle(.bordered)
-                                        .controlSize(.small)
-                                    }
-                                    .padding(.vertical, 8)
-                                    .listRowBackground(AppTheme.cardBackground)
-                                    .contentShape(Rectangle())
-                                    .onTapGesture {
-                                        selectedItemID = item.id
-                                    }
-                                    .tag(item.id)
-                                    .contextMenu {
-                                        let markKey: LocalizedStringKey = item.isCompleted ? "mark.open" : "mark.done"
-                                        Button("edit.button") {
-                                            beginEditing(item)
-                                        }
-                                        Button(markKey) {
-                                            viewModel.toggleCompletion(for: item)
-                                        }
-                                    }
-                                }
-                                .onDelete(perform: deleteItems(at:))
-                                if canReorder {
-                                    rows.onMove(perform: moveItems(from:to:))
-                                } else {
-                                    rows
-                                }
-                            }
-                        } header: {
-                            Text(sectionTitleKey)
-                                .font(AppTypography.sectionTitle)
-                        }
-                        .listStyle(.inset)
-                        .listRowSeparatorTint(AppTheme.divider)
-                    }
-                }
-            }
-            .padding(24)
-            .frame(minWidth: 520, minHeight: 420)
-            .sheet(item: $editingItem) { item in
-                editSheet(for: item)
-            }
-            .alert("export.error.title", isPresented: Binding(get: {
-                exportErrorMessage != nil
-            }, set: { newValue in
-                if !newValue {
-                    exportErrorMessage = nil
-                }
-            })) {
-                Button("export.error.dismiss") {
-                    exportErrorMessage = nil
-                }
-            } message: {
-                Text(exportErrorMessage ?? "")
-            }
-
-            Button {
-                let trimmed = quickInputText.trimmingCharacters(in: .whitespacesAndNewlines)
-                if trimmed.isEmpty {
-                    selectedTab = .add
-                    quickInputFocused = true
-                } else {
-                    submitQuickInput()
-                }
-            } label: {
-                Label("quickadd.floating", systemImage: "plus.circle.fill")
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(.accentColor)
-            .help("quickadd.focus")
-            .padding(24)
+            mainContentBody
+            quickAddFloatingButton
         }
         .background(AppTheme.background)
         .sheet(isPresented: $showingTemplateManager) {
@@ -738,6 +531,233 @@ struct ContentView: View {
         .onChange(of: timeFilter) { _, _ in
             syncSecondaryFilter()
         }
+    }
+
+    private var mainContentBody: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            headerSection
+            quickAddSection
+            templateSection
+            newTaskCard
+            shortcutSection
+            filterPanel
+
+            if (sortOption != .manual || hasActiveFilters) && layoutMode != .calendar {
+                Text("reorder.notice")
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppTheme.secondaryText)
+            }
+
+            taskListSection
+        }
+        .padding(24)
+        .frame(minWidth: 520, minHeight: 420)
+        .sheet(item: $editingItem) { item in
+            editSheet(for: item)
+        }
+        .alert("export.error.title", isPresented: Binding(get: {
+            exportErrorMessage != nil
+        }, set: { newValue in
+            if !newValue {
+                exportErrorMessage = nil
+            }
+        })) {
+            Button("export.error.dismiss") {
+                exportErrorMessage = nil
+            }
+        } message: {
+            Text(exportErrorMessage ?? "")
+        }
+    }
+
+    private var newTaskCard: some View {
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 8) {
+                TextField("newtodo.placeholder", text: $newTitle)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($newTitleFocused)
+                Text("markdown.description")
+                    .font(AppTypography.subtitle)
+                    .foregroundStyle(AppTheme.secondaryText)
+                TextEditor(text: $newDescription)
+                    .frame(minHeight: 80)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(AppTheme.divider, lineWidth: 1)
+                    )
+                HStack(spacing: 12) {
+                    Picker("priority.label", selection: $newPriority) {
+                        ForEach(TodoItem.Priority.allCases) { priority in
+                            Text(priority.displayNameKey).tag(priority)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    Toggle("duedate.label", isOn: $newDueDateEnabled)
+                    if newDueDateEnabled {
+                        DatePicker("", selection: $newDueDate, displayedComponents: .date)
+                            .labelsHidden()
+                    }
+                }
+                quickDateFillSection(
+                    titleKey: "quickfill.title",
+                    setDate: { setQuickDueDate($0) }
+                )
+                DisclosureGroup("newtask.moreOptions", isExpanded: $showingNewTaskOptions) {
+                    templateOptions
+                }
+            }
+            Button("add.button") {
+                viewModel.addItem(
+                    title: newTitle,
+                    descriptionMarkdown: newDescription,
+                    priority: newPriority,
+                    dueDate: newDueDateEnabled ? newDueDate : nil
+                )
+                print("Debug: items count \(viewModel.items.count)")
+                newTitle = ""
+                newDescription = ""
+                newPriority = .medium
+                newDueDateEnabled = false
+                newTitleFocused = true
+            }
+            .keyboardShortcut(.return, modifiers: [.command])
+        }
+        .padding(16)
+        .background(AppTheme.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius, style: .continuous)
+                .stroke(AppTheme.cardBorder, lineWidth: 1)
+        )
+    }
+
+    @ViewBuilder
+    private var taskListSection: some View {
+        if filteredItems.isEmpty {
+            if #available(macOS 14.0, *) {
+                ContentUnavailableView(emptyStateText.titleKey, systemImage: emptyStateText.systemImage)
+            } else {
+                VStack(spacing: 8) {
+                    Image(systemName: emptyStateText.systemImage)
+                        .font(.largeTitle)
+                        .foregroundStyle(AppTheme.secondaryText)
+                    Text(emptyStateText.titleKey)
+                        .foregroundStyle(AppTheme.secondaryText)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        } else if layoutMode == .calendar {
+            CalendarView(
+                items: filteredItems,
+                onDelete: viewModel.deleteItems(withIDs:),
+                onToggleCompletion: viewModel.toggleCompletion(for:),
+                onEdit: beginEditing(_:)
+            )
+        } else {
+            taskList
+        }
+    }
+
+    private var taskList: some View {
+        List(selection: $selectedItemID) {
+            Section {
+                let canReorder = sortOption == .manual && !hasActiveFilters
+                let rows = ForEach(filteredItems) { item in
+                    taskRow(for: item)
+                }
+                .onDelete(perform: deleteItems(at:))
+
+                if canReorder {
+                    rows.onMove(perform: moveItems(from:to:))
+                } else {
+                    rows
+                }
+            }
+        } header: {
+            Text(sectionTitleKey)
+                .font(AppTypography.sectionTitle)
+        }
+        .listStyle(.inset)
+        .listRowSeparatorTint(AppTheme.divider)
+    }
+
+    private func taskRow(for item: TodoItem) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Button {
+                viewModel.toggleCompletion(for: item)
+            } label: {
+                Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
+            }
+            .buttonStyle(.plain)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(item.title)
+                    .strikethrough(item.isCompleted, color: .secondary)
+                    .foregroundStyle(item.isCompleted ? .secondary : .primary)
+
+                HStack(spacing: 6) {
+                    tagLabel(
+                        item.priority.displayNameKey,
+                        foreground: priorityColor(item.priority)
+                    )
+                    if let dueDate = item.dueDate {
+                        tagLabel(dueDate, style: .date)
+                    }
+                }
+                if !item.tags.isEmpty {
+                    HStack(spacing: 6) {
+                        ForEach(item.tags) { tag in
+                            tagLabel(tag)
+                        }
+                    }
+                }
+                if !item.subtasks.isEmpty {
+                    let completedCount = item.subtasks.filter(\.isCompleted).count
+                    tagLabel("\(completedCount)/\(item.subtasks.count)")
+                }
+            }
+            Spacer()
+            Button("edit.button") {
+                beginEditing(item)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+        }
+        .padding(.vertical, 8)
+        .listRowBackground(AppTheme.cardBackground)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            selectedItemID = item.id
+        }
+        .tag(item.id)
+        .contextMenu {
+            let markKey: LocalizedStringKey = item.isCompleted ? "mark.open" : "mark.done"
+            Button("edit.button") {
+                beginEditing(item)
+            }
+            Button(markKey) {
+                viewModel.toggleCompletion(for: item)
+            }
+        }
+    }
+
+    private var quickAddFloatingButton: some View {
+        Button {
+            let trimmed = quickInputText.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.isEmpty {
+                selectedTab = .add
+                quickInputFocused = true
+            } else {
+                submitQuickInput()
+            }
+        } label: {
+            Label("quickadd.floating", systemImage: "plus.circle.fill")
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(.accentColor)
+        .help("quickadd.focus")
+        .padding(24)
     }
 
     private var shortcutSection: some View {
