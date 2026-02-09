@@ -39,7 +39,7 @@ struct CardListView: View {
                 .buttonStyle(.plain)
 
                 Text(item.title)
-                    .font(.headline)
+                    .font(AppTypography.sectionTitle)
                     .strikethrough(item.isCompleted, color: .secondary)
                     .foregroundStyle(item.isCompleted ? .secondary : .primary)
 
@@ -66,11 +66,11 @@ struct CardListView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(.thinMaterial)
+                .fill(AppTheme.cardBackground)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(isSelected ? Color.accentColor.opacity(0.6) : Color.clear, lineWidth: 2)
+                .stroke(isSelected ? Color.accentColor.opacity(0.6) : AppTheme.cardBorder, lineWidth: 1)
         )
         .animation(.easeInOut(duration: 0.2), value: isSelected)
         .contextMenu {
@@ -105,11 +105,11 @@ struct CardListView: View {
         foreground: Color = .secondary
     ) -> some View {
         Text(text)
-            .font(.caption)
+            .font(AppTypography.caption)
             .foregroundStyle(foreground)
             .padding(.horizontal, 8)
             .padding(.vertical, 2)
-            .background(.thinMaterial)
+            .background(AppTheme.pillBackground)
             .clipShape(Capsule())
     }
 
@@ -119,11 +119,11 @@ struct CardListView: View {
         foreground: Color = .secondary
     ) -> some View {
         Text(date, style: style)
-            .font(.caption)
+            .font(AppTypography.caption)
             .foregroundStyle(foreground)
             .padding(.horizontal, 8)
             .padding(.vertical, 2)
-            .background(.thinMaterial)
+            .background(AppTheme.pillBackground)
             .clipShape(Capsule())
     }
 }
