@@ -180,15 +180,18 @@ final class TodoListViewModel: ObservableObject {
                 if !loaded.isEmpty {
                     self.items = loaded
                     self.tags = Self.collectTags(from: loaded)
+                    rescheduleNotifications(for: loaded)
                 }
             }
         } else {
             self.items = items
             self.tags = Self.collectTags(from: items)
+            if !items.isEmpty {
+                rescheduleNotifications(for: items)
+            }
         }
 
         requestNotificationAuthorization()
-        rescheduleNotifications(for: self.items)
     }
 
     struct DailyCompletionStat: Identifiable {
