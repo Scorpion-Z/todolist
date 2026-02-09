@@ -49,11 +49,11 @@ struct StatsView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("stats.trend.title")
-                    .font(.headline)
+                    .font(AppTypography.sectionTitle)
                 Spacer()
                 (Text("stats.today.completed.count") + Text(" \(todayCompletedCount)"))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(AppTypography.subtitle)
+                    .foregroundStyle(AppTheme.secondaryText)
             }
             if #available(macOS 13.0, *) {
                 Chart(sevenDayTrend) { stat in
@@ -74,8 +74,12 @@ struct StatsView: View {
                 }
                 .frame(height: 160)
                 .padding()
-                .background(.thinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .background(AppTheme.cardBackground)
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius, style: .continuous)
+                        .stroke(AppTheme.cardBorder, lineWidth: 1)
+                )
             } else {
                 VStack(alignment: .leading, spacing: 4) {
                     ForEach(sevenDayTrend) { stat in
@@ -84,13 +88,17 @@ struct StatsView: View {
                             Spacer()
                             Text("\(stat.completedCount)")
                         }
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppTheme.secondaryText)
                     }
                 }
                 .padding()
-                .background(.thinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .background(AppTheme.cardBackground)
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius, style: .continuous)
+                        .stroke(AppTheme.cardBorder, lineWidth: 1)
+                )
             }
         }
     }
@@ -102,7 +110,7 @@ struct StatsView: View {
             } else {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("tag.stats.title")
-                        .font(.headline)
+                        .font(AppTypography.sectionTitle)
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 12)], spacing: 12) {
                         ForEach(tagStats) { stat in
                             HStack(spacing: 8) {
@@ -111,16 +119,20 @@ struct StatsView: View {
                                     .frame(width: 8, height: 8)
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(stat.tag.name)
-                                        .font(.subheadline)
+                                        .font(AppTypography.body)
                                     Text(String(format: String(localized: "tag.stats.detail"), stat.completedCount, stat.totalCount))
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                        .font(AppTypography.caption)
+                                        .foregroundStyle(AppTheme.secondaryText)
                                 }
                                 Spacer()
                             }
                             .padding(10)
-                            .background(.thinMaterial)
+                            .background(AppTheme.cardBackground)
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .stroke(AppTheme.cardBorder, lineWidth: 1)
+                            )
                         }
                     }
                 }
@@ -151,23 +163,25 @@ private struct StatCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(titleKey)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(AppTypography.metricLabel)
+                .foregroundStyle(AppTheme.secondaryText)
             switch displayValue {
             case .count(let value):
                 Text("\(value)")
-                    .font(.title2)
-                    .fontWeight(.semibold)
+                    .font(AppTypography.metricValue)
             case .percent(let value):
                 Text(value, format: .percent)
-                    .font(.title2)
-                    .fontWeight(.semibold)
+                    .font(AppTypography.metricValue)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(.thinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(AppTheme.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius, style: .continuous)
+                .stroke(AppTheme.cardBorder, lineWidth: 1)
+        )
     }
 }
 
