@@ -142,17 +142,16 @@ struct ContentView: View {
         var isSelected: Bool
     }
 
-    @FocusState private var quickInputFocused: Bool
+    @FocusState private var newTitleFocused: Bool
     @FocusState private var searchFieldFocused: Bool
     @AppStorage("appLanguage") private var appLanguage = Locale.current.language.languageCode?.identifier == "zh" ? "zh-Hans" : "en"
     @StateObject private var viewModel = TodoListViewModel()
-    @State private var quickInputText = ""
-    @State private var quickInputHint = ""
     @State private var newTitle = ""
     @State private var newPriority: TodoItem.Priority = .medium
     @State private var newDueDateEnabled = false
     @State private var newDueDate = Date()
     @State private var newDescription = ""
+    @State private var showingNewTaskOptions = false
     @State private var searchText = ""
     @State private var completionFilter: CompletionFilter = .all
     @State private var timeFilter: TimeFilter = .anytime
@@ -335,13 +334,12 @@ struct ContentView: View {
             VStack(alignment: .leading, spacing: 16) {
                 headerSection
                 StatsView(viewModel: viewModel)
-                quickAddSection
-                templateSection
 
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 8) {
                         TextField("newtodo.placeholder", text: $newTitle)
                             .textFieldStyle(.roundedBorder)
+                            .focused($newTitleFocused)
                         Text("markdown.description")
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -369,6 +367,9 @@ struct ContentView: View {
                             titleKey: "quickfill.title",
                             setDate: { setQuickDueDate($0) }
                         )
+                        DisclosureGroup("newtask.moreOptions", isExpanded: $showingNewTaskOptions) {
+                            templateOptions
+                        }
                     }
                     Button("add.button") {
                         viewModel.addItem(
@@ -382,9 +383,12 @@ struct ContentView: View {
                         newDescription = ""
                         newPriority = .medium
                         newDueDateEnabled = false
+                        newTitleFocused = true
                     }
                     .keyboardShortcut(.return, modifiers: [.command])
                 }
+
+                shortcutSection
 
                 quickViewSection
 
@@ -531,15 +535,6 @@ struct ContentView: View {
             .sheet(item: $editingItem) { item in
                 editSheet(for: item)
             }
-            .onAppear {
-                clearQuickInput()
-            }
-            .onExitCommand {
-                clearQuickInput()
-            }
-            .onChange(of: appLanguage) { _, _ in
-                clearQuickInput()
-            }
             .alert("export.error.title", isPresented: Binding(get: {
                 exportErrorMessage != nil
             }, set: { newValue in
@@ -554,16 +549,6 @@ struct ContentView: View {
                 Text(exportErrorMessage ?? "")
             }
             .environment(\.locale, selectedLocale)
-
-            Button {
-                quickInputFocused = true
-            } label: {
-                Label("quickadd.floating", systemImage: "plus.circle.fill")
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(.accentColor)
-            .help("quickadd.focus")
-            .padding(24)
         }
         .sheet(isPresented: $showingTemplateManager) {
             TemplateManagerView(
@@ -580,58 +565,32 @@ struct ContentView: View {
         }
     }
 
-    private var quickAddSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
-                TextField("quickadd.placeholder", text: $quickInputText)
-                    .textFieldStyle(.roundedBorder)
-                    .focused($quickInputFocused)
-                    .onSubmit {
-                        submitQuickInput()
-                    }
-
-                Button("quickadd.button") {
-                    submitQuickInput()
-                }
-                .keyboardShortcut(.return, modifiers: [])
-                .help("quickadd.help")
+    private var shortcutSection: some View {
+        HStack(spacing: 12) {
+            Button("newtask.focus") {
+                newTitleFocused = true
             }
+            .keyboardShortcut("n", modifiers: .command)
 
-            Text(quickInputHint)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            HStack(spacing: 12) {
-                Button("quickadd.focus") {
-                    quickInputFocused = true
-                }
-                .keyboardShortcut("n", modifiers: .command)
-
-                Button("search.focus") {
-                    searchFieldFocused = true
-                }
-                .keyboardShortcut("f", modifiers: .command)
-
-                Button("edit.button") {
-                    if let item = selectedItem {
-                        beginEditing(item)
-                    }
-                }
-                .keyboardShortcut("e", modifiers: .command)
-                .disabled(selectedItem == nil)
-
-                Button("quickadd.clear") {
-                    clearQuickInput()
-                }
-                .keyboardShortcut(.escape, modifiers: [])
+            Button("search.focus") {
+                searchFieldFocused = true
             }
-            .buttonStyle(.borderless)
-            .font(.caption)
-            .foregroundStyle(.secondary)
+            .keyboardShortcut("f", modifiers: .command)
+
+            Button("edit.button") {
+                if let item = selectedItem {
+                    beginEditing(item)
+                }
+            }
+            .keyboardShortcut("e", modifiers: .command)
+            .disabled(selectedItem == nil)
         }
+        .buttonStyle(.borderless)
+        .font(.caption)
+        .foregroundStyle(.secondary)
     }
 
-    private var templateSection: some View {
+    private var templateOptions: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("template.title")
@@ -754,26 +713,6 @@ struct ContentView: View {
         case .completed:
             return timeFilter == .anytime && completionFilter == .completed
         }
-    }
-
-    private func submitQuickInput() {
-        let feedback = viewModel.addQuickItem(rawText: quickInputText)
-        guard feedback.created else {
-            quickInputHint = String(localized: "quickadd.hint.missingtitle", locale: selectedLocale)
-            return
-        }
-        print("Debug: items count \(viewModel.items.count)")
-
-        let tokenSeparator = String(localized: "quickadd.token.separator", locale: selectedLocale)
-        quickInputHint = feedback.recognizedTokens.isEmpty
-            ? String(localized: "quickadd.hint.unrecognized", locale: selectedLocale)
-            : String(
-                format: String(localized: "quickadd.hint.recognized", locale: selectedLocale),
-                feedback.recognizedTokens.joined(separator: tokenSeparator)
-            )
-
-        quickInputText = ""
-        quickInputFocused = true
     }
 
     private func addSelectedTemplateItems() {
@@ -933,11 +872,6 @@ struct ContentView: View {
         }
         .buttonStyle(.borderless)
         .font(.caption)
-    }
-
-    private func clearQuickInput() {
-        quickInputText = ""
-        quickInputHint = String(localized: "quickadd.hint.example", locale: selectedLocale)
     }
 
     private func deleteItems(at offsets: IndexSet) {

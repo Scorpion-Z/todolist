@@ -17,6 +17,8 @@
 
 "newtodo.placeholder" = "新建待办";
 "add.button" = "添加";
+"newtask.focus" = "聚焦新增";
+"newtask.moreOptions" = "更多选项";
 "quickfill.title" = "一键填充";
 "quickfill.today" = "今日";
 "quickfill.tomorrow" = "明日";
