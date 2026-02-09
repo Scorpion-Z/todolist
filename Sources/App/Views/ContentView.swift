@@ -1970,7 +1970,7 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView()
+    ContentView(viewModel: TodoListViewModel())
 }
 
 private extension View {
