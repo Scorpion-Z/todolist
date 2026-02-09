@@ -19,6 +19,7 @@
 		A1A1A1A1A1A1A1A1A1A1A1C1 /* QuickAddParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1C2 /* QuickAddParser.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1A9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1AA /* Assets.xcassets */; };
 		B1B1B1B1B1B1B1B1B1B1B1B1 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = B1B1B1B1B1B1B1B1B1B1B1B2 /* Localizable.strings */; };
+		D1D1D1D1D1D1D1D1D1D1D1D1 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1D2 /* Theme.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -37,6 +38,7 @@
 		A1A1A1A1A1A1A1A1A1A1A1AC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B1B1B1B1B1B1B1B1B1B1B1B3 /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = Localizable.strings; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		B1B1B1B1B1B1B1B1B1B1B1B4 /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = Localizable.strings; path = zh-Hans.lproj/Localizable.strings; sourceTree = "<group>"; };
+		D1D1D1D1D1D1D1D1D1D1D1D2 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -122,6 +124,7 @@
 			isa = PBXGroup;
 			children = (
 				B1B1B1B1B1B1B1B1B1B1B1B2 /* Localizable.strings */,
+				D1D1D1D1D1D1D1D1D1D1D1D2 /* Theme.swift */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -209,6 +212,7 @@
 				C1C1C1C1C1C1C1C1C1C1C111 /* CalendarView.swift in Sources */,
 				C1C1C1C1C1C1C1C1C1C1C112 /* CardListView.swift in Sources */,
 				C1C1C1C1C1C1C1C1C1C1C113 /* StatsView.swift in Sources */,
+				D1D1D1D1D1D1D1D1D1D1D1D1 /* Theme.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1A5 /* TodoItem.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1C5 /* Tag.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1C7 /* Subtask.swift in Sources */,
