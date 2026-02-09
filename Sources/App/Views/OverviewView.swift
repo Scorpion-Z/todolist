@@ -20,6 +20,8 @@ struct OverviewView: View {
     }
 }
 
-#Preview {
-    OverviewView(viewModel: TodoListViewModel())
+struct OverviewView_Previews: PreviewProvider {
+    static var previews: some View {
+        OverviewView(viewModel: TodoListViewModel())
+    }
 }

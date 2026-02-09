@@ -18,6 +18,8 @@ struct AnalyticsView: View {
     }
 }
 
-#Preview {
-    AnalyticsView(viewModel: TodoListViewModel())
+struct AnalyticsView_Previews: PreviewProvider {
+    static var previews: some View {
+        AnalyticsView(viewModel: TodoListViewModel())
+    }
 }

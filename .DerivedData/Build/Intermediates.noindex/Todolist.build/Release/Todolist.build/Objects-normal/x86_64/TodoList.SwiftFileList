@@ -1,0 +1,15 @@
+/Users/zhanglibo/vscode/todolist-1/Sources/App/TodolistApp.swift
+/Users/zhanglibo/vscode/todolist-1/Sources/App/Views/ContentView.swift
+/Users/zhanglibo/vscode/todolist-1/Sources/App/Views/RootView.swift
+/Users/zhanglibo/vscode/todolist-1/Sources/App/Views/OverviewView.swift
+/Users/zhanglibo/vscode/todolist-1/Sources/App/Views/CalendarView.swift
+/Users/zhanglibo/vscode/todolist-1/Sources/App/Views/CardListView.swift
+/Users/zhanglibo/vscode/todolist-1/Sources/App/Views/StatsView.swift
+/Users/zhanglibo/vscode/todolist-1/Sources/App/Views/AnalyticsView.swift
+/Users/zhanglibo/vscode/todolist-1/Sources/App/Resources/Theme.swift
+/Users/zhanglibo/vscode/todolist-1/Sources/App/Models/TodoItem.swift
+/Users/zhanglibo/vscode/todolist-1/Sources/App/Models/Tag.swift
+/Users/zhanglibo/vscode/todolist-1/Sources/App/Models/Subtask.swift
+/Users/zhanglibo/vscode/todolist-1/Sources/App/ViewModels/TodoListViewModel.swift
+/Users/zhanglibo/vscode/todolist-1/Sources/App/Parsing/QuickAddParser.swift
+/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/DerivedSources/GeneratedAssetSymbols.swift

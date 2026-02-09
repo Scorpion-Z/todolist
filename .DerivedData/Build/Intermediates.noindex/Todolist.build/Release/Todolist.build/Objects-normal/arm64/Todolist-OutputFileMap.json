@@ -1,0 +1,159 @@
+{
+  "" : {
+    "diagnostics" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/Todolist-primary.dia",
+    "emit-module-dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/Todolist-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/Todolist-primary-emit-module.dia",
+    "pch" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/Todolist-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/Todolist-primary.swiftdeps"
+  },
+  "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "const-values" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/GeneratedAssetSymbols.swiftconstvalues",
+    "dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/GeneratedAssetSymbols.d",
+    "diagnostics" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/GeneratedAssetSymbols.dia",
+    "index-unit-output-path" : "/Todolist.build/Release/Todolist.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "swift-dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/GeneratedAssetSymbols.swiftdeps",
+    "swiftmodule" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/GeneratedAssetSymbols~partial.swiftmodule"
+  },
+  "/Users/zhanglibo/vscode/todolist-1/Sources/App/Models/Subtask.swift" : {
+    "const-values" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/Subtask.swiftconstvalues",
+    "dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/Subtask.d",
+    "diagnostics" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/Subtask.dia",
+    "index-unit-output-path" : "/Todolist.build/Release/Todolist.build/Objects-normal/arm64/Subtask.o",
+    "llvm-bc" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/Subtask.bc",
+    "object" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/Subtask.o",
+    "swift-dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/Subtask.swiftdeps",
+    "swiftmodule" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/Subtask~partial.swiftmodule"
+  },
+  "/Users/zhanglibo/vscode/todolist-1/Sources/App/Models/Tag.swift" : {
+    "const-values" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/Tag.swiftconstvalues",
+    "dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/Tag.d",
+    "diagnostics" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/Tag.dia",
+    "index-unit-output-path" : "/Todolist.build/Release/Todolist.build/Objects-normal/arm64/Tag.o",
+    "llvm-bc" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/Tag.bc",
+    "object" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/Tag.o",
+    "swift-dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/Tag.swiftdeps",
+    "swiftmodule" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/Tag~partial.swiftmodule"
+  },
+  "/Users/zhanglibo/vscode/todolist-1/Sources/App/Models/TodoItem.swift" : {
+    "const-values" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/TodoItem.swiftconstvalues",
+    "dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/TodoItem.d",
+    "diagnostics" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/TodoItem.dia",
+    "index-unit-output-path" : "/Todolist.build/Release/Todolist.build/Objects-normal/arm64/TodoItem.o",
+    "llvm-bc" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/TodoItem.bc",
+    "object" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/TodoItem.o",
+    "swift-dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/TodoItem.swiftdeps",
+    "swiftmodule" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/TodoItem~partial.swiftmodule"
+  },
+  "/Users/zhanglibo/vscode/todolist-1/Sources/App/Parsing/QuickAddParser.swift" : {
+    "const-values" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/QuickAddParser.swiftconstvalues",
+    "dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/QuickAddParser.d",
+    "diagnostics" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/QuickAddParser.dia",
+    "index-unit-output-path" : "/Todolist.build/Release/Todolist.build/Objects-normal/arm64/QuickAddParser.o",
+    "llvm-bc" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/QuickAddParser.bc",
+    "object" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/QuickAddParser.o",
+    "swift-dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/QuickAddParser.swiftdeps",
+    "swiftmodule" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/QuickAddParser~partial.swiftmodule"
+  },
+  "/Users/zhanglibo/vscode/todolist-1/Sources/App/Resources/Theme.swift" : {
+    "const-values" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/Theme.swiftconstvalues",
+    "dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/Theme.d",
+    "diagnostics" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/Theme.dia",
+    "index-unit-output-path" : "/Todolist.build/Release/Todolist.build/Objects-normal/arm64/Theme.o",
+    "llvm-bc" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/Theme.bc",
+    "object" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/Theme.o",
+    "swift-dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/Theme.swiftdeps",
+    "swiftmodule" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/Theme~partial.swiftmodule"
+  },
+  "/Users/zhanglibo/vscode/todolist-1/Sources/App/TodolistApp.swift" : {
+    "const-values" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/TodolistApp.swiftconstvalues",
+    "dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/TodolistApp.d",
+    "diagnostics" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/TodolistApp.dia",
+    "index-unit-output-path" : "/Todolist.build/Release/Todolist.build/Objects-normal/arm64/TodolistApp.o",
+    "llvm-bc" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/TodolistApp.bc",
+    "object" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/TodolistApp.o",
+    "swift-dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/TodolistApp.swiftdeps",
+    "swiftmodule" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/TodolistApp~partial.swiftmodule"
+  },
+  "/Users/zhanglibo/vscode/todolist-1/Sources/App/ViewModels/TodoListViewModel.swift" : {
+    "const-values" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/TodoListViewModel.swiftconstvalues",
+    "dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/TodoListViewModel.d",
+    "diagnostics" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/TodoListViewModel.dia",
+    "index-unit-output-path" : "/Todolist.build/Release/Todolist.build/Objects-normal/arm64/TodoListViewModel.o",
+    "llvm-bc" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/TodoListViewModel.bc",
+    "object" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/TodoListViewModel.o",
+    "swift-dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/TodoListViewModel.swiftdeps",
+    "swiftmodule" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/TodoListViewModel~partial.swiftmodule"
+  },
+  "/Users/zhanglibo/vscode/todolist-1/Sources/App/Views/AnalyticsView.swift" : {
+    "const-values" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/AnalyticsView.swiftconstvalues",
+    "dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/AnalyticsView.d",
+    "diagnostics" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/AnalyticsView.dia",
+    "index-unit-output-path" : "/Todolist.build/Release/Todolist.build/Objects-normal/arm64/AnalyticsView.o",
+    "llvm-bc" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/AnalyticsView.bc",
+    "object" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/AnalyticsView.o",
+    "swift-dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/AnalyticsView.swiftdeps",
+    "swiftmodule" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/AnalyticsView~partial.swiftmodule"
+  },
+  "/Users/zhanglibo/vscode/todolist-1/Sources/App/Views/CalendarView.swift" : {
+    "const-values" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/CalendarView.swiftconstvalues",
+    "dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/CalendarView.d",
+    "diagnostics" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/CalendarView.dia",
+    "index-unit-output-path" : "/Todolist.build/Release/Todolist.build/Objects-normal/arm64/CalendarView.o",
+    "llvm-bc" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/CalendarView.bc",
+    "object" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/CalendarView.o",
+    "swift-dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/CalendarView.swiftdeps",
+    "swiftmodule" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/CalendarView~partial.swiftmodule"
+  },
+  "/Users/zhanglibo/vscode/todolist-1/Sources/App/Views/CardListView.swift" : {
+    "const-values" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/CardListView.swiftconstvalues",
+    "dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/CardListView.d",
+    "diagnostics" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/CardListView.dia",
+    "index-unit-output-path" : "/Todolist.build/Release/Todolist.build/Objects-normal/arm64/CardListView.o",
+    "llvm-bc" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/CardListView.bc",
+    "object" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/CardListView.o",
+    "swift-dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/CardListView.swiftdeps",
+    "swiftmodule" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/CardListView~partial.swiftmodule"
+  },
+  "/Users/zhanglibo/vscode/todolist-1/Sources/App/Views/ContentView.swift" : {
+    "const-values" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/ContentView.swiftconstvalues",
+    "dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/ContentView.d",
+    "diagnostics" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/ContentView.dia",
+    "index-unit-output-path" : "/Todolist.build/Release/Todolist.build/Objects-normal/arm64/ContentView.o",
+    "llvm-bc" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/ContentView.bc",
+    "object" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/ContentView.o",
+    "swift-dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/ContentView.swiftdeps",
+    "swiftmodule" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/ContentView~partial.swiftmodule"
+  },
+  "/Users/zhanglibo/vscode/todolist-1/Sources/App/Views/OverviewView.swift" : {
+    "const-values" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/OverviewView.swiftconstvalues",
+    "dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/OverviewView.d",
+    "diagnostics" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/OverviewView.dia",
+    "index-unit-output-path" : "/Todolist.build/Release/Todolist.build/Objects-normal/arm64/OverviewView.o",
+    "llvm-bc" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/OverviewView.bc",
+    "object" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/OverviewView.o",
+    "swift-dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/OverviewView.swiftdeps",
+    "swiftmodule" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/OverviewView~partial.swiftmodule"
+  },
+  "/Users/zhanglibo/vscode/todolist-1/Sources/App/Views/RootView.swift" : {
+    "const-values" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/RootView.swiftconstvalues",
+    "dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/RootView.d",
+    "diagnostics" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/RootView.dia",
+    "index-unit-output-path" : "/Todolist.build/Release/Todolist.build/Objects-normal/arm64/RootView.o",
+    "llvm-bc" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/RootView.bc",
+    "object" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/RootView.o",
+    "swift-dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/RootView.swiftdeps",
+    "swiftmodule" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/RootView~partial.swiftmodule"
+  },
+  "/Users/zhanglibo/vscode/todolist-1/Sources/App/Views/StatsView.swift" : {
+    "const-values" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/StatsView.swiftconstvalues",
+    "dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/StatsView.d",
+    "diagnostics" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/StatsView.dia",
+    "index-unit-output-path" : "/Todolist.build/Release/Todolist.build/Objects-normal/arm64/StatsView.o",
+    "llvm-bc" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/StatsView.bc",
+    "object" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/StatsView.o",
+    "swift-dependencies" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/StatsView.swiftdeps",
+    "swiftmodule" : "/Users/zhanglibo/vscode/todolist-1/.DerivedData/Build/Intermediates.noindex/Todolist.build/Release/Todolist.build/Objects-normal/arm64/StatsView~partial.swiftmodule"
+  }
+}

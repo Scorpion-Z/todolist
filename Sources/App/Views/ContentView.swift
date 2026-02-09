@@ -673,10 +673,10 @@ struct ContentView: View {
                 } else {
                     rows
                 }
+            } header: {
+                Text(sectionTitleKey)
+                    .font(AppTypography.sectionTitle)
             }
-        } header: {
-            Text(sectionTitleKey)
-                .font(AppTypography.sectionTitle)
         }
         .listStyle(.inset)
         .listRowSeparatorTint(AppTheme.divider)
@@ -2147,8 +2147,10 @@ struct ContentView: View {
     }
 }
 
-#Preview {
-    ContentView(viewModel: TodoListViewModel())
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView(viewModel: TodoListViewModel())
+    }
 }
 
 private extension View {

@@ -185,6 +185,8 @@ private struct StatCard: View {
     }
 }
 
-#Preview {
-    StatsView(viewModel: TodoListViewModel())
+struct StatsView_Previews: PreviewProvider {
+    static var previews: some View {
+        StatsView(viewModel: TodoListViewModel())
+    }
 }

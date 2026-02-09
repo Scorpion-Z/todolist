@@ -128,17 +128,19 @@ struct CardListView: View {
     }
 }
 
-#Preview {
-    CardListView(
-        items: [
-            TodoItem(title: "Review PR", priority: .high, dueDate: .now.addingTimeInterval(3600)),
-            TodoItem(title: "Design mockups", priority: .medium, dueDate: nil),
-        ],
-        selectedItemID: nil,
-        onToggleCompletion: { _ in },
-        onEdit: { _ in },
-        onDelete: { _ in },
-        onSelect: { _ in }
-    )
-    .padding()
+struct CardListView_Previews: PreviewProvider {
+    static var previews: some View {
+        CardListView(
+            items: [
+                TodoItem(title: "Review PR", priority: .high, dueDate: .now.addingTimeInterval(3600)),
+                TodoItem(title: "Design mockups", priority: .medium, dueDate: nil),
+            ],
+            selectedItemID: nil,
+            onToggleCompletion: { _ in },
+            onEdit: { _ in },
+            onDelete: { _ in },
+            onSelect: { _ in }
+        )
+        .padding()
+    }
 }

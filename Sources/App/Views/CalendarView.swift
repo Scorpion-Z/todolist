@@ -156,11 +156,13 @@ struct CalendarView: View {
     }
 }
 
-#Preview {
-    CalendarView(
-        items: [],
-        onDelete: { _ in },
-        onToggleCompletion: { _ in },
-        onEdit: { _ in }
-    )
+struct CalendarView_Previews: PreviewProvider {
+    static var previews: some View {
+        CalendarView(
+            items: [],
+            onDelete: { _ in },
+            onToggleCompletion: { _ in },
+            onEdit: { _ in }
+        )
+    }
 }
