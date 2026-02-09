@@ -1,7 +1,14 @@
 "app.title" = "Todo List";
+"nav.home" = "Home";
+"nav.analytics" = "Analytics";
+"analytics.title" = "Analytics";
 "language.title" = "Language";
 "language.english" = "English";
 "language.chinese" = "Simplified Chinese";
+"tab.overview" = "Overview";
+"tab.add" = "Add";
+"tab.templates" = "Templates";
+"tab.tasks" = "Tasks";
 
 "quickadd.placeholder" = "Quick add: tomorrow 9am meeting p1";
 "quickadd.button" = "Quick Add";
@@ -17,6 +24,8 @@
 
 "newtodo.placeholder" = "New todo";
 "add.button" = "Add";
+"newtask.focus" = "Focus new task";
+"newtask.moreOptions" = "More options";
 "quickfill.title" = "Quick fill";
 "quickfill.today" = "Today";
 "quickfill.tomorrow" = "Tomorrow";

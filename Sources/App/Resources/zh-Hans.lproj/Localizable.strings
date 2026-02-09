@@ -1,7 +1,14 @@
 "app.title" = "待办列表";
+"nav.home" = "首页";
+"nav.analytics" = "分析";
+"analytics.title" = "分析";
 "language.title" = "语言";
 "language.english" = "英文";
 "language.chinese" = "简体中文";
+"tab.overview" = "概览";
+"tab.add" = "新增";
+"tab.templates" = "模板";
+"tab.tasks" = "待办";
 
 "quickadd.placeholder" = "快速输入：明天9点开会 p1";
 "quickadd.button" = "快速添加";
@@ -17,6 +24,8 @@
 
 "newtodo.placeholder" = "新建待办";
 "add.button" = "添加";
+"newtask.focus" = "聚焦新增";
+"newtask.moreOptions" = "更多选项";
 "quickfill.title" = "一键填充";
 "quickfill.today" = "今日";
 "quickfill.tomorrow" = "明日";
