@@ -30,6 +30,37 @@ enum AppTheme {
     static let tertiaryText: Color = Color.primary.opacity(0.5)
     static let pillBackground: Color = cardBackground.opacity(0.9)
     static let cardCornerRadius: CGFloat = 16
+
+    static let surface0: Color = {
+#if os(macOS)
+        Color(nsColor: .windowBackgroundColor)
+#else
+        Color(.systemBackground)
+#endif
+    }()
+
+    static let surface1: Color = {
+#if os(macOS)
+        Color(nsColor: .controlBackgroundColor)
+#else
+        Color(.secondarySystemBackground)
+#endif
+    }()
+
+    static let surface2: Color = {
+#if os(macOS)
+        Color(nsColor: .underPageBackgroundColor)
+#else
+        Color(.tertiarySystemBackground)
+#endif
+    }()
+
+    static let sidebarBackground: Color = surface2
+    static let strokeSubtle: Color = divider.opacity(0.45)
+    static let focusRing: Color = Color.accentColor.opacity(0.55)
+    static let accentStrong: Color = Color.accentColor
+    static let accentSoft: Color = Color.accentColor.opacity(0.15)
+    static let selectionBackground: Color = accentSoft
 }
 
 enum AppTypography {

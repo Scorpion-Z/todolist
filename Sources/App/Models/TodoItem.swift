@@ -52,6 +52,9 @@ struct TodoItem: Identifiable, Codable, Equatable {
     var tags: [Tag]
     var subtasks: [Subtask]
     var repeatRule: RepeatRule
+    var isImportant: Bool
+    var myDayDate: Date?
+    var completedAt: Date?
     var createdAt: Date
 
     init(
@@ -61,6 +64,9 @@ struct TodoItem: Identifiable, Codable, Equatable {
         isCompleted: Bool = false,
         priority: Priority = .medium,
         dueDate: Date? = nil,
+        isImportant: Bool = false,
+        myDayDate: Date? = nil,
+        completedAt: Date? = nil,
         createdAt: Date = Date(),
         subtasks: [Subtask] = [],
         tags: [Tag] = [],
@@ -72,6 +78,9 @@ struct TodoItem: Identifiable, Codable, Equatable {
         self.isCompleted = isCompleted
         self.priority = priority
         self.dueDate = dueDate
+        self.isImportant = isImportant
+        self.myDayDate = myDayDate
+        self.completedAt = completedAt
         self.createdAt = createdAt
         self.subtasks = subtasks
         self.tags = tags
@@ -88,6 +97,9 @@ struct TodoItem: Identifiable, Codable, Equatable {
         case tags
         case subtasks
         case repeatRule
+        case isImportant
+        case myDayDate
+        case completedAt
         case createdAt
     }
 
@@ -99,6 +111,9 @@ struct TodoItem: Identifiable, Codable, Equatable {
         isCompleted = try container.decodeIfPresent(Bool.self, forKey: .isCompleted) ?? false
         priority = try container.decodeIfPresent(Priority.self, forKey: .priority) ?? .medium
         dueDate = try container.decodeIfPresent(Date.self, forKey: .dueDate)
+        isImportant = try container.decodeIfPresent(Bool.self, forKey: .isImportant) ?? false
+        myDayDate = try container.decodeIfPresent(Date.self, forKey: .myDayDate)
+        completedAt = try container.decodeIfPresent(Date.self, forKey: .completedAt)
         subtasks = try container.decodeIfPresent([Subtask].self, forKey: .subtasks) ?? []
         if let decodedTags = try? container.decode([Tag].self, forKey: .tags) {
             tags = decodedTags
@@ -119,6 +134,9 @@ struct TodoItem: Identifiable, Codable, Equatable {
         try container.encode(isCompleted, forKey: .isCompleted)
         try container.encode(priority, forKey: .priority)
         try container.encodeIfPresent(dueDate, forKey: .dueDate)
+        try container.encode(isImportant, forKey: .isImportant)
+        try container.encodeIfPresent(myDayDate, forKey: .myDayDate)
+        try container.encodeIfPresent(completedAt, forKey: .completedAt)
         try container.encode(tags, forKey: .tags)
         try container.encode(subtasks, forKey: .subtasks)
         try container.encode(repeatRule, forKey: .repeatRule)

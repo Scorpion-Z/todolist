@@ -10,14 +10,29 @@ protocol TodoStorage {
 
 struct LocalTodoStorage: TodoStorage {
     private static let storageFilename = "todos.json"
+    private static let currentSchemaVersion = 2
+
+    private struct StoredPayload: Codable {
+        var schemaVersion: Int
+        var items: [TodoItem]
+    }
 
     func loadItems() async -> [TodoItem] {
         guard let url = Self.storageURL,
-              let data = try? Data(contentsOf: url),
-              let decoded = try? JSONDecoder().decode([TodoItem].self, from: data) else {
+              let data = try? Data(contentsOf: url) else {
             return []
         }
-        return decoded
+
+        if let payload = try? JSONDecoder().decode(StoredPayload.self, from: data) {
+            return payload.items
+        }
+
+        // Backward compatibility: previous versions persisted a raw [TodoItem].
+        if let legacyItems = try? JSONDecoder().decode([TodoItem].self, from: data) {
+            return legacyItems
+        }
+
+        return []
     }
 
     func persistItems(_ items: [TodoItem]) async {
@@ -30,7 +45,8 @@ struct LocalTodoStorage: TodoStorage {
                 withIntermediateDirectories: true,
                 attributes: nil
             )
-            let data = try JSONEncoder().encode(items)
+            let payload = StoredPayload(schemaVersion: Self.currentSchemaVersion, items: items)
+            let data = try JSONEncoder().encode(payload)
             try data.write(to: url, options: .atomic)
         } catch {
             print("Failed to persist todos:", error.localizedDescription)
@@ -481,11 +497,21 @@ final class TodoListViewModel: ObservableObject {
 
     func requestEventAccess() async throws -> Bool {
         try await withCheckedThrowingContinuation { continuation in
-            eventStore.requestAccess(to: .event) { granted, error in
-                if let error {
-                    continuation.resume(throwing: error)
-                } else {
-                    continuation.resume(returning: granted)
+            if #available(macOS 14.0, *) {
+                eventStore.requestFullAccessToEvents { granted, error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume(returning: granted)
+                    }
+                }
+            } else {
+                eventStore.requestAccess(to: .event) { granted, error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume(returning: granted)
+                    }
                 }
             }
         }
@@ -493,11 +519,21 @@ final class TodoListViewModel: ObservableObject {
 
     func requestReminderAccess() async throws -> Bool {
         try await withCheckedThrowingContinuation { continuation in
-            eventStore.requestAccess(to: .reminder) { granted, error in
-                if let error {
-                    continuation.resume(throwing: error)
-                } else {
-                    continuation.resume(returning: granted)
+            if #available(macOS 14.0, *) {
+                eventStore.requestFullAccessToReminders { granted, error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume(returning: granted)
+                    }
+                }
+            } else {
+                eventStore.requestAccess(to: .reminder) { granted, error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume(returning: granted)
+                    }
                 }
             }
         }

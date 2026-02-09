@@ -163,3 +163,48 @@
 "tag.color.gray" = "Gray";
 
 "notification.body" = "Todo reminder";
+"notification.title" = "Task Reminder";
+
+"smart.inbox" = "Inbox";
+"smart.myDay" = "My Day";
+"smart.important" = "Important";
+"smart.planned" = "Planned";
+"smart.completed" = "Completed";
+"smart.all" = "All Tasks";
+
+"list.section.smart" = "Lists";
+"list.section.tags" = "Tags";
+"list.section.insights" = "Insights";
+"list.section.settings" = "Settings";
+
+"overview.title" = "Overview";
+"overview.subtitle" = "Focus on what matters and keep your day on track.";
+"myday.suggestions" = "Suggestions for My Day";
+"myday.suggestions.empty" = "No suggestions right now.";
+"myday.add" = "Add to My Day";
+"myday.remove" = "Remove from My Day";
+
+"settings.title" = "Settings";
+"settings.language.section" = "Language";
+"settings.language" = "Language";
+"settings.language.system" = "System";
+"settings.language.zh" = "简体中文";
+"settings.language.en" = "English";
+"settings.language.hint" = "Use System follows macOS language preference.";
+
+"detail.title" = "Task Details";
+"detail.revert" = "Revert";
+"detail.empty.title" = "Select a task to view details";
+"task.empty.title" = "No tasks in this view";
+"task.header.subtitle" = "Single flow: capture, organize, complete.";
+
+"important.add" = "Mark Important";
+"important.remove" = "Remove Important";
+
+"search.scope.global" = "Search all lists";
+"search.clear" = "Clear Search";
+
+"stats.open" = "Open Tasks";
+"sort.completedAt" = "Completed Time";
+"subtasks.empty" = "No subtasks yet.";
+"template.editor.items.hint" = "Enter one item per line.";

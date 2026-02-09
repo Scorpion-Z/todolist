@@ -163,3 +163,48 @@
 "tag.color.gray" = "灰色";
 
 "notification.body" = "待办提醒";
+"notification.title" = "任务提醒";
+
+"smart.inbox" = "收件箱";
+"smart.myDay" = "今天";
+"smart.important" = "重要";
+"smart.planned" = "计划";
+"smart.completed" = "已完成";
+"smart.all" = "全部任务";
+
+"list.section.smart" = "列表";
+"list.section.tags" = "标签";
+"list.section.insights" = "概览";
+"list.section.settings" = "设置";
+
+"overview.title" = "概览";
+"overview.subtitle" = "聚焦重要事项，让每天更有节奏。";
+"myday.suggestions" = "今天建议";
+"myday.suggestions.empty" = "当前没有建议任务。";
+"myday.add" = "加入今天";
+"myday.remove" = "移出今天";
+
+"settings.title" = "设置";
+"settings.language.section" = "语言";
+"settings.language" = "语言";
+"settings.language.system" = "跟随系统";
+"settings.language.zh" = "简体中文";
+"settings.language.en" = "English";
+"settings.language.hint" = "“跟随系统”会使用 macOS 当前语言。";
+
+"detail.title" = "任务详情";
+"detail.revert" = "恢复";
+"detail.empty.title" = "选择一个任务查看详情";
+"task.empty.title" = "当前视图暂无任务";
+"task.header.subtitle" = "单一主流程：记录、整理、完成。";
+
+"important.add" = "标记重要";
+"important.remove" = "取消重要";
+
+"search.scope.global" = "在全部列表中搜索";
+"search.clear" = "清除搜索";
+
+"stats.open" = "未完成";
+"sort.completedAt" = "完成时间";
+"subtasks.empty" = "还没有子任务。";
+"template.editor.items.hint" = "每行输入一个事项。";
