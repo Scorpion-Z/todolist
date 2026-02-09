@@ -307,7 +307,7 @@ struct QuickAddParser {
     }
 
     private func shouldUseEnglishRules(for text: String) -> Bool {
-        let localeIsEnglish = Locale.current.languageCode?.hasPrefix("en") ?? false
+        let localeIsEnglish = Locale.current.language.languageCode?.identifier.hasPrefix("en") ?? false
         let hasLatinLetters = text.range(of: #"[A-Za-z]"#, options: .regularExpression) != nil
         return localeIsEnglish || hasLatinLetters
     }

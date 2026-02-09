@@ -513,7 +513,7 @@ struct ContentView: View {
             templatePreviewSheet
         }
         .onAppear(perform: loadTemplatesIfNeeded)
-        .onChange(of: templates) { _ in
+        .onChange(of: templates) {
             persistTemplates()
         }
         .onAppear {
@@ -661,7 +661,7 @@ struct ContentView: View {
 
     private var taskList: some View {
         List(selection: $selectedItemID) {
-            Section {
+            Section(header: Text(sectionTitleKey).font(AppTypography.sectionTitle)) {
                 let canReorder = sortOption == .manual && !hasActiveFilters
                 let rows = ForEach(filteredItems) { item in
                     taskRow(for: item)
