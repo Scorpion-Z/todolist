@@ -108,6 +108,7 @@
 "edit.button" = "Edit";
 "delete.button" = "Delete";
 "search.focus" = "Focus search";
+"search.placeholder" = "Search";
 "mark.open" = "Mark Open";
 "mark.done" = "Mark Done";
 "edit.title" = "Edit Todo";
