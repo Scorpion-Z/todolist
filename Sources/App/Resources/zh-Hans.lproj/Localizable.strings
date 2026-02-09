@@ -1,4 +1,7 @@
 "app.title" = "待办列表";
+"nav.home" = "首页";
+"nav.analytics" = "分析";
+"analytics.title" = "分析";
 "language.title" = "语言";
 "language.english" = "英文";
 "language.chinese" = "简体中文";

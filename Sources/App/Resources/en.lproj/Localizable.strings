@@ -1,4 +1,7 @@
 "app.title" = "Todo List";
+"nav.home" = "Home";
+"nav.analytics" = "Analytics";
+"analytics.title" = "Analytics";
 "language.title" = "Language";
 "language.english" = "English";
 "language.chinese" = "Simplified Chinese";

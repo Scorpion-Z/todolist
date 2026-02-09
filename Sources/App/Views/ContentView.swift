@@ -145,7 +145,7 @@ struct ContentView: View {
     @FocusState private var quickInputFocused: Bool
     @FocusState private var searchFieldFocused: Bool
     @AppStorage("appLanguage") private var appLanguage = Locale.current.language.languageCode?.identifier == "zh" ? "zh-Hans" : "en"
-    @StateObject private var viewModel = TodoListViewModel()
+    @ObservedObject var viewModel: TodoListViewModel
     @State private var quickInputText = ""
     @State private var quickInputHint = ""
     @State private var newTitle = ""
@@ -334,7 +334,6 @@ struct ContentView: View {
         ZStack(alignment: .bottomTrailing) {
             VStack(alignment: .leading, spacing: 16) {
                 headerSection
-                StatsView(viewModel: viewModel)
                 quickAddSection
                 templateSection
 
@@ -1584,7 +1583,7 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView()
+    ContentView(viewModel: TodoListViewModel())
 }
 
 private extension View {
