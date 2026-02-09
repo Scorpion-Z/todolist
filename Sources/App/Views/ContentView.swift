@@ -660,27 +660,26 @@ struct ContentView: View {
     }
 
     private var taskList: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(sectionTitleKey)
-                .font(AppTypography.sectionTitle)
-            List(selection: $selectedItemID) {
-                Section {
-                    let canReorder = sortOption == .manual && !hasActiveFilters
-                    let rows = ForEach(filteredItems) { item in
-                        taskRow(for: item)
-                    }
-                    .onDelete(perform: deleteItems(at:))
+        List(selection: $selectedItemID) {
+            Section {
+                let canReorder = sortOption == .manual && !hasActiveFilters
+                let rows = ForEach(filteredItems) { item in
+                    taskRow(for: item)
+                }
+                .onDelete(perform: deleteItems(at:))
 
-                    if canReorder {
-                        rows.onMove(perform: moveItems(from:to:))
-                    } else {
-                        rows
-                    }
+                if canReorder {
+                    rows.onMove(perform: moveItems(from:to:))
+                } else {
+                    rows
                 }
             }
-            .listStyle(.inset)
-            .listRowSeparatorTint(AppTheme.divider)
+        } header: {
+            Text(sectionTitleKey)
+                .font(AppTypography.sectionTitle)
         }
+        .listStyle(.inset)
+        .listRowSeparatorTint(AppTheme.divider)
     }
 
     private func taskRow(for item: TodoItem) -> some View {
