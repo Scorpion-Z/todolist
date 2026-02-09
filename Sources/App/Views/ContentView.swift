@@ -343,13 +343,13 @@ struct ContentView: View {
                         TextField("newtodo.placeholder", text: $newTitle)
                             .textFieldStyle(.roundedBorder)
                         Text("markdown.description")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .font(AppTypography.subtitle)
+                            .foregroundStyle(AppTheme.secondaryText)
                         TextEditor(text: $newDescription)
                             .frame(minHeight: 80)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                                    .stroke(AppTheme.divider, lineWidth: 1)
                             )
                         HStack(spacing: 12) {
                             Picker("priority.label", selection: $newPriority) {
@@ -385,6 +385,13 @@ struct ContentView: View {
                     }
                     .keyboardShortcut(.return, modifiers: [.command])
                 }
+                .padding(16)
+                .background(AppTheme.cardBackground)
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius, style: .continuous)
+                        .stroke(AppTheme.cardBorder, lineWidth: 1)
+                )
 
                 quickViewSection
 
@@ -425,8 +432,8 @@ struct ContentView: View {
 
                 if (sortOption != .manual || hasActiveFilters) && layoutMode != .calendar {
                     Text("reorder.notice")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppTheme.secondaryText)
                 }
 
                 if filteredItems.isEmpty {
@@ -436,9 +443,9 @@ struct ContentView: View {
                         VStack(spacing: 8) {
                             Image(systemName: emptyStateText.systemImage)
                                 .font(.largeTitle)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(AppTheme.secondaryText)
                             Text(emptyStateText.titleKey)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(AppTheme.secondaryText)
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
@@ -452,7 +459,7 @@ struct ContentView: View {
                         )
                     } else {
                         List(selection: $selectedItemID) {
-                            Section(sectionTitleKey) {
+                            Section {
                                 let canReorder = sortOption == .manual && !hasActiveFilters
                                 let rows = ForEach(filteredItems) { item in
                                     HStack(alignment: .top, spacing: 12) {
@@ -497,6 +504,7 @@ struct ContentView: View {
                                         .controlSize(.small)
                                     }
                                     .padding(.vertical, 8)
+                                    .listRowBackground(AppTheme.cardBackground)
                                     .contentShape(Rectangle())
                                     .onTapGesture {
                                         selectedItemID = item.id
@@ -519,8 +527,12 @@ struct ContentView: View {
                                     rows
                                 }
                             }
+                        } header: {
+                            Text(sectionTitleKey)
+                                .font(AppTypography.sectionTitle)
                         }
                         .listStyle(.inset)
+                        .listRowSeparatorTint(AppTheme.divider)
                     }
                 }
             }
@@ -565,6 +577,7 @@ struct ContentView: View {
             .help("quickadd.focus")
             .padding(24)
         }
+        .background(AppTheme.background)
         .sheet(isPresented: $showingTemplateManager) {
             TemplateManagerView(
                 templates: $templates,
@@ -598,8 +611,8 @@ struct ContentView: View {
             }
 
             Text(quickInputHint)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(AppTypography.caption)
+                .foregroundStyle(AppTheme.secondaryText)
 
             HStack(spacing: 12) {
                 Button("quickadd.focus") {
@@ -626,8 +639,8 @@ struct ContentView: View {
                 .keyboardShortcut(.escape, modifiers: [])
             }
             .buttonStyle(.borderless)
-            .font(.caption)
-            .foregroundStyle(.secondary)
+            .font(AppTypography.caption)
+            .foregroundStyle(AppTheme.secondaryText)
         }
     }
 
@@ -635,12 +648,12 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("template.title")
-                    .font(.headline)
+                    .font(AppTypography.sectionTitle)
                 Spacer()
                 Button(manageTemplateTitle) {
                     showingTemplateManager = true
                 }
-                .font(.caption)
+                .font(AppTypography.caption)
             }
             HStack(spacing: 12) {
                 ForEach(templates) { template in
@@ -653,15 +666,15 @@ struct ContentView: View {
                 }
             }
             Text("template.hint")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(AppTypography.caption)
+                .foregroundStyle(AppTheme.secondaryText)
         }
     }
 
     private var quickViewSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("quickview.title")
-                .font(.headline)
+                .font(AppTypography.sectionTitle)
             HStack(spacing: 12) {
                 ForEach(QuickView.allCases) { quickView in
                     Button(quickView.titleKey) {
@@ -713,8 +726,7 @@ struct ContentView: View {
     private var headerSection: some View {
         HStack(spacing: 12) {
             Text("app.title")
-                .font(.title3)
-                .fontWeight(.semibold)
+                .font(AppTypography.title)
             Spacer()
             Picker("language.title", selection: $appLanguage) {
                 ForEach(languageOptions) { option in
@@ -812,10 +824,10 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 16) {
             if let previewTemplate {
                 Text(previewTemplate.title)
-                    .font(.headline)
+                    .font(AppTypography.sectionTitle)
                 Text("template.preview.hint")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppTheme.secondaryText)
                 List {
                     ForEach($templateSelections) { $selection in
                         Toggle(selection.title, isOn: $selection.isSelected)
@@ -919,8 +931,8 @@ struct ContentView: View {
     ) -> some View {
         HStack(spacing: 8) {
             Text(titleKey)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(AppTypography.caption)
+                .foregroundStyle(AppTheme.secondaryText)
             Button("quickfill.today") {
                 setDate(0)
             }
@@ -932,7 +944,7 @@ struct ContentView: View {
             }
         }
         .buttonStyle(.borderless)
-        .font(.caption)
+        .font(AppTypography.caption)
     }
 
     private func clearQuickInput() {
@@ -983,16 +995,16 @@ struct ContentView: View {
                 List {
                     if templates.isEmpty {
                         Text("template.manager.empty")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(AppTheme.secondaryText)
                     } else {
                         ForEach(templates) { template in
                             HStack(alignment: .top) {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(template.title)
-                                        .font(.headline)
+                                        .font(AppTypography.sectionTitle)
                                     Text(template.items.joined(separator: " · "))
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                        .font(AppTypography.caption)
+                                        .foregroundStyle(AppTheme.secondaryText)
                                 }
                                 Spacer()
                                 Button("template.manager.edit") {
@@ -1032,7 +1044,7 @@ struct ContentView: View {
                         Section("template.manager.items.section") {
                             if draftItems.isEmpty {
                                 Text("template.manager.items.empty")
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(AppTheme.secondaryText)
                             } else {
                                 ForEach(draftItems.indices, id: \.self) { index in
                                     HStack {
@@ -1185,20 +1197,20 @@ struct ContentView: View {
             TextField("edit.field.title", text: $editTitle)
                 .textFieldStyle(.roundedBorder)
             Text("markdown.description")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(AppTypography.caption)
+                .foregroundStyle(AppTheme.secondaryText)
             HStack(alignment: .top, spacing: 12) {
                 TextEditor(text: $editDescription)
                     .frame(minHeight: 160)
                     .overlay(
                         RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                            .stroke(AppTheme.divider, lineWidth: 1)
                     )
                 ScrollView {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("markdown.preview")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppTheme.secondaryText)
                         Text(.init(editDescription))
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -1463,11 +1475,11 @@ struct ContentView: View {
         foreground: Color = .secondary
     ) -> some View {
         Text(text)
-            .font(.caption)
-            .foregroundStyle(foreground)
+            .font(AppTypography.caption)
+            .foregroundStyle(foreground == .secondary ? AppTheme.secondaryText : foreground)
             .padding(.horizontal, 8)
             .padding(.vertical, 2)
-            .background(.thinMaterial)
+            .background(AppTheme.pillBackground)
             .clipShape(Capsule())
     }
 
@@ -1476,18 +1488,18 @@ struct ContentView: View {
         foreground: Color = .secondary
     ) -> some View {
         Text(text)
-            .font(.caption)
-            .foregroundStyle(foreground)
+            .font(AppTypography.caption)
+            .foregroundStyle(foreground == .secondary ? AppTheme.secondaryText : foreground)
             .padding(.horizontal, 8)
             .padding(.vertical, 2)
-            .background(.thinMaterial)
+            .background(AppTheme.pillBackground)
             .clipShape(Capsule())
     }
 
     private func tagLabel(_ tag: Tag) -> some View {
         let tint = tag.color.tint
         return Text(tag.name)
-            .font(.caption)
+            .font(AppTypography.caption)
             .foregroundStyle(tint)
             .padding(.horizontal, 8)
             .padding(.vertical, 2)
@@ -1501,11 +1513,11 @@ struct ContentView: View {
         foreground: Color = .secondary
     ) -> some View {
         Text(date, style: style)
-            .font(.caption)
-            .foregroundStyle(foreground)
+            .font(AppTypography.caption)
+            .foregroundStyle(foreground == .secondary ? AppTheme.secondaryText : foreground)
             .padding(.horizontal, 8)
             .padding(.vertical, 2)
-            .background(.thinMaterial)
+            .background(AppTheme.pillBackground)
             .clipShape(Capsule())
     }
 
