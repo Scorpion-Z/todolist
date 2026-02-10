@@ -2,10 +2,9 @@ import SwiftUI
 
 struct QuickAddBarView: View {
     @ObservedObject var store: TaskStore
-    let activeList: SmartListID
+    let activeSelection: AppShellViewModel.SidebarSelection
 
     @Binding var selectedTaskID: TodoItem.ID?
-    @Binding var focusRequestToken: Int
 
     @State private var quickInput = ""
     @State private var hintText = ""
@@ -15,28 +14,18 @@ struct QuickAddBarView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                HStack(spacing: 8) {
-                    Image(systemName: "plus.circle")
-                        .foregroundStyle(AppTheme.secondaryText)
+                Image(systemName: "plus")
+                    .foregroundStyle(AppTheme.accentStrong)
 
-                    TextField("quickadd.placeholder", text: $quickInput)
-                        .textFieldStyle(.plain)
-                        .focused($quickInputFocused)
-                        .onSubmit(submitQuickInput)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 9)
-                .background(AppTheme.surface1)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(AppTheme.strokeSubtle, lineWidth: 1)
-                )
+                TextField("quickadd.placeholder", text: $quickInput)
+                    .textFieldStyle(.plain)
+                    .focused($quickInputFocused)
+                    .onSubmit(submitQuickInput)
 
                 Button("quickadd.button") {
                     submitQuickInput()
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.bordered)
                 .disabled(quickInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
                 Menu {
@@ -44,10 +33,18 @@ struct QuickAddBarView: View {
                         showingTemplatePicker = true
                     }
                 } label: {
-                    Image(systemName: "plus")
+                    Image(systemName: "plus.square.on.square")
                 }
                 .menuStyle(.borderlessButton)
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(AppTheme.glassSurface)
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(AppTheme.strokeSubtle, lineWidth: 1)
+            )
 
             if !hintText.isEmpty {
                 Text(hintText)
@@ -55,31 +52,43 @@ struct QuickAddBarView: View {
                     .foregroundStyle(AppTheme.secondaryText)
             }
         }
-        .padding(12)
-        .background(AppTheme.surface0)
-        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.cardCornerRadius, style: .continuous)
-                .stroke(AppTheme.strokeSubtle, lineWidth: 1)
-        )
         .onAppear {
             hintText = String(localized: "quickadd.hint.example")
         }
-        .onChange(of: focusRequestToken) { _, _ in
-            quickInputFocused = true
-        }
         .sheet(isPresented: $showingTemplatePicker) {
             TemplatePickerView { titles in
-                let myDayDate = activeList == .myDay ? Date() : nil
-                store.addTemplateItems(titles, preferredMyDayDate: myDayDate)
+                store.addTemplateItems(
+                    titles,
+                    preferredMyDayDate: preferredMyDayDate,
+                    inListID: targetListID
+                )
                 selectedTaskID = store.items.last?.id
             }
         }
     }
 
+    private var preferredMyDayDate: Date? {
+        if case .smartList(.myDay) = activeSelection {
+            return Date()
+        }
+        return nil
+    }
+
+    private var targetListID: UUID? {
+        switch activeSelection {
+        case .customList(let id):
+            return id
+        case .smartList:
+            return TodoListEntity.defaultTasksListID
+        }
+    }
+
     private func submitQuickInput() {
-        let preferredMyDayDate = activeList == .myDay ? Date() : nil
-        let result = store.createQuickTask(rawText: quickInput, preferredMyDayDate: preferredMyDayDate)
+        let result = store.createQuickTask(
+            rawText: quickInput,
+            preferredMyDayDate: preferredMyDayDate,
+            inListID: targetListID
+        )
 
         guard result.created else {
             hintText = String(localized: "quickadd.hint.missingtitle")

@@ -24,7 +24,7 @@ enum SmartListID: String, CaseIterable, Hashable, Codable, Identifiable {
         case .completed:
             return "smart.completed"
         case .all:
-            return "smart.all"
+            return "smart.tasks"
         }
     }
 
@@ -41,7 +41,35 @@ enum SmartListID: String, CaseIterable, Hashable, Codable, Identifiable {
         case .completed:
             return "checkmark.circle"
         case .all:
-            return "list.bullet"
+            return "house"
+        }
+    }
+}
+
+enum PlannedFilter: String, CaseIterable, Codable, Identifiable {
+    case all
+    case overdue
+    case today
+    case tomorrow
+    case thisWeek
+    case later
+
+    var id: String { rawValue }
+
+    var titleKey: LocalizedStringKey {
+        switch self {
+        case .all:
+            return "planned.filter.all"
+        case .overdue:
+            return "planned.filter.overdue"
+        case .today:
+            return "planned.filter.today"
+        case .tomorrow:
+            return "planned.filter.tomorrow"
+        case .thisWeek:
+            return "planned.filter.thisweek"
+        case .later:
+            return "planned.filter.later"
         }
     }
 }
@@ -106,6 +134,7 @@ final class ListQueryEngine {
         query: TaskQuery,
         selectedTag: String?,
         useGlobalSearch: Bool,
+        plannedFilter: PlannedFilter = .all,
         referenceDate: Date = Date(),
         calendar: Calendar = .current
     ) -> [TodoItem] {
@@ -151,6 +180,74 @@ final class ListQueryEngine {
             }
 
             return item.tags.contains { $0.name.localizedCaseInsensitiveContains(normalizedSearch) }
+        }
+
+        if list == .planned && plannedFilter != .all {
+            filtered = filtered.filter {
+                matchesPlannedFilter(item: $0, filter: plannedFilter, referenceDate: referenceDate, calendar: calendar)
+            }
+        }
+
+        return sort(items: filtered, by: query.sort)
+    }
+
+    func tasks(
+        from items: [TodoItem],
+        listID: UUID,
+        query: TaskQuery,
+        useGlobalSearch: Bool,
+        plannedFilter: PlannedFilter = .all,
+        referenceDate: Date = Date(),
+        calendar: Calendar = .current
+    ) -> [TodoItem] {
+        let normalizedSearch = query.searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        var filtered = items.filter { $0.listID == listID }
+
+        filtered = filtered.filter { item in
+            if !query.showCompleted && item.isCompleted {
+                return false
+            }
+
+            if !query.tagFilter.isEmpty {
+                let itemTagSet = Set(item.tags.map { normalizedTagName($0.name) })
+                if itemTagSet.isDisjoint(with: query.tagFilter) {
+                    return false
+                }
+            }
+
+            if normalizedSearch.isEmpty {
+                return true
+            }
+
+            if item.title.localizedCaseInsensitiveContains(normalizedSearch) {
+                return true
+            }
+            if item.descriptionMarkdown.localizedCaseInsensitiveContains(normalizedSearch) {
+                return true
+            }
+            return item.tags.contains { $0.name.localizedCaseInsensitiveContains(normalizedSearch) }
+        }
+
+        if useGlobalSearch && !normalizedSearch.isEmpty {
+            filtered = items.filter { item in
+                if !query.showCompleted && item.isCompleted {
+                    return false
+                }
+
+                if item.title.localizedCaseInsensitiveContains(normalizedSearch) {
+                    return true
+                }
+                if item.descriptionMarkdown.localizedCaseInsensitiveContains(normalizedSearch) {
+                    return true
+                }
+                return item.tags.contains { $0.name.localizedCaseInsensitiveContains(normalizedSearch) }
+            }
+        }
+
+        if plannedFilter != .all {
+            filtered = filtered.filter {
+                matchesPlannedFilter(item: $0, filter: plannedFilter, referenceDate: referenceDate, calendar: calendar)
+            }
         }
 
         return sort(items: filtered, by: query.sort)
@@ -210,6 +307,35 @@ final class ListQueryEngine {
             return item.isCompleted
         case .all:
             return true
+        }
+    }
+
+    private func matchesPlannedFilter(
+        item: TodoItem,
+        filter: PlannedFilter,
+        referenceDate: Date,
+        calendar: Calendar
+    ) -> Bool {
+        guard let dueDate = item.dueDate else { return false }
+
+        let todayStart = calendar.startOfDay(for: referenceDate)
+        let tomorrowStart = calendar.date(byAdding: .day, value: 1, to: todayStart) ?? todayStart
+        let dayAfterTomorrowStart = calendar.date(byAdding: .day, value: 2, to: todayStart) ?? tomorrowStart
+        let nextWeekStart = calendar.date(byAdding: .day, value: 7, to: todayStart) ?? dayAfterTomorrowStart
+
+        switch filter {
+        case .all:
+            return true
+        case .overdue:
+            return dueDate < todayStart
+        case .today:
+            return dueDate >= todayStart && dueDate < tomorrowStart
+        case .tomorrow:
+            return dueDate >= tomorrowStart && dueDate < dayAfterTomorrowStart
+        case .thisWeek:
+            return dueDate >= todayStart && dueDate < nextWeekStart
+        case .later:
+            return dueDate >= nextWeekStart
         }
     }
 

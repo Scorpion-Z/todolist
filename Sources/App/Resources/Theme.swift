@@ -61,6 +61,42 @@ enum AppTheme {
     static let accentStrong: Color = Color.accentColor
     static let accentSoft: Color = Color.accentColor.opacity(0.15)
     static let selectionBackground: Color = accentSoft
+    static let glassSurface: Color = Color.black.opacity(0.18)
+
+    static func color(for style: ListThemeStyle) -> Color {
+        switch style {
+        case .graphite: return Color.gray
+        case .ocean: return Color.cyan
+        case .forest: return Color.green
+        case .sunrise: return Color.orange
+        case .violet: return Color.indigo
+        }
+    }
+
+    static func gradient(for style: ListThemeStyle) -> [Color] {
+        switch style {
+        case .graphite:
+            return [Color(red: 0.12, green: 0.13, blue: 0.16), Color(red: 0.18, green: 0.20, blue: 0.24)]
+        case .ocean:
+            return [Color(red: 0.15, green: 0.44, blue: 0.51), Color(red: 0.45, green: 0.67, blue: 0.73)]
+        case .forest:
+            return [Color(red: 0.13, green: 0.28, blue: 0.19), Color(red: 0.28, green: 0.44, blue: 0.28)]
+        case .sunrise:
+            return [Color(red: 0.47, green: 0.25, blue: 0.12), Color(red: 0.78, green: 0.49, blue: 0.26)]
+        case .violet:
+            return [Color(red: 0.20, green: 0.17, blue: 0.37), Color(red: 0.45, green: 0.37, blue: 0.66)]
+        }
+    }
+
+    static func titleColor(for style: ListThemeStyle) -> Color {
+        switch style {
+        case .graphite: return Color.blue.opacity(0.88)
+        case .ocean: return Color.white
+        case .forest: return Color.green.opacity(0.9)
+        case .sunrise: return Color.orange.opacity(0.9)
+        case .violet: return Color.indigo.opacity(0.9)
+        }
+    }
 }
 
 enum AppTypography {

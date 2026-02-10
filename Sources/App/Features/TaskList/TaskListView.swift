@@ -2,39 +2,70 @@ import SwiftUI
 
 struct TaskListView: View {
     let tasks: [TodoItem]
-    let smartList: SmartListID
+    let smartList: SmartListID?
+    let customListID: UUID?
+    let showCompletedSection: Bool
+
     @Binding var selectedTaskID: TodoItem.ID?
     @ObservedObject var store: TaskStore
 
     private let queryEngine = ListQueryEngine()
 
+    private var openTasks: [TodoItem] {
+        tasks.filter { !$0.isCompleted }
+    }
+
+    private var completedTasks: [TodoItem] {
+        tasks.filter(\.isCompleted)
+    }
+
     var body: some View {
         List(selection: $selectedTaskID) {
             if smartList == .planned {
-                plannedSections
+                plannedOpenSections
             } else {
-                plainSection
+                openTasksSection
+            }
+
+            if showCompletedSection && !completedTasks.isEmpty {
+                Section("section.completed") {
+                    ForEach(completedTasks) { item in
+                        row(for: item)
+                            .tag(item.id)
+                            .listRowInsets(EdgeInsets(top: 3, leading: 8, bottom: 3, trailing: 8))
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
+                    }
+                    .onDelete { offsets in
+                        let ids = offsets.compactMap { completedTasks.indices.contains($0) ? completedTasks[$0].id : nil }
+                        store.deleteTasks(ids: ids)
+                        if let selectedTaskID, ids.contains(selectedTaskID) {
+                            self.selectedTaskID = nil
+                        }
+                    }
+                }
             }
         }
         .listStyle(.inset)
         .scrollContentBackground(.hidden)
     }
 
-    private var plainSection: some View {
+    private var openTasksSection: some View {
         Section {
-            ForEach(tasks) { item in
+            ForEach(openTasks) { item in
                 row(for: item)
                     .tag(item.id)
                     .listRowInsets(EdgeInsets(top: 3, leading: 8, bottom: 3, trailing: 8))
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
             }
-            .onDelete(perform: deleteRows)
+            .onDelete(perform: deleteOpenRows)
+            .onMove(perform: moveOpenRows)
         }
     }
 
-    private var plannedSections: some View {
-        let grouped = queryEngine.groupedPlannedTasks(tasks)
+    private var plannedOpenSections: some View {
+        let grouped = queryEngine.groupedPlannedTasks(openTasks)
         return ForEach(grouped, id: \.date) { section in
             Section(header: sectionHeader(for: section.date)) {
                 ForEach(section.items) { item in
@@ -109,6 +140,13 @@ struct TaskListView: View {
         }
     }
 
+    private func moveOpenRows(_ source: IndexSet, _ destination: Int) {
+        guard let customListID else { return }
+        var ordered = openTasks.map(\.id)
+        ordered.move(fromOffsets: source, toOffset: destination)
+        store.reorderTasks(inListID: customListID, orderedTaskIDs: ordered)
+    }
+
     private func sectionHeader(for date: Date?) -> some View {
         Group {
             if let date {
@@ -124,9 +162,9 @@ struct TaskListView: View {
         .textCase(nil)
     }
 
-    private func deleteRows(_ offsets: IndexSet) {
+    private func deleteOpenRows(_ offsets: IndexSet) {
         let ids = offsets.compactMap { index in
-            tasks.indices.contains(index) ? tasks[index].id : nil
+            openTasks.indices.contains(index) ? openTasks[index].id : nil
         }
         store.deleteTasks(ids: ids)
         if let selectedTaskID, ids.contains(selectedTaskID) {

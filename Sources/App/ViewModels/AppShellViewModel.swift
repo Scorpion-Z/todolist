@@ -5,9 +5,7 @@ import Combine
 final class AppShellViewModel: ObservableObject {
     enum SidebarSelection: Hashable {
         case smartList(SmartListID)
-        case tag(String)
-        case overview
-        case settings
+        case customList(UUID)
     }
 
     @Published var selection: SidebarSelection
@@ -15,13 +13,16 @@ final class AppShellViewModel: ObservableObject {
     @Published var query: TaskQuery
     @Published var useGlobalSearch: Bool
     @Published var searchInput: String
+    @Published var sidebarSearchText: String
+    @Published var plannedFilter: PlannedFilter
+    @Published var isDetailDrawerPresented: Bool
 
     private var cancellables = Set<AnyCancellable>()
 
     init(
         selection: SidebarSelection = .smartList(.myDay),
         selectedTaskID: TodoItem.ID? = nil,
-        query: TaskQuery = TaskQuery(),
+        query: TaskQuery = TaskQuery(showCompleted: true),
         useGlobalSearch: Bool = false
     ) {
         self.selection = selection
@@ -29,6 +30,9 @@ final class AppShellViewModel: ObservableObject {
         self.query = query
         self.useGlobalSearch = useGlobalSearch
         self.searchInput = query.searchText
+        self.sidebarSearchText = ""
+        self.plannedFilter = .all
+        self.isDetailDrawerPresented = selectedTaskID != nil
 
         bindSearchDebounce()
     }
@@ -37,40 +41,38 @@ final class AppShellViewModel: ObservableObject {
         switch selection {
         case .smartList(let list):
             return list
-        case .tag:
-            return .all
-        case .overview, .settings:
+        case .customList:
             return .all
         }
     }
 
-    var activeTagName: String? {
+    var activeCustomListID: UUID? {
         switch selection {
-        case .tag(let name):
-            return name
-        default:
+        case .customList(let id):
+            return id
+        case .smartList:
             return nil
         }
     }
 
     var showingTaskArea: Bool {
-        switch selection {
-        case .smartList, .tag:
-            return true
-        case .overview, .settings:
-            return false
-        }
+        true
     }
 
     func select(_ selection: SidebarSelection) {
         self.selection = selection
-        if case .overview = selection {
-            selectedTaskID = nil
-            return
-        }
-        if case .settings = selection {
-            selectedTaskID = nil
-        }
+        plannedFilter = .all
+        selectedTaskID = nil
+        isDetailDrawerPresented = false
+    }
+
+    func selectTask(_ id: TodoItem.ID?) {
+        selectedTaskID = id
+        isDetailDrawerPresented = id != nil
+    }
+
+    func closeDrawer() {
+        isDetailDrawerPresented = false
     }
 
     func clearSearch() {
@@ -82,6 +84,7 @@ final class AppShellViewModel: ObservableObject {
         guard let selectedTaskID else { return }
         store.deleteTasks(ids: [selectedTaskID])
         self.selectedTaskID = nil
+        self.isDetailDrawerPresented = false
     }
 
     func toggleSelectedTaskCompletion(using store: TaskStore) {

@@ -171,6 +171,8 @@
 "smart.planned" = "计划";
 "smart.completed" = "已完成";
 "smart.all" = "全部任务";
+"smart.tasks" = "任务";
+"smart.flaggedmail" = "标记的电子邮件";
 
 "list.section.smart" = "列表";
 "list.section.tags" = "标签";
@@ -230,4 +232,15 @@
 "overview.weekly.completed" = "完成任务";
 "overview.weekly.carry" = "历史遗留完成";
 "overview.weekly.important" = "重要任务完成";
+"planned.filter.all" = "全部固定";
+"planned.filter.overdue" = "过期";
+"planned.filter.today" = "今天";
+"planned.filter.tomorrow" = "明天";
+"planned.filter.thisweek" = "本周";
+"planned.filter.later" = "稍后";
+"theme.graphite" = "石墨";
+"theme.ocean" = "海洋";
+"theme.forest" = "森林";
+"theme.sunrise" = "朝霞";
+"theme.violet" = "紫雾";
 "overview.weekly.overdue" = "逾期已处理";

@@ -2,6 +2,11 @@ import Foundation
 import SwiftUI
 import UserNotifications
 
+protocol TodoSnapshotStorage {
+    func loadSnapshot() async -> TodoAppSnapshot
+    func persistSnapshot(_ snapshot: TodoAppSnapshot) async
+}
+
 struct TaskDraft {
     var title: String
     var descriptionMarkdown: String
@@ -98,14 +103,24 @@ struct WeeklyReviewSnapshot {
     let overdueResolvedCount: Int
 }
 
+enum TaskStoreSelection: Hashable {
+    case smartList(SmartListID)
+    case customList(UUID)
+}
+
 @MainActor
 final class TaskStore: ObservableObject {
     @Published private(set) var items: [TodoItem]
     @Published private(set) var tags: [Tag]
+    @Published private(set) var lists: [TodoListEntity]
+    @Published private(set) var groups: [ListGroupEntity]
+    @Published var profile: ProfileSettings
+    @Published var appPrefs: AppPreferences
 
     private let storage: TodoStorage
     private let quickAddParser: QuickAddParser
     private let notificationCenter: UNUserNotificationCenter?
+    private let queryEngine = ListQueryEngine()
 
     private var persistTask: Task<Void, Never>?
 
@@ -117,35 +132,235 @@ final class TaskStore: ObservableObject {
     ) {
         self.items = items
         self.tags = []
+        self.lists = [TodoListEntity.defaultTasks]
+        self.groups = []
+        self.profile = ProfileSettings()
+        self.appPrefs = AppPreferences()
         self.storage = storage
         self.quickAddParser = quickAddParser
         self.notificationCenter = notificationCenter ?? Self.makeNotificationCenter()
 
         rebuildTags()
-        if items.isEmpty {
-            Task {
-                let loaded = await storage.loadItems()
-                if !loaded.isEmpty {
-                    self.items = loaded
-                    rebuildTags()
-                    rescheduleNotifications(for: loaded)
-                }
-            }
-        } else {
-            rescheduleNotifications(for: items)
+        normalizeState()
+
+        Task {
+            await bootstrap(preloadedItems: items)
         }
 
         requestNotificationAuthorization()
     }
 
-    func createTask(_ draft: TaskDraft) {
+    var customLists: [TodoListEntity] {
+        lists
+            .filter { !$0.isSystem }
+            .sorted { lhs, rhs in
+                if lhs.manualOrder != rhs.manualOrder {
+                    return lhs.manualOrder < rhs.manualOrder
+                }
+                return lhs.createdAt < rhs.createdAt
+            }
+    }
+
+    func groupedCustomLists(searchText: String = "") -> [(group: ListGroupEntity?, lists: [TodoListEntity])] {
+        let normalized = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let filtered = customLists.filter { list in
+            guard !normalized.isEmpty else { return true }
+            return list.title.lowercased().contains(normalized)
+        }
+
+        let groupMap = Dictionary(uniqueKeysWithValues: groups.map { ($0.id, $0) })
+        let ungrouped = filtered.filter { $0.groupID == nil }
+
+        var result: [(group: ListGroupEntity?, lists: [TodoListEntity])] = []
+
+        if !ungrouped.isEmpty {
+            result.append((nil, ungrouped))
+        }
+
+        for group in groups.sorted(by: { $0.manualOrder < $1.manualOrder }) {
+            let groupLists = filtered.filter { $0.groupID == group.id }
+            if !groupLists.isEmpty {
+                result.append((groupMap[group.id], groupLists))
+            }
+        }
+
+        return result
+    }
+
+    func taskCount(for smartList: SmartListID) -> Int {
+        queryEngine.tasks(
+            from: items,
+            list: smartList,
+            query: TaskQuery(searchText: "", sort: .manual, tagFilter: [], showCompleted: true),
+            selectedTag: nil,
+            useGlobalSearch: false,
+            plannedFilter: .all
+        ).count
+    }
+
+    func taskCount(forCustomListID id: UUID) -> Int {
+        items.filter { $0.listID == id && !$0.isCompleted }.count
+    }
+
+    func tasks(
+        for selection: TaskStoreSelection,
+        query: TaskQuery,
+        useGlobalSearch: Bool,
+        plannedFilter: PlannedFilter,
+        referenceDate: Date = Date(),
+        calendar: Calendar = .current
+    ) -> [TodoItem] {
+        switch selection {
+        case .smartList(let smart):
+            return queryEngine.tasks(
+                from: items,
+                list: smart,
+                query: query,
+                selectedTag: nil,
+                useGlobalSearch: useGlobalSearch,
+                plannedFilter: plannedFilter,
+                referenceDate: referenceDate,
+                calendar: calendar
+            )
+        case .customList(let id):
+            return queryEngine.tasks(
+                from: items,
+                listID: id,
+                query: query,
+                useGlobalSearch: useGlobalSearch,
+                plannedFilter: plannedFilter,
+                referenceDate: referenceDate,
+                calendar: calendar
+            )
+        }
+    }
+
+    func createList(title: String, groupID: UUID? = nil, icon: String = "list.bullet", theme: ListThemeStyle = .graphite) {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        let now = Date()
+        let nextOrder = (lists.map(\.manualOrder).max() ?? 0) + 1
+        let newList = TodoListEntity(
+            title: trimmed,
+            groupID: groupID,
+            icon: icon,
+            theme: theme,
+            manualOrder: nextOrder,
+            isSystem: false,
+            createdAt: now,
+            updatedAt: now
+        )
+
+        lists.append(newList)
+        schedulePersist()
+    }
+
+    func renameList(id: UUID, title: String) {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        guard let index = lists.firstIndex(where: { $0.id == id }) else { return }
+        guard !lists[index].isSystem else { return }
+
+        lists[index].title = trimmed
+        lists[index].updatedAt = Date()
+        schedulePersist()
+    }
+
+    func deleteList(id: UUID) {
+        guard let index = lists.firstIndex(where: { $0.id == id }) else { return }
+        guard !lists[index].isSystem else { return }
+
+        for taskIndex in items.indices where items[taskIndex].listID == id {
+            items[taskIndex].listID = TodoListEntity.defaultTasksListID
+            items[taskIndex].updatedAt = Date()
+        }
+
+        lists.remove(at: index)
+        schedulePersist()
+    }
+
+    func setListTheme(id: UUID, theme: ListThemeStyle) {
+        guard let index = lists.firstIndex(where: { $0.id == id }) else { return }
+        lists[index].theme = theme
+        lists[index].updatedAt = Date()
+        schedulePersist()
+    }
+
+    func createGroup(title: String) {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        let now = Date()
+        let nextOrder = (groups.map(\.manualOrder).max() ?? 0) + 1
+        groups.append(ListGroupEntity(title: trimmed, manualOrder: nextOrder, isCollapsed: false, createdAt: now, updatedAt: now))
+        schedulePersist()
+    }
+
+    func renameGroup(id: UUID, title: String) {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        guard let index = groups.firstIndex(where: { $0.id == id }) else { return }
+
+        groups[index].title = trimmed
+        groups[index].updatedAt = Date()
+        schedulePersist()
+    }
+
+    func toggleGroupCollapsed(id: UUID) {
+        guard let index = groups.firstIndex(where: { $0.id == id }) else { return }
+        groups[index].isCollapsed.toggle()
+        groups[index].updatedAt = Date()
+        schedulePersist()
+    }
+
+    func deleteGroup(id: UUID) {
+        guard let index = groups.firstIndex(where: { $0.id == id }) else { return }
+        groups.remove(at: index)
+
+        for listIndex in lists.indices where lists[listIndex].groupID == id {
+            lists[listIndex].groupID = nil
+            lists[listIndex].updatedAt = Date()
+        }
+
+        schedulePersist()
+    }
+
+    func moveList(_ id: UUID, toGroup groupID: UUID?) {
+        guard let index = lists.firstIndex(where: { $0.id == id }) else { return }
+        guard !lists[index].isSystem else { return }
+
+        lists[index].groupID = groupID
+        lists[index].updatedAt = Date()
+        schedulePersist()
+    }
+
+    func updateProfile(displayName: String, email: String, avatarSystemImage: String) {
+        profile.displayName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        profile.email = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        profile.avatarSystemImage = avatarSystemImage
+        profile.updatedAt = Date()
+        schedulePersist()
+    }
+
+    func setShowCompletedSection(_ enabled: Bool) {
+        appPrefs.showCompletedSection = enabled
+        appPrefs.updatedAt = Date()
+        schedulePersist()
+    }
+
+    func createTask(_ draft: TaskDraft, inListID listID: UUID? = nil) {
         let trimmedTitle = draft.title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedTitle.isEmpty else { return }
 
+        let targetListID = validatedListID(listID ?? TodoListEntity.defaultTasksListID)
         let now = Date()
         let item = TodoItem(
             title: trimmedTitle,
             descriptionMarkdown: draft.descriptionMarkdown.trimmingCharacters(in: .whitespacesAndNewlines),
+            isCompleted: false,
+            listID: targetListID,
+            manualOrder: nextTaskOrder(inListID: targetListID),
             priority: draft.priority,
             dueDate: draft.dueDate,
             isImportant: draft.isImportant,
@@ -164,7 +379,7 @@ final class TaskStore: ObservableObject {
     }
 
     @discardableResult
-    func createQuickTask(rawText: String, preferredMyDayDate: Date? = nil) -> TaskQuickAddResult {
+    func createQuickTask(rawText: String, preferredMyDayDate: Date? = nil, inListID listID: UUID? = nil) -> TaskQuickAddResult {
         let parsed = quickAddParser.parse(rawText)
         let fallbackTitle = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
         let finalTitle = parsed.title.isEmpty ? fallbackTitle : parsed.title
@@ -173,9 +388,12 @@ final class TaskStore: ObservableObject {
             return TaskQuickAddResult(created: false, recognizedTokens: parsed.recognizedTokens, createdTaskID: nil)
         }
 
+        let targetListID = validatedListID(listID ?? TodoListEntity.defaultTasksListID)
         let now = Date()
         let item = TodoItem(
             title: finalTitle,
+            listID: targetListID,
+            manualOrder: nextTaskOrder(inListID: targetListID),
             priority: parsed.priority,
             dueDate: parsed.dueDate,
             myDayDate: normalizeToStartOfDay(preferredMyDayDate),
@@ -196,6 +414,7 @@ final class TaskStore: ObservableObject {
         guard let index = items.firstIndex(where: { $0.id == id }) else { return }
         mutate(&items[index])
 
+        items[index].listID = validatedListID(items[index].listID)
         items[index].myDayDate = normalizeToStartOfDay(items[index].myDayDate)
         if items[index].isCompleted, items[index].completedAt == nil {
             items[index].completedAt = Date()
@@ -257,12 +476,37 @@ final class TaskStore: ObservableObject {
         schedulePersist()
     }
 
+    func moveTask(_ id: UUID, toListID: UUID) {
+        guard let index = items.firstIndex(where: { $0.id == id }) else { return }
+        items[index].listID = validatedListID(toListID)
+        items[index].manualOrder = nextTaskOrder(inListID: items[index].listID)
+        items[index].updatedAt = Date()
+        schedulePersist()
+    }
+
+    func reorderTasks(inListID listID: UUID, orderedTaskIDs: [UUID]) {
+        var order = 0.0
+        let orderMap = Dictionary(uniqueKeysWithValues: orderedTaskIDs.map {
+            defer { order += 1 }
+            return ($0, order)
+        })
+
+        for index in items.indices where items[index].listID == listID {
+            if let newOrder = orderMap[items[index].id] {
+                items[index].manualOrder = newOrder
+                items[index].updatedAt = Date()
+            }
+        }
+
+        schedulePersist()
+    }
+
     func item(withID id: UUID?) -> TodoItem? {
         guard let id else { return nil }
         return items.first(where: { $0.id == id })
     }
 
-    func addTemplateItems(_ titles: [String], preferredMyDayDate: Date? = nil) {
+    func addTemplateItems(_ titles: [String], preferredMyDayDate: Date? = nil, inListID listID: UUID? = nil) {
         let cleaned = titles
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
@@ -274,7 +518,8 @@ final class TaskStore: ObservableObject {
                 TaskDraft(
                     title: title,
                     myDayDate: preferredMyDayDate
-                )
+                ),
+                inListID: listID
             )
         }
     }
@@ -417,6 +662,83 @@ final class TaskStore: ObservableObject {
         }.count
     }
 
+    private func bootstrap(preloadedItems: [TodoItem]) async {
+        if let snapshotStorage = storage as? any TodoSnapshotStorage {
+            var snapshot = await snapshotStorage.loadSnapshot()
+            if snapshot.tasks.isEmpty && !preloadedItems.isEmpty {
+                snapshot.tasks = preloadedItems
+            }
+            apply(snapshot: snapshot)
+            normalizeState()
+            schedulePersist()
+            return
+        }
+
+        if preloadedItems.isEmpty {
+            let loaded = await storage.loadItems()
+            if !loaded.isEmpty {
+                items = loaded
+            }
+        }
+
+        normalizeState()
+        rescheduleNotifications(for: items)
+        schedulePersist()
+    }
+
+    private func apply(snapshot: TodoAppSnapshot) {
+        items = snapshot.tasks
+        lists = snapshot.lists
+        groups = snapshot.groups
+        profile = snapshot.profile
+        appPrefs = snapshot.appPrefs
+        rebuildTags()
+    }
+
+    private func normalizeState() {
+        if !lists.contains(where: { $0.id == TodoListEntity.defaultTasksListID }) {
+            lists.insert(TodoListEntity.defaultTasks, at: 0)
+        }
+
+        let knownListIDs = Set(lists.map(\.id))
+        var orderMap: [UUID: Double] = [:]
+        for idx in items.indices {
+            if !knownListIDs.contains(items[idx].listID) {
+                items[idx].listID = TodoListEntity.defaultTasksListID
+            }
+
+            if items[idx].manualOrder == 0 {
+                let next = (orderMap[items[idx].listID] ?? 0) + 1
+                orderMap[items[idx].listID] = next
+                items[idx].manualOrder = next
+            }
+        }
+
+        lists = lists.sorted { lhs, rhs in
+            if lhs.manualOrder != rhs.manualOrder {
+                return lhs.manualOrder < rhs.manualOrder
+            }
+            return lhs.createdAt < rhs.createdAt
+        }
+
+        groups = groups.sorted { lhs, rhs in
+            if lhs.manualOrder != rhs.manualOrder {
+                return lhs.manualOrder < rhs.manualOrder
+            }
+            return lhs.createdAt < rhs.createdAt
+        }
+
+        rebuildTags()
+    }
+
+    private func nextTaskOrder(inListID listID: UUID) -> Double {
+        (items.filter { $0.listID == listID }.map(\.manualOrder).max() ?? 0) + 1
+    }
+
+    private func validatedListID(_ candidate: UUID) -> UUID {
+        lists.contains(where: { $0.id == candidate }) ? candidate : TodoListEntity.defaultTasksListID
+    }
+
     private func requestNotificationAuthorization() {
         guard let notificationCenter else { return }
         notificationCenter.requestAuthorization(options: [.alert, .sound]) { _, _ in }
@@ -460,13 +782,30 @@ final class TaskStore: ObservableObject {
         items.forEach { scheduleNotification(for: $0) }
     }
 
+    private func snapshotForPersist() -> TodoAppSnapshot {
+        TodoAppSnapshot(
+            schemaVersion: 3,
+            tasks: items,
+            lists: lists,
+            groups: groups,
+            profile: profile,
+            appPrefs: appPrefs
+        )
+    }
+
     private func schedulePersist() {
-        let snapshot = items
+        let snapshot = snapshotForPersist()
+
         persistTask?.cancel()
         persistTask = Task { [storage] in
             try? await Task.sleep(nanoseconds: 220_000_000)
             guard !Task.isCancelled else { return }
-            await storage.persistItems(snapshot)
+
+            if let snapshotStorage = storage as? any TodoSnapshotStorage {
+                await snapshotStorage.persistSnapshot(snapshot)
+            } else {
+                await storage.persistItems(snapshot.tasks)
+            }
         }
     }
 
@@ -504,6 +843,9 @@ final class TaskStore: ObservableObject {
         let repeatedItem = TodoItem(
             title: item.title,
             descriptionMarkdown: item.descriptionMarkdown,
+            isCompleted: false,
+            listID: item.listID,
+            manualOrder: nextTaskOrder(inListID: item.listID),
             priority: item.priority,
             dueDate: nextDueDate,
             isImportant: item.isImportant,

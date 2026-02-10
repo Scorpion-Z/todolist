@@ -5,136 +5,210 @@ struct AppShellView: View {
     @ObservedObject var store: TaskStore
 
     @StateObject private var shell = AppShellViewModel()
-    @State private var quickAddFocusToken = 0
     @FocusState private var searchFocused: Bool
     @AppStorage("appLanguagePreference") private var appLanguagePreference = "system"
     @AppStorage("cloudSyncEnabled") private var cloudSyncEnabled = false
 
-    private let queryEngine = ListQueryEngine()
+    @State private var showingSettings = false
+    @State private var showingThemePicker = false
 
     var body: some View {
         NavigationSplitView {
             SidebarView(store: store, shell: shell)
-                .frame(minWidth: 220)
-        } content: {
-            centerPane
+                .frame(minWidth: 260)
         } detail: {
-            detailPane
+            ZStack(alignment: .trailing) {
+                mainPanel
+
+                if shell.isDetailDrawerPresented {
+                    drawerPanel
+                        .transition(.move(edge: .trailing).combined(with: .opacity))
+                        .zIndex(2)
+                }
+            }
+            .animation(.easeInOut(duration: 0.2), value: shell.isDetailDrawerPresented)
         }
         .navigationSplitViewStyle(.balanced)
-        .frame(minWidth: 1180, minHeight: 720)
-        .background(AppTheme.surface0)
+        .frame(minWidth: 1180, minHeight: 760)
         .environment(\.locale, selectedLocale)
-    }
-
-    private var centerPane: some View {
-        Group {
-            switch shell.selection {
-            case .overview:
-                OverviewDashboardView(store: store)
-            case .settings:
-                settingsView
-            case .smartList, .tag:
-                taskPane
-            }
-        }
-        .background(AppTheme.surface0)
-    }
-
-    private var detailPane: some View {
-        Group {
-            if shell.showingTaskArea {
-                TaskDetailView(store: store, selectedTaskID: $shell.selectedTaskID)
-            } else {
-                ContentUnavailableView("detail.empty.title", systemImage: "sidebar.right")
-                    .foregroundStyle(AppTheme.secondaryText)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(AppTheme.surface0)
-            }
+        .onChange(of: cloudSyncEnabled) { _, enabled in
+            let snapshot = store.items
+            _ = snapshot
+            // RootView handles re-init; keep here for AppStorage state sync.
         }
     }
 
-    private var taskPane: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            taskHeader
+    private var mainPanel: some View {
+        VStack(spacing: 0) {
+            headerBar
+                .padding(.horizontal, 20)
+                .padding(.top, 18)
+                .padding(.bottom, 14)
+
+            if case .smartList(.planned) = shell.selection {
+                plannedFilterBar
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 10)
+            }
+
+            searchBar
+                .padding(.horizontal, 20)
+                .padding(.bottom, 10)
+
+            Group {
+                if visibleTasks.isEmpty {
+                    ContentUnavailableView("task.empty.title", systemImage: "checklist")
+                        .foregroundStyle(AppTheme.secondaryText)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    TaskListView(
+                        tasks: visibleTasks,
+                        smartList: activeSmartList,
+                        customListID: shell.activeCustomListID,
+                        showCompletedSection: store.appPrefs.showCompletedSection,
+                        selectedTaskID: Binding(
+                            get: { shell.selectedTaskID },
+                            set: { shell.selectTask($0) }
+                        ),
+                        store: store
+                    )
+                }
+            }
+            .padding(.horizontal, 14)
 
             QuickAddBarView(
                 store: store,
-                activeList: shell.activeList,
-                selectedTaskID: $shell.selectedTaskID,
-                focusRequestToken: $quickAddFocusToken
-            )
-
-            if showingMyDayEnhancements {
-                myDayProgressBanner
-                myDaySuggestionsPanel
-            }
-
-            taskToolbar
-
-            if visibleTasks.isEmpty {
-                ContentUnavailableView("task.empty.title", systemImage: "checklist")
-                    .foregroundStyle(AppTheme.secondaryText)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                TaskListView(
-                    tasks: visibleTasks,
-                    smartList: shell.activeList,
-                    selectedTaskID: $shell.selectedTaskID,
-                    store: store
+                activeSelection: shell.selection,
+                selectedTaskID: Binding(
+                    get: { shell.selectedTaskID },
+                    set: { shell.selectTask($0) }
                 )
-                .background(AppTheme.surface0)
-            }
+            )
+            .padding(.horizontal, 20)
+            .padding(.top, 10)
+            .padding(.bottom, 16)
         }
-        .padding(16)
-        .background(AppTheme.surface0)
+        .background(mainBackground)
+        .onExitCommand {
+            shell.closeDrawer()
+        }
     }
 
-    private var taskHeader: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
+    private var drawerPanel: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("详情")
+                    .font(AppTypography.sectionTitle)
+                Spacer()
+                Button {
+                    shell.closeDrawer()
+                } label: {
+                    Image(systemName: "xmark")
+                }
+                .buttonStyle(.borderless)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(AppTheme.surface1)
+
+            TaskDetailView(
+                store: store,
+                selectedTaskID: Binding(
+                    get: { shell.selectedTaskID },
+                    set: { shell.selectTask($0) }
+                )
+            )
+        }
+        .frame(width: 360)
+        .background(AppTheme.surface0)
+        .overlay(
+            Rectangle()
+                .fill(AppTheme.strokeSubtle)
+                .frame(width: 1),
+            alignment: .leading
+        )
+        .shadow(color: .black.opacity(0.25), radius: 18, x: -2, y: 0)
+    }
+
+    private var headerBar: some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(currentSectionTitle)
-                    .font(.system(size: 24, weight: .bold))
-                Text("task.header.subtitle")
-                    .font(AppTypography.subtitle)
-                    .foregroundStyle(AppTheme.secondaryText)
+                    .font(.system(size: 46, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppTheme.titleColor(for: effectiveTheme))
+                    .lineLimit(1)
+
+                if case .smartList(.myDay) = shell.selection {
+                    Text(Date(), format: .dateTime.month(.defaultDigits).day(.defaultDigits).weekday(.wide))
+                        .font(AppTypography.subtitle)
+                        .foregroundStyle(AppTheme.secondaryText)
+                }
             }
 
             Spacer()
 
-            Button {
-                quickAddFocusToken += 1
-            } label: {
-                Label("newtask.focus", systemImage: "plus")
-            }
-            .keyboardShortcut("n", modifiers: .command)
+            HStack(spacing: 8) {
+                Button {
+                    showingThemePicker = true
+                } label: {
+                    Image(systemName: "swatchpalette")
+                }
+                .buttonStyle(.bordered)
 
-            Button {
-                searchFocused = true
-            } label: {
-                Label("search.focus", systemImage: "magnifyingglass")
-            }
-            .keyboardShortcut("f", modifiers: .command)
+                Menu {
+                    Toggle("显示已完成", isOn: Binding(
+                        get: { store.appPrefs.showCompletedSection },
+                        set: { value in
+                            store.setShowCompletedSection(value)
+                        }
+                    ))
 
-            Button {
-                shell.toggleSelectedTaskCompletion(using: store)
-            } label: {
-                Image(systemName: "checkmark.circle")
+                    Button("设置") {
+                        showingSettings = true
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                }
+                .menuStyle(.borderlessButton)
             }
-            .keyboardShortcut(.space, modifiers: [])
-            .disabled(shell.selectedTaskID == nil)
-
-            Button(role: .destructive) {
-                shell.deleteSelectedTask(from: store)
-            } label: {
-                Image(systemName: "trash")
-            }
-            .keyboardShortcut(.delete, modifiers: .command)
-            .disabled(shell.selectedTaskID == nil)
+        }
+        .sheet(isPresented: $showingSettings) {
+            settingsSheet
+                .frame(minWidth: 460, minHeight: 340)
+        }
+        .sheet(isPresented: $showingThemePicker) {
+            ThemePickerSheet(
+                selectedTheme: effectiveTheme,
+                onSelect: { style in
+                    if let customID = shell.activeCustomListID {
+                        store.setListTheme(id: customID, theme: style)
+                    }
+                }
+            )
+            .frame(minWidth: 420, minHeight: 240)
         }
     }
 
-    private var taskToolbar: some View {
+    private var plannedFilterBar: some View {
+        HStack(spacing: 8) {
+            ForEach(PlannedFilter.allCases) { filter in
+                Button {
+                    shell.plannedFilter = filter
+                } label: {
+                    Text(filter.titleKey)
+                        .font(AppTypography.caption)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(shell.plannedFilter == filter ? AppTheme.accentSoft : AppTheme.glassSurface)
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+            Spacer()
+        }
+    }
+
+    private var searchBar: some View {
         HStack(spacing: 12) {
             HStack(spacing: 6) {
                 Image(systemName: "magnifyingglass")
@@ -145,164 +219,79 @@ struct AppShellView: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
-            .background(AppTheme.surface1)
+            .background(AppTheme.glassSurface)
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .stroke(AppTheme.strokeSubtle, lineWidth: 1)
             )
 
-            Menu {
-                Toggle("search.scope.global", isOn: $shell.useGlobalSearch)
-                Toggle(
-                    "task.filter.showcompleted",
-                    isOn: Binding(
-                        get: { shell.query.showCompleted },
-                        set: { shell.query.showCompleted = $0 }
-                    )
-                )
-                if !shell.searchInput.isEmpty {
-                    Button("search.clear") {
-                        shell.clearSearch()
-                    }
-                }
+            Button {
+                searchFocused = true
             } label: {
-                Image(systemName: shell.useGlobalSearch ? "globe" : "scope")
+                Label("search.focus", systemImage: "scope")
             }
-            .menuStyle(.borderlessButton)
+            .buttonStyle(.bordered)
 
-            Picker("sort.label", selection: Binding(
-                get: { shell.query.sort },
-                set: { shell.query.sort = $0 }
-            )) {
-                ForEach(TaskSortOption.allCases) { option in
-                    Text(option.titleKey).tag(option)
-                }
+            Button {
+                shell.clearSearch()
+            } label: {
+                Text("search.clear")
             }
-            .pickerStyle(.menu)
-            .frame(width: 170)
+            .buttonStyle(.bordered)
+            .disabled(shell.searchInput.isEmpty)
 
             Spacer()
         }
     }
 
-    private var showingMyDayEnhancements: Bool {
-        shell.selection == .smartList(.myDay)
+    private var mainBackground: some View {
+        let colors = AppTheme.gradient(for: effectiveTheme)
+        return LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
+            .overlay(
+                AppTheme.surface0.opacity(0.65)
+            )
     }
 
-    private var myDayProgressBanner: some View {
-        let progress = store.myDayProgress()
-
-        return VStack(alignment: .leading, spacing: 8) {
-            Text("myday.progress.title")
-                .font(AppTypography.sectionTitle)
-
-            if progress.totalCount == 0 {
-                Text("myday.progress.empty")
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppTheme.secondaryText)
-            } else {
-                Text(
-                    String(
-                        format: String(localized: "myday.progress.count"),
-                        progress.completedCount,
-                        progress.totalCount
-                    )
-                )
-                .font(AppTypography.body)
-
-                ProgressView(value: progress.completionRate)
-                    .tint(AppTheme.accentStrong)
-
-                if progress.isAllDone {
-                    Text("myday.progress.celebrate")
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppTheme.accentStrong)
-                }
-            }
+    private var effectiveTheme: ListThemeStyle {
+        if let customID = shell.activeCustomListID,
+           let list = store.lists.first(where: { $0.id == customID }) {
+            return list.theme
         }
-        .padding(12)
-        .background(AppTheme.surface1)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(AppTheme.strokeSubtle, lineWidth: 1)
+
+        switch shell.selection {
+        case .smartList(.myDay): return .ocean
+        case .smartList(.planned): return .forest
+        case .smartList(.important): return .sunrise
+        case .smartList(.all): return .graphite
+        case .smartList(.inbox): return .graphite
+        case .smartList(.completed): return .violet
+        case .customList: return .graphite
+        }
+    }
+
+    private var activeSmartList: SmartListID? {
+        if case .smartList(let smart) = shell.selection {
+            return smart
+        }
+        return nil
+    }
+
+    private var visibleTasks: [TodoItem] {
+        let selection: TaskStoreSelection
+        switch shell.selection {
+        case .smartList(let smart):
+            selection = .smartList(smart)
+        case .customList(let id):
+            selection = .customList(id)
+        }
+
+        return store.tasks(
+            for: selection,
+            query: shell.query,
+            useGlobalSearch: shell.useGlobalSearch,
+            plannedFilter: shell.plannedFilter
         )
-    }
-
-    private var myDaySuggestionsPanel: some View {
-        let suggestions = store.myDaySuggestions(limit: 5)
-
-        return VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("myday.suggestions")
-                    .font(AppTypography.sectionTitle)
-                Spacer()
-            }
-
-            if suggestions.isEmpty {
-                Text("myday.suggestions.empty")
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppTheme.secondaryText)
-            } else {
-                ForEach(suggestions) { suggestion in
-                    HStack(spacing: 10) {
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text(suggestion.item.title)
-                                .font(AppTypography.body)
-
-                            HStack(spacing: 6) {
-                                Text(suggestion.reason.titleKey)
-                                    .font(AppTypography.caption)
-                                    .foregroundStyle(reasonColor(suggestion.reason))
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 2)
-                                    .background(AppTheme.pillBackground)
-                                    .clipShape(Capsule())
-
-                                if let dueDate = suggestion.item.dueDate {
-                                    Text(dueDate, style: .date)
-                                        .font(AppTypography.caption)
-                                        .foregroundStyle(AppTheme.secondaryText)
-                                }
-                            }
-                        }
-
-                        Spacer()
-
-                        Button("myday.add") {
-                            store.addToMyDay(id: suggestion.id)
-                        }
-                        .buttonStyle(.bordered)
-                    }
-                    .padding(10)
-                    .background(AppTheme.surface0)
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .stroke(AppTheme.strokeSubtle, lineWidth: 1)
-                    )
-                }
-            }
-        }
-        .padding(12)
-        .background(AppTheme.surface1)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(AppTheme.strokeSubtle, lineWidth: 1)
-        )
-    }
-
-    private func reasonColor(_ reason: MyDaySuggestion.Reason) -> Color {
-        switch reason {
-        case .overdue:
-            return .red
-        case .dueToday:
-            return .orange
-        case .important:
-            return .yellow
-        }
     }
 
     private var currentSectionTitle: String {
@@ -314,31 +303,17 @@ struct AppShellView: View {
             case .myDay:
                 return String(localized: "smart.myDay")
             case .important:
-                return String(localized: "smart.important")
+                return String(localized: "smart.flaggedmail")
             case .planned:
                 return String(localized: "smart.planned")
             case .completed:
                 return String(localized: "smart.completed")
             case .all:
-                return String(localized: "smart.all")
+                return String(localized: "smart.tasks")
             }
-        case .tag(let tag):
-            return "#\(tag)"
-        case .overview:
-            return String(localized: "overview.title")
-        case .settings:
-            return String(localized: "settings.title")
+        case .customList(let id):
+            return store.lists.first(where: { $0.id == id })?.title ?? String(localized: "smart.tasks")
         }
-    }
-
-    private var visibleTasks: [TodoItem] {
-        queryEngine.tasks(
-            from: store.items,
-            list: shell.activeList,
-            query: shell.query,
-            selectedTag: shell.activeTagName,
-            useGlobalSearch: shell.useGlobalSearch
-        )
     }
 
     private var selectedLocale: Locale {
@@ -352,40 +327,71 @@ struct AppShellView: View {
         }
     }
 
-    private var settingsView: some View {
+    private var settingsSheet: some View {
         Form {
-            Section("settings.language.section") {
-                Picker("settings.language", selection: $appLanguagePreference) {
-                    Text("settings.language.system").tag("system")
-                    Text("settings.language.zh").tag("zh-Hans")
-                    Text("settings.language.en").tag("en")
+            Section("语言") {
+                Picker("界面语言", selection: $appLanguagePreference) {
+                    Text("跟随系统").tag("system")
+                    Text("中文").tag("zh-Hans")
+                    Text("English").tag("en")
                 }
                 .pickerStyle(.segmented)
+            }
 
-                Text("settings.language.hint")
+            Section("同步") {
+                Toggle("启用 iCloud 同步", isOn: $cloudSyncEnabled)
+                Text(cloudSyncEnabled ? "已启用" : "已关闭")
                     .font(AppTypography.caption)
                     .foregroundStyle(AppTheme.secondaryText)
             }
 
-            Section("settings.sync.section") {
-                Toggle("settings.sync.enable", isOn: $cloudSyncEnabled)
-
-                Label(
-                    cloudSyncEnabled ? "settings.sync.state.on" : "settings.sync.state.off",
-                    systemImage: cloudSyncEnabled ? "icloud.fill" : "icloud.slash"
-                )
-                .font(AppTypography.caption)
-                .foregroundStyle(cloudSyncEnabled ? AppTheme.accentStrong : AppTheme.secondaryText)
-
-                Text("settings.sync.hint")
+            Section("账号") {
+                Text(store.profile.displayName)
+                Text(store.profile.email)
                     .font(AppTypography.caption)
                     .foregroundStyle(AppTheme.secondaryText)
             }
         }
         .formStyle(.grouped)
-        .scrollContentBackground(.hidden)
-        .background(AppTheme.surface0)
-        .navigationTitle("settings.title")
+    }
+}
+
+private struct ThemePickerSheet: View {
+    let selectedTheme: ListThemeStyle
+    let onSelect: (ListThemeStyle) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("选择主题")
+                .font(AppTypography.sectionTitle)
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 12)], spacing: 12) {
+                ForEach(ListThemeStyle.allCases) { style in
+                    Button {
+                        onSelect(style)
+                        dismiss()
+                    } label: {
+                        VStack(alignment: .leading, spacing: 8) {
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(LinearGradient(colors: AppTheme.gradient(for: style), startPoint: .topLeading, endPoint: .bottomTrailing))
+                                .frame(height: 72)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .stroke(selectedTheme == style ? AppTheme.accentStrong : AppTheme.strokeSubtle, lineWidth: 2)
+                                )
+                            Text(style.titleKey)
+                                .font(AppTypography.caption)
+                                .foregroundStyle(.primary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            Spacer()
+        }
+        .padding(16)
     }
 }
 

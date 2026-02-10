@@ -171,6 +171,8 @@
 "smart.planned" = "Planned";
 "smart.completed" = "Completed";
 "smart.all" = "All Tasks";
+"smart.tasks" = "Tasks";
+"smart.flaggedmail" = "Flagged Email";
 
 "list.section.smart" = "Lists";
 "list.section.tags" = "Tags";
@@ -230,4 +232,15 @@
 "overview.weekly.completed" = "Completed";
 "overview.weekly.carry" = "Carry-over Done";
 "overview.weekly.important" = "Important Done";
+"planned.filter.all" = "All";
+"planned.filter.overdue" = "Overdue";
+"planned.filter.today" = "Today";
+"planned.filter.tomorrow" = "Tomorrow";
+"planned.filter.thisweek" = "This week";
+"planned.filter.later" = "Later";
+"theme.graphite" = "Graphite";
+"theme.ocean" = "Ocean";
+"theme.forest" = "Forest";
+"theme.sunrise" = "Sunrise";
+"theme.violet" = "Violet";
 "overview.weekly.overdue" = "Overdue Resolved";
