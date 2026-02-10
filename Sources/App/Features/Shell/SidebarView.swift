@@ -8,7 +8,6 @@ struct SidebarView: View {
     var body: some View {
         List(selection: selectionBinding) {
             Section("list.section.smart") {
-                smartListRow(.inbox)
                 smartListRow(.myDay)
                 smartListRow(.important)
                 smartListRow(.planned)
@@ -49,9 +48,22 @@ struct SidebarView: View {
     }
 
     private func smartListRow(_ list: SmartListID) -> some View {
-        Label(list.titleKey, systemImage: list.systemImage)
+        HStack(spacing: 8) {
+            Label(list.titleKey, systemImage: list.systemImage)
+
+            Spacer(minLength: 8)
+
+            let total = count(for: list)
+            if total > 0 {
+                Text("\(total)")
+                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(AppTheme.secondaryText)
+            }
+        }
+        .contentShape(Rectangle())
+        .frame(maxWidth: .infinity, alignment: .leading)
             .tag(AppShellViewModel.SidebarSelection.smartList(list))
-            .badge(count(for: list))
     }
 
     private var selectionBinding: Binding<AppShellViewModel.SidebarSelection?> {

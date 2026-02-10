@@ -19,7 +19,7 @@ final class AppShellViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
 
     init(
-        selection: SidebarSelection = .smartList(.inbox),
+        selection: SidebarSelection = .smartList(.myDay),
         selectedTaskID: TodoItem.ID? = nil,
         query: TaskQuery = TaskQuery(),
         useGlobalSearch: Bool = false
