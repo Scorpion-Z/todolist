@@ -205,6 +205,8 @@
 "settings.sync.state.on" = "同步已开启";
 "settings.sync.state.off" = "同步已关闭";
 "settings.sync.hint" = "开启后会在本地与 iCloud 间双写，并进行冲突保护合并。";
+"settings.sync.unavailable" = "当前构建未配置 iCloud 容器，已切换本地存储";
+"settings.sync.unavailable.hint" = "如需开启同步，请在 Xcode 中配置 iCloud/CloudKit capability 并绑定容器。";
 
 "detail.title" = "任务详情";
 "detail.revert" = "恢复";

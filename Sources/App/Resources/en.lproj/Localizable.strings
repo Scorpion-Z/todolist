@@ -205,6 +205,8 @@
 "settings.sync.state.on" = "Sync is enabled";
 "settings.sync.state.off" = "Sync is disabled";
 "settings.sync.hint" = "When enabled, local and iCloud data are merged with conflict protection.";
+"settings.sync.unavailable" = "This build has no iCloud container configured. Using local storage.";
+"settings.sync.unavailable.hint" = "To enable sync, add iCloud/CloudKit capability and bind a container in Xcode.";
 
 "detail.title" = "Task Details";
 "detail.revert" = "Revert";

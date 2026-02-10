@@ -1,4 +1,5 @@
 import CloudKit
+import Security
 import SwiftUI
 
 struct AppShellView: View {
@@ -11,6 +12,8 @@ struct AppShellView: View {
 
     @State private var showingSettings = false
     @State private var showingThemePicker = false
+
+    private var cloudSyncSupported: Bool { RootView.cloudKitSupported }
 
     var body: some View {
         NavigationSplitView {
@@ -340,7 +343,12 @@ struct AppShellView: View {
 
             Section("同步") {
                 Toggle("启用 iCloud 同步", isOn: $cloudSyncEnabled)
-                Text(cloudSyncEnabled ? "已启用" : "已关闭")
+                    .disabled(!cloudSyncSupported)
+                Text(syncStatusText)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppTheme.secondaryText)
+
+                Text(cloudSyncSupported ? String(localized: "settings.sync.hint") : String(localized: "settings.sync.unavailable.hint"))
                     .font(AppTypography.caption)
                     .foregroundStyle(AppTheme.secondaryText)
             }
@@ -353,6 +361,13 @@ struct AppShellView: View {
             }
         }
         .formStyle(.grouped)
+    }
+
+    private var syncStatusText: String {
+        if !cloudSyncSupported {
+            return String(localized: "settings.sync.unavailable")
+        }
+        return cloudSyncEnabled ? String(localized: "settings.sync.state.on") : String(localized: "settings.sync.state.off")
     }
 }
 
@@ -398,9 +413,12 @@ private struct ThemePickerSheet: View {
 struct RootView: View {
     @AppStorage("cloudSyncEnabled") private var cloudSyncEnabled = false
     @State private var store: TaskStore
+    static let cloudKitSupported = detectCloudKitSupport()
+    private static let iCloudContainerEntitlement = "com.apple.developer.icloud-container-identifiers"
 
     init() {
-        let enabled = UserDefaults.standard.bool(forKey: "cloudSyncEnabled")
+        let requested = UserDefaults.standard.bool(forKey: "cloudSyncEnabled")
+        let enabled = RootView.normalizedSyncEnabled(requested)
         _store = State(initialValue: RootView.makeStore(syncEnabled: enabled))
     }
 
@@ -408,16 +426,21 @@ struct RootView: View {
         AppShellView(store: store)
             .id(cloudSyncEnabled)
             .onChange(of: cloudSyncEnabled) { _, enabled in
+                let normalized = RootView.normalizedSyncEnabled(enabled)
+                if normalized != enabled {
+                    cloudSyncEnabled = normalized
+                }
                 let snapshot = store.items
-                store = RootView.makeStore(syncEnabled: enabled, preloadItems: snapshot)
+                store = RootView.makeStore(syncEnabled: normalized, preloadItems: snapshot)
             }
     }
 
     private static func makeStore(syncEnabled: Bool, preloadItems: [TodoItem] = []) -> TaskStore {
         let local = LocalTodoStorage()
         let storage: TodoStorage
+        let shouldUseCloud = normalizedSyncEnabled(syncEnabled)
 
-        if syncEnabled {
+        if shouldUseCloud {
             let cloud = CloudTodoStorage(container: CKContainer.default())
             storage = ConflictAwareDualStorage(local: local, cloud: cloud)
         } else {
@@ -431,6 +454,35 @@ struct RootView: View {
         }
 
         return TaskStore(items: preloadItems, storage: storage)
+    }
+
+    private static func normalizedSyncEnabled(_ requested: Bool) -> Bool {
+        guard requested else { return false }
+        guard cloudKitSupported else {
+            UserDefaults.standard.set(false, forKey: "cloudSyncEnabled")
+            print("CloudKit unavailable. Falling back to local storage.")
+            return false
+        }
+        return true
+    }
+
+    private static func detectCloudKitSupport() -> Bool {
+        guard let task = SecTaskCreateFromSelf(nil) else { return false }
+        guard let rawValue = SecTaskCopyValueForEntitlement(task, iCloudContainerEntitlement as CFString, nil) else {
+            return false
+        }
+
+        if let containers = rawValue as? [String] {
+            return !containers.isEmpty
+        }
+        if let containers = rawValue as? [Any] {
+            return !containers.isEmpty
+        }
+        if let container = rawValue as? String {
+            return !container.isEmpty
+        }
+
+        return false
     }
 }
 
