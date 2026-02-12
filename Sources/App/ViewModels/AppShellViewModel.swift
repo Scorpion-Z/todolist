@@ -1,11 +1,18 @@
 import Foundation
 import Combine
+import CoreGraphics
 
 @MainActor
 final class AppShellViewModel: ObservableObject {
     enum SidebarSelection: Hashable {
         case smartList(SmartListID)
         case customList(UUID)
+    }
+
+    enum DetailPresentationMode: Equatable {
+        case hidden
+        case inline
+        case modal
     }
 
     @Published var selection: SidebarSelection
@@ -99,6 +106,28 @@ final class AppShellViewModel: ObservableObject {
 
     func requestSearchFocus() {
         searchFocusToken += 1
+    }
+
+    func detailPresentationMode(for width: CGFloat, inlineThreshold: CGFloat = 1240) -> DetailPresentationMode {
+        guard selectedTaskID != nil else { return .hidden }
+        return width >= inlineThreshold ? .inline : .modal
+    }
+
+    func clampedDetailWidth(
+        _ width: CGFloat,
+        contentWidth: CGFloat,
+        minWidth: CGFloat = ToDoWebMetrics.detailMinWidth,
+        maxWidth: CGFloat = ToDoWebMetrics.detailMaxWidth,
+        maxRatio: CGFloat = ToDoWebMetrics.detailMaxWidthRatio
+    ) -> CGFloat {
+        let boundedContentWidth = contentWidth.isFinite ? max(contentWidth, 0) : 0
+        let ratioBound = max(minWidth, boundedContentWidth * maxRatio)
+        let upperBound = min(maxWidth, ratioBound)
+        return min(max(width, minWidth), upperBound)
+    }
+
+    func shouldResetDetailWidth(previousMode: DetailPresentationMode, nextMode: DetailPresentationMode) -> Bool {
+        previousMode == .inline && nextMode == .modal
     }
 
     func deleteSelectedTask(from store: TaskStore) {

@@ -5,7 +5,6 @@ struct SidebarView: View {
     @ObservedObject var shell: AppShellViewModel
 
     @State private var showingListManagement = false
-    @State private var showingProfileEditor = false
     @State private var uiSelection: AppShellViewModel.SidebarSelection?
     @State private var pendingSelection: AppShellViewModel.SidebarSelection?
 
@@ -14,13 +13,13 @@ struct SidebarView: View {
 
         VStack(spacing: 0) {
             profileHeader
-                .padding(.horizontal, 12)
+                .padding(.horizontal, 14)
                 .padding(.top, 12)
-                .padding(.bottom, 10)
+                .padding(.bottom, 8)
 
             sidebarSearch
                 .padding(.horizontal, 12)
-                .padding(.bottom, 10)
+                .padding(.bottom, 6)
 
             List(selection: $uiSelection) {
                 Section("list.section.smart") {
@@ -67,26 +66,18 @@ struct SidebarView: View {
 
             Divider()
 
-            HStack {
+            HStack(spacing: 8) {
                 Button {
                     showingListManagement = true
                 } label: {
                     Label("list.create", systemImage: "plus")
+                        .font(.system(size: 13, weight: .medium))
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(.plain)
-
-                Spacer()
-
-                Button {
-                    showingListManagement = true
-                } label: {
-                    Image(systemName: "square.and.pencil")
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(Text("list.manage"))
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
+            .padding(.horizontal, 12)
+            .frame(height: ToDoWebMetrics.sidebarFooterHeight)
             .background(AppTheme.sidebarBackground)
         }
         .background(AppTheme.sidebarBackground)
@@ -118,36 +109,28 @@ struct SidebarView: View {
             ListManagementSheet(store: store)
                 .frame(minWidth: 460, minHeight: 420)
         }
-        .sheet(isPresented: $showingProfileEditor) {
-            ProfileEditorSheet(store: store)
-                .frame(minWidth: 380, minHeight: 260)
-        }
     }
 
     private var profileHeader: some View {
-        Button {
-            showingProfileEditor = true
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: store.profile.avatarSystemImage)
-                    .font(.system(size: 28))
-                    .foregroundStyle(AppTheme.accentStrong)
-                    .frame(width: 36, height: 36)
+        HStack(spacing: 10) {
+            Image(systemName: store.profile.avatarSystemImage)
+                .font(.system(size: 22))
+                .foregroundStyle(AppTheme.accentStrong)
+                .frame(width: 28, height: 28)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(store.profile.displayName.isEmpty ? String(localized: "profile.defaultName") : store.profile.displayName)
-                        .font(.system(size: 20, weight: .semibold))
-                        .lineLimit(1)
-                    Text(store.profile.email)
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppTheme.secondaryText)
-                        .lineLimit(1)
-                }
-
-                Spacer()
+            VStack(alignment: .leading, spacing: 1) {
+                Text(store.profile.displayName.isEmpty ? String(localized: "profile.defaultName") : store.profile.displayName)
+                    .font(.system(size: 17, weight: .semibold))
+                    .lineLimit(1)
+                Text(store.profile.email)
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundStyle(AppTheme.secondaryText)
+                    .lineLimit(1)
             }
+
+            Spacer()
         }
-        .buttonStyle(.plain)
+        .frame(height: 40)
     }
 
     private var sidebarSearch: some View {
@@ -159,10 +142,11 @@ struct SidebarView: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
+        .frame(height: ToDoWebMetrics.sidebarSearchHeight)
         .background(AppTheme.surface1)
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: ToDoWebMetrics.sidebarSearchCornerRadius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: ToDoWebMetrics.sidebarSearchCornerRadius, style: .continuous)
                 .stroke(AppTheme.strokeSubtle, lineWidth: 1)
         )
     }
@@ -192,6 +176,7 @@ struct SidebarView: View {
             }
         }
         .contentShape(Rectangle())
+        .frame(minHeight: ToDoWebMetrics.sidebarRowHeight)
         .tag(selection)
     }
 
@@ -215,6 +200,7 @@ struct SidebarView: View {
             }
         }
         .contentShape(Rectangle())
+        .frame(minHeight: ToDoWebMetrics.sidebarRowHeight)
         .tag(AppShellViewModel.SidebarSelection.customList(list.id))
         .contextMenu {
             Menu("theme.picker.title") {
@@ -235,53 +221,6 @@ struct SidebarView: View {
         }
     }
 
-}
-
-private struct ProfileEditorSheet: View {
-    @ObservedObject var store: TaskStore
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var name = ""
-    @State private var email = ""
-    @State private var avatar = "person.crop.circle.fill"
-
-    private let avatars = [
-        "person.crop.circle.fill",
-        "person.fill",
-        "person.2.fill",
-        "star.circle.fill",
-    ]
-
-    var body: some View {
-        Form {
-            TextField("profile.name", text: $name)
-            TextField("profile.email", text: $email)
-
-            Picker("profile.avatar", selection: $avatar) {
-                ForEach(avatars, id: \.self) { icon in
-                    Label(icon, systemImage: icon).tag(icon)
-                }
-            }
-            .pickerStyle(.menu)
-        }
-        .onAppear {
-            name = store.profile.displayName
-            email = store.profile.email
-            avatar = store.profile.avatarSystemImage
-        }
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("edit.cancel") { dismiss() }
-            }
-            ToolbarItem(placement: .confirmationAction) {
-                Button("edit.save") {
-                    store.updateProfile(displayName: name, email: email, avatarSystemImage: avatar)
-                    dismiss()
-                }
-                .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            }
-        }
-    }
 }
 
 private struct ListManagementSheet: View {

@@ -9,125 +9,114 @@ struct TaskRowView: View {
     let onToggleImportant: () -> Void
     let onToggleMyDay: () -> Void
     let onDelete: () -> Void
+    @State private var isHovered = false
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .center, spacing: 10) {
             Button(action: onToggleCompletion) {
                 Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 17, weight: .medium))
-                    .foregroundStyle(item.isCompleted ? AppTheme.accentStrong : AppTheme.secondaryText)
+                    .foregroundStyle(item.isCompleted ? Color.white.opacity(0.95) : Color.white.opacity(0.75))
             }
             .buttonStyle(.plain)
             .accessibilityLabel(Text(item.isCompleted ? "mark.open" : "mark.done"))
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(item.title)
                     .font(AppTypography.body)
-                    .foregroundStyle(item.isCompleted ? AppTheme.secondaryText : .primary)
-                    .strikethrough(item.isCompleted, color: AppTheme.secondaryText)
+                    .foregroundStyle(item.isCompleted ? Color.white.opacity(0.64) : Color.white.opacity(0.95))
+                    .strikethrough(item.isCompleted, color: Color.white.opacity(0.6))
 
                 HStack(spacing: 6) {
-                    if item.isImportant {
-                        pillLabel(LocalizedStringKey("smart.important"), tint: .yellow)
-                    }
-
                     if let dueDate = item.dueDate {
-                        pillLabel(dueDate, style: .date, tint: dueTint(dueDate: dueDate, isCompleted: item.isCompleted))
+                        Text(dueDate, style: .date)
+                            .font(AppTypography.caption)
+                            .foregroundStyle(dueTint(dueDate: dueDate, isCompleted: item.isCompleted))
                     }
-
-                    pillLabel(item.priority.displayNameKey, tint: priorityTint(item.priority))
 
                     if isInMyDay {
-                        pillLabel(LocalizedStringKey("smart.myDay"), tint: AppTheme.accentStrong)
+                        Text("smart.myDay")
+                            .font(AppTypography.caption)
+                            .foregroundStyle(ToDoWebColors.secondaryText)
                     }
 
                     if !item.subtasks.isEmpty {
                         let done = item.subtasks.filter(\.isCompleted).count
-                        pillLabel("\(done)/\(item.subtasks.count)", tint: AppTheme.secondaryText)
+                        Text("\(done)/\(item.subtasks.count)")
+                            .font(AppTypography.caption)
+                            .foregroundStyle(ToDoWebColors.secondaryText)
                     }
                 }
             }
 
             Spacer(minLength: 8)
 
-            Button(action: onToggleImportant) {
-                Image(systemName: item.isImportant ? "star.fill" : "star")
-                    .foregroundStyle(item.isImportant ? .yellow : AppTheme.secondaryText)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(Text(item.isImportant ? "important.remove" : "important.add"))
+            HStack(spacing: 6) {
+                Button(action: onToggleImportant) {
+                    Image(systemName: item.isImportant ? "star.fill" : "star")
+                        .foregroundStyle(item.isImportant ? .yellow : Color.white.opacity(0.6))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text(item.isImportant ? "important.remove" : "important.add"))
 
-            Menu {
-                Button(item.isCompleted ? "mark.open" : "mark.done", action: onToggleCompletion)
-                Button(item.isImportant ? "important.remove" : "important.add", action: onToggleImportant)
-                Button(isInMyDay ? "myday.remove" : "myday.add", action: onToggleMyDay)
-                Divider()
-                Button("delete.button", role: .destructive, action: onDelete)
-            } label: {
-                Image(systemName: "ellipsis")
-                    .foregroundStyle(AppTheme.secondaryText)
-                    .frame(width: 22)
+                Menu {
+                    Button(item.isCompleted ? "mark.open" : "mark.done", action: onToggleCompletion)
+                    Button(item.isImportant ? "important.remove" : "important.add", action: onToggleImportant)
+                    Button(isInMyDay ? "myday.remove" : "myday.add", action: onToggleMyDay)
+                    Divider()
+                    Button("delete.button", role: .destructive, action: onDelete)
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .foregroundStyle(Color.white.opacity(0.6))
+                        .frame(width: 22)
+                }
+                .menuStyle(.borderlessButton)
+                .accessibilityLabel(Text("toolbar.more"))
             }
-            .menuStyle(.borderlessButton)
-            .accessibilityLabel(Text("toolbar.more"))
+            .opacity(actionControlsVisible ? 1 : 0)
+            .allowsHitTesting(actionControlsVisible)
+            .animation(ToDoWebMotion.hoverFade, value: actionControlsVisible)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(isSelected ? AppTheme.selectionBackground : AppTheme.surface1)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .padding(.horizontal, ToDoWebMetrics.taskRowHorizontalPadding)
+        .padding(.vertical, ToDoWebMetrics.taskRowVerticalPadding)
+        .frame(minHeight: ToDoWebMetrics.taskRowMinHeight)
+        .background(rowBackgroundColor)
+        .clipShape(RoundedRectangle(cornerRadius: ToDoWebMetrics.taskRowCornerRadius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(isSelected ? AppTheme.focusRing : AppTheme.strokeSubtle, lineWidth: 1)
+            RoundedRectangle(cornerRadius: ToDoWebMetrics.taskRowCornerRadius, style: .continuous)
+                .stroke(rowBorderColor, lineWidth: 1)
         )
         .contentShape(Rectangle())
         .onTapGesture(perform: onSelect)
+#if os(macOS)
+        .onHover { hovering in
+            isHovered = hovering
+        }
+#endif
     }
 
-    private func priorityTint(_ priority: TodoItem.Priority) -> Color {
-        switch priority {
-        case .high: return .red
-        case .medium: return .orange
-        case .low: return AppTheme.secondaryText
+    private var actionControlsVisible: Bool {
+        isHovered
+    }
+
+    private var rowBackgroundColor: Color {
+        if isSelected {
+            return ToDoWebColors.rowSelectedBackground
         }
+        return isHovered ? ToDoWebColors.rowHoverBackground : ToDoWebColors.rowDefaultBackground
+    }
+
+    private var rowBorderColor: Color {
+        isSelected ? ToDoWebColors.rowSelectedBorder : ToDoWebColors.rowDefaultBorder
     }
 
     private func dueTint(dueDate: Date, isCompleted: Bool) -> Color {
         if isCompleted {
-            return AppTheme.secondaryText
+            return ToDoWebColors.secondaryText
         }
         if dueDate < Calendar.current.startOfDay(for: Date()) {
-            return .red
+            return Color.red.opacity(0.95)
         }
-        return AppTheme.secondaryText
-    }
-
-    private func pillLabel(_ key: LocalizedStringKey, tint: Color) -> some View {
-        Text(key)
-            .font(AppTypography.caption)
-            .foregroundStyle(tint)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 2)
-            .background(AppTheme.pillBackground)
-            .clipShape(Capsule())
-    }
-
-    private func pillLabel(_ text: String, tint: Color) -> some View {
-        Text(text)
-            .font(AppTypography.caption)
-            .foregroundStyle(tint)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 2)
-            .background(AppTheme.pillBackground)
-            .clipShape(Capsule())
-    }
-
-    private func pillLabel(_ date: Date, style: Text.DateStyle, tint: Color) -> some View {
-        Text(date, style: style)
-            .font(AppTypography.caption)
-            .foregroundStyle(tint)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 2)
-            .background(AppTheme.pillBackground)
-            .clipShape(Capsule())
+        return ToDoWebColors.secondaryText
     }
 }

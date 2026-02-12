@@ -8,68 +8,38 @@ struct QuickAddBarView: View {
     let focusRequestID: Int
 
     @State private var quickInput = ""
-    @State private var hintText = ""
-    @State private var showingTemplatePicker = false
     @FocusState private var quickInputFocused: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Image(systemName: "plus")
-                    .foregroundStyle(AppTheme.accentStrong)
-                    .accessibilityHidden(true)
+        HStack(spacing: 10) {
+            Image(systemName: "plus")
+                .foregroundStyle(Color.white.opacity(0.9))
+                .accessibilityHidden(true)
 
-                TextField("quickadd.placeholder", text: $quickInput)
-                    .textFieldStyle(.plain)
-                    .focused($quickInputFocused)
-                    .onSubmit(submitQuickInput)
+            TextField("quickadd.placeholder", text: $quickInput)
+                .textFieldStyle(.plain)
+                .focused($quickInputFocused)
+                .onSubmit(submitQuickInput)
+                .foregroundStyle(Color.white.opacity(0.96))
 
-                Button("quickadd.button") {
-                    submitQuickInput()
-                }
-                .buttonStyle(.bordered)
-                .disabled(quickInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
-                Menu {
-                    Button("template.manager.title") {
-                        showingTemplatePicker = true
-                    }
-                } label: {
-                    Image(systemName: "plus.square.on.square")
-                }
-                .menuStyle(.borderlessButton)
-                .accessibilityLabel(Text("template.manager.title"))
+            Button("quickadd.button") {
+                submitQuickInput()
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .background(AppTheme.glassSurface)
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .stroke(AppTheme.strokeSubtle, lineWidth: 1)
-            )
-
-            if !hintText.isEmpty {
-                Text(hintText)
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppTheme.secondaryText)
-            }
+            .buttonStyle(.plain)
+            .foregroundStyle(Color.white.opacity(0.82))
+            .disabled(quickInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
-        .onAppear {
-            hintText = String(localized: "quickadd.hint.example")
-        }
+        .padding(.horizontal, ToDoWebMetrics.quickAddHorizontalPadding)
+        .padding(.vertical, ToDoWebMetrics.quickAddVerticalPadding)
+        .frame(minHeight: ToDoWebMetrics.quickAddHeight)
+        .background(ToDoWebColors.quickAddBackground)
+        .clipShape(RoundedRectangle(cornerRadius: ToDoWebMetrics.quickAddCornerRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: ToDoWebMetrics.quickAddCornerRadius, style: .continuous)
+                .stroke(quickInputFocused ? ToDoWebColors.quickAddFocusBorder : ToDoWebColors.quickAddBorder, lineWidth: 1)
+        )
         .onChange(of: focusRequestID) { _, _ in
             quickInputFocused = true
-        }
-        .sheet(isPresented: $showingTemplatePicker) {
-            TemplatePickerView { titles in
-                store.addTemplateItems(
-                    titles,
-                    preferredMyDayDate: preferredMyDayDate,
-                    inListID: targetListID
-                )
-                selectedTaskID = store.items.last?.id
-            }
         }
     }
 
@@ -96,20 +66,9 @@ struct QuickAddBarView: View {
             inListID: targetListID
         )
 
-        guard result.created else {
-            hintText = String(localized: "quickadd.hint.missingtitle")
-            return
-        }
+        guard result.created else { return }
 
         selectedTaskID = result.createdTaskID
-
-        let separator = String(localized: "quickadd.token.separator")
-        hintText = result.recognizedTokens.isEmpty
-            ? String(localized: "quickadd.hint.unrecognized")
-            : String(
-                format: String(localized: "quickadd.hint.recognized"),
-                result.recognizedTokens.joined(separator: separator)
-            )
 
         quickInput = ""
         quickInputFocused = true

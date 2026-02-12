@@ -14,6 +14,7 @@ xcrun swiftc -emit-executable \
   Sources/App/Models/Subtask.swift \
   Sources/App/Models/TodoItem.swift \
   Sources/App/Parsing/QuickAddParser.swift \
+  Sources/App/Resources/ToDoWebStyle.swift \
   Sources/App/ViewModels/ListQueryEngine.swift \
   Sources/App/ViewModels/AppShellViewModel.swift \
   Sources/App/ViewModels/TodoStorage.swift \
@@ -95,3 +96,45 @@ if ! rg -n 'todoCommandFocusQuickAdd|todoCommandFocusSearch' Sources/App/AppComm
   echo "AppCommands should expose focus notifications for quick add and search."
   exit 1
 fi
+
+if rg -n 'frame\(minWidth:\s*560\)|frame\(minWidth:\s*340' Sources/App/Features/Shell/AppShellView.swift >/dev/null; then
+  echo "AppShellView should not enforce old conflicting minWidth constraints for task/detail panes."
+  exit 1
+fi
+
+if rg -n 'template\\.manager\\.title' Sources/App/Features/Shell/AppShellView.swift Sources/App/Features/Composer/QuickAddBarView.swift >/dev/null; then
+  echo "Main flow should not expose template manager entry points."
+  exit 1
+fi
+
+if rg -n 'Picker\("priority\.label"' Sources/App/Features/TaskDetail/TaskDetailView.swift >/dev/null; then
+  echo "TaskDetailView main flow should not expose priority picker."
+  exit 1
+fi
+
+if ! rg -n 'detailPresentationMode\(for width:' Sources/App/ViewModels/AppShellViewModel.swift >/dev/null; then
+  echo "AppShellViewModel should provide detailPresentationMode width decision API."
+  exit 1
+fi
+
+if ! rg -n 'clampedDetailWidth\(' Sources/App/ViewModels/AppShellViewModel.swift >/dev/null; then
+  echo "AppShellViewModel should provide detail width clamp API."
+  exit 1
+fi
+
+if [[ ! -f Sources/App/Resources/ToDoWebStyle.swift ]]; then
+  echo "ToDoWebStyle.swift should exist as the single source of visual tokens."
+  exit 1
+fi
+
+for file in \
+  Sources/App/Features/Shell/AppShellView.swift \
+  Sources/App/Features/Shell/SidebarView.swift \
+  Sources/App/Features/TaskList/TaskRowView.swift \
+  Sources/App/Features/Composer/QuickAddBarView.swift \
+  Sources/App/Features/TaskDetail/TaskDetailView.swift; do
+  if ! rg -n 'ToDoWebMetrics|ToDoWebColors|ToDoWebMotion' "$file" >/dev/null; then
+    echo "$file should consume ToDoWebStyle tokens instead of hardcoded visual constants."
+    exit 1
+  fi
+done

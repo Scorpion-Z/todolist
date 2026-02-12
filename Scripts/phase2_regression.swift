@@ -66,6 +66,8 @@ struct Phase2RegressionMain {
         try await testAppShellActionDispatch()
         try await testAppShellDetailPresentationAndCreationTarget()
         try await testAppShellFocusRequests()
+        try await testDetailPresentationModeThreshold()
+        try await testDetailWidthClampAndModeSwitch()
         try await testDeferredDetailAutosaveDispatch()
         try await testConflictAwareDualStorageMerge()
     }
@@ -379,6 +381,44 @@ struct Phase2RegressionMain {
 
         try expect(shell.quickAddFocusToken == quickAddBefore + 1, "requestQuickAddFocus should increment focus token")
         try expect(shell.searchFocusToken == searchBefore + 1, "requestSearchFocus should increment search token")
+    }
+
+    @MainActor
+    static func testDetailPresentationModeThreshold() async throws {
+        let taskID = UUID(uuidString: "00000000-0000-0000-0000-000000000460")!
+        let shell = AppShellViewModel(selection: .smartList(.myDay))
+
+        try expect(shell.detailPresentationMode(for: 1500) == .hidden, "detail should be hidden without selected task")
+
+        shell.openDetail(for: taskID)
+        try expect(shell.detailPresentationMode(for: 1239) == .modal, "detail should use modal mode below threshold")
+        try expect(shell.detailPresentationMode(for: 1240) == .inline, "detail should use inline mode at threshold")
+
+        shell.closeDetail()
+        try expect(shell.detailPresentationMode(for: 1000) == .hidden, "detail should hide after closeDetail")
+    }
+
+    @MainActor
+    static func testDetailWidthClampAndModeSwitch() async throws {
+        let taskID = UUID(uuidString: "00000000-0000-0000-0000-000000000461")!
+        let shell = AppShellViewModel(selection: .smartList(.myDay))
+
+        let clampedWide = shell.clampedDetailWidth(700, contentWidth: 2200)
+        try expect(clampedWide == 520, "detail width should clamp to max width cap")
+
+        let clampedRatioBound = shell.clampedDetailWidth(520, contentWidth: 800)
+        try expect(clampedRatioBound == 368, "detail width should respect width ratio cap when content is narrow")
+
+        let clampedMin = shell.clampedDetailWidth(120, contentWidth: 400)
+        try expect(clampedMin == 360, "detail width should not go below minimum width")
+
+        shell.openDetail(for: taskID)
+        let inlineMode = shell.detailPresentationMode(for: 1400)
+        let modalMode = shell.detailPresentationMode(for: 1000)
+        try expect(inlineMode == .inline && modalMode == .modal, "detail presentation should switch between inline and modal by width")
+        try expect(shell.selectedTaskID == taskID, "mode switching should keep current selected task")
+        try expect(shell.shouldResetDetailWidth(previousMode: .inline, nextMode: .modal), "inline to modal transition should reset detail width")
+        try expect(!shell.shouldResetDetailWidth(previousMode: .modal, nextMode: .inline), "modal to inline transition should not reset detail width")
     }
 
     @MainActor

@@ -8,6 +8,10 @@ struct AppShellView: View {
     @StateObject private var shell = AppShellViewModel()
     @State private var detailFocusRequestID = 0
     @State private var searchPresented = false
+    @State private var contentWidth: CGFloat = 1400
+    @State private var detailWidth: CGFloat = ToDoWebMetrics.detailDefaultWidth
+    @State private var detailDragBaseWidth: CGFloat?
+    @State private var lastDetailMode: AppShellViewModel.DetailPresentationMode = .hidden
 
     @AppStorage("appLanguagePreference") private var appLanguagePreference = "system"
     @AppStorage("cloudSyncEnabled") private var cloudSyncEnabled = false
@@ -16,15 +20,20 @@ struct AppShellView: View {
     @State private var showingMyDaySuggestions = false
 
     private var cloudSyncSupported: Bool { RootView.cloudKitSupported }
+    private let inlineDetailThreshold: CGFloat = ToDoWebMetrics.inlineDetailThreshold
 
     var body: some View {
         NavigationSplitView {
             SidebarView(store: store, shell: shell)
-                .frame(minWidth: 240)
-                .navigationSplitViewColumnWidth(min: 240, ideal: 260, max: 320)
+                .frame(minWidth: ToDoWebMetrics.sidebarMinWidth)
+                .navigationSplitViewColumnWidth(
+                    min: ToDoWebMetrics.sidebarMinWidth,
+                    ideal: ToDoWebMetrics.sidebarIdealWidth,
+                    max: ToDoWebMetrics.sidebarMaxWidth
+                )
         } detail: {
             contentColumn
-                .navigationTitle(currentSectionTitle)
+                .navigationTitle("")
                 .searchable(
                     text: $shell.searchInput,
                     isPresented: $searchPresented,
@@ -37,7 +46,7 @@ struct AppShellView: View {
                 }
         }
         .navigationSplitViewStyle(.prominentDetail)
-        .frame(minWidth: 1080, minHeight: 760)
+        .frame(minWidth: 920, minHeight: 700)
         .environment(\.locale, selectedLocale)
         .onChange(of: store.lists) { _, lists in
             let validCustomListIDs = Set(lists.filter { !$0.isSystem }.map(\.id))
@@ -75,6 +84,10 @@ struct AppShellView: View {
         .onReceive(NotificationCenter.default.publisher(for: .todoCommandCloseDetail)) { _ in
             shell.closeDetail()
         }
+        .sheet(isPresented: compactDetailPresentedBinding) {
+            compactDetailSheet
+                .frame(minWidth: 420, minHeight: 560)
+        }
         .sheet(isPresented: $showingSettings) {
             settingsSheet
                 .frame(minWidth: 460, minHeight: 340)
@@ -94,190 +107,263 @@ struct AppShellView: View {
     }
 
     private var contentColumn: some View {
-        ZStack {
+        GeometryReader { proxy in
+            let width = proxy.size.width
+            let mode = shell.detailPresentationMode(for: width, inlineThreshold: inlineDetailThreshold)
+
+            ZStack {
+                backgroundLayer
+                contentLayout(for: mode)
+                    .padding(ToDoWebMetrics.contentPadding)
+            }
+            .onAppear {
+                updateContentWidth(width)
+                reconcileDetailPresentation(for: width)
+            }
+            .onChange(of: width) { _, newWidth in
+                updateContentWidth(newWidth)
+                reconcileDetailPresentation(for: newWidth)
+            }
+            .onChange(of: shell.selectedTaskID) { _, _ in
+                reconcileDetailPresentation(for: width)
+            }
+        }
+        .clipped()
+    }
+
+    private var backgroundLayer: some View {
+        Group {
             if let image = AppTheme.backgroundImage(for: activeTheme) {
                 image
                     .resizable()
                     .scaledToFill()
-                    .overlay(Color.black.opacity(0.18))
+                    .overlay(AppTheme.backgroundOverlay)
             } else {
                 LinearGradient(
                     colors: AppTheme.gradient(for: activeTheme),
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
-                .overlay(Color.black.opacity(0.18))
+                .overlay(AppTheme.backgroundOverlay)
             }
-
-            Group {
-                if shell.isDetailPresented && shell.selectedTaskID != nil {
-                    HSplitView {
-                        taskPanel
-                            .frame(minWidth: 560)
-
-                        detailPanel
-                            .frame(minWidth: 340, idealWidth: 420, maxWidth: 680)
-                    }
-                } else {
-                    taskPanel
-                }
-            }
-            .padding(16)
         }
-        .clipped()
+    }
+
+    @ViewBuilder
+    private func contentLayout(for mode: AppShellViewModel.DetailPresentationMode) -> some View {
+        switch mode {
+        case .inline:
+            HStack(spacing: 0) {
+                taskPanel
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                detailResizeHandle
+                detailPanel
+                    .frame(width: detailWidth)
+            }
+        case .modal, .hidden:
+            taskPanel
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
     }
 
     private var taskPanel: some View {
-        VStack(spacing: 12) {
-            if case .smartList(.myDay) = shell.selection {
-                Text(Date(), format: .dateTime.month(.defaultDigits).day(.defaultDigits).weekday(.wide))
-                    .font(AppTypography.subtitle)
-                    .foregroundStyle(AppTheme.secondaryText)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
+        VStack(spacing: 0) {
+            taskListHeader
+                .padding(.horizontal, ToDoWebMetrics.titleHorizontalPadding)
+                .padding(.top, ToDoWebMetrics.titleTopPadding)
+                .padding(.bottom, ToDoWebMetrics.titleBottomPadding)
 
-            if case .smartList(.planned) = shell.selection {
-                plannedFilterBar
-            }
-
-            Group {
-                if visibleTasks.isEmpty {
-                    ContentUnavailableView("task.empty.title", systemImage: "checklist")
-                        .foregroundStyle(AppTheme.secondaryText)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    TaskListView(
-                        tasks: visibleTasks,
-                        smartList: activeSmartList,
-                        customListID: shell.activeCustomListID,
-                        showCompletedSection: store.appPrefs.showCompletedSection,
-                        selectedTaskID: selectedTaskBinding,
-                        store: store
-                    )
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                QuickAddBarView(
-                    store: store,
-                    activeSelection: shell.selection,
+            if visibleTasks.isEmpty {
+                ContentUnavailableView("task.empty.title", systemImage: "checklist")
+                    .foregroundStyle(Color.white.opacity(0.82))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                TaskListView(
+                    tasks: visibleTasks,
+                    smartList: activeSmartList,
+                    customListID: shell.activeCustomListID,
+                    showCompletedSection: store.appPrefs.showCompletedSection,
                     selectedTaskID: selectedTaskBinding,
-                    focusRequestID: shell.quickAddFocusToken
+                    store: store
                 )
+                .padding(.horizontal, 4)
+            }
+
+            QuickAddBarView(
+                store: store,
+                activeSelection: shell.selection,
+                selectedTaskID: selectedTaskBinding,
+                focusRequestID: shell.quickAddFocusToken
+            )
+            .padding(.horizontal, ToDoWebMetrics.contentPadding)
+            .padding(.top, 10)
+            .padding(.bottom, 14)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(AppTheme.panelFill, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(AppTheme.strokeSubtle, lineWidth: 1)
         )
     }
 
     private var detailPanel: some View {
-        Group {
-            if shell.selectedTaskID != nil {
-                TaskDetailView(
-                    store: store,
-                    selectedTaskID: selectedTaskBinding,
-                    focusRequestID: detailFocusRequestID
-                )
-                .navigationTitle(String(localized: "detail.title"))
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-        }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 10)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        TaskDetailView(
+            store: store,
+            selectedTaskID: selectedTaskBinding,
+            focusRequestID: detailFocusRequestID
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(10)
+        .background(AppTheme.panelFill, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(AppTheme.strokeSubtle, lineWidth: 1)
         )
     }
 
-    @ToolbarContentBuilder
-    private var taskToolbar: some ToolbarContent {
-        ToolbarItemGroup {
-            Button {
-                shell.requestQuickAddFocus()
-            } label: {
-                Label("command.newTask", systemImage: "plus")
+    private var compactDetailSheet: some View {
+        NavigationStack {
+            TaskDetailView(
+                store: store,
+                selectedTaskID: selectedTaskBinding,
+                focusRequestID: detailFocusRequestID
+            )
+            .navigationTitle("detail.title")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("command.closeDetail") {
+                        shell.closeDetail()
+                    }
+                }
             }
-            .accessibilityLabel(Text("command.newTask"))
-
-            if activeSmartList == .myDay {
-                Button {
-                    showingMyDaySuggestions = true
-                } label: {
-                    Label("myday.suggestions.button", systemImage: "lightbulb")
-                }
-                .disabled(myDaySuggestions.isEmpty)
-                .accessibilityLabel(Text("myday.suggestions.button"))
-            }
-        }
-
-        ToolbarItemGroup {
-            Menu {
-                if shell.selectedTaskID != nil {
-                    Button("command.toggleComplete") {
-                        shell.toggleSelectedTaskCompletion(using: store)
-                    }
-                    Button("command.toggleImportant") {
-                        shell.toggleSelectedTaskImportant(using: store)
-                    }
-                    Button("delete.button", role: .destructive) {
-                        shell.deleteSelectedTask(from: store)
-                    }
-                    Divider()
-                }
-
-                Toggle("task.filter.showcompleted", isOn: Binding(
-                    get: { store.appPrefs.showCompletedSection },
-                    set: { value in
-                        store.setShowCompletedSection(value)
-                    }
-                ))
-
-                if let customID = shell.activeCustomListID {
-                    Menu("theme.picker.title") {
-                        ForEach(ListThemeStyle.allCases) { style in
-                            Button {
-                                store.setListTheme(id: customID, theme: style)
-                            } label: {
-                                Text(style.titleKey)
-                            }
-                        }
-                    }
-                }
-
-                Divider()
-
-                Button("settings.title") {
-                    showingSettings = true
-                }
-            } label: {
-                Image(systemName: "ellipsis.circle")
-            }
-            .accessibilityLabel(Text("toolbar.more"))
         }
     }
 
-    private var plannedFilterBar: some View {
-        HStack(spacing: 8) {
-            ForEach(PlannedFilter.allCases) { filter in
-                Button {
-                    shell.plannedFilter = filter
-                } label: {
-                    Text(filter.titleKey)
-                        .font(AppTypography.caption)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(shell.plannedFilter == filter ? AppTheme.accentSoft : AppTheme.surface1)
-                        .clipShape(Capsule())
-                }
-                .buttonStyle(.plain)
+    private var taskListHeader: some View {
+        VStack(alignment: .leading, spacing: ToDoWebMetrics.titleSpacing) {
+            Text(currentSectionTitle)
+                .font(.system(size: ToDoWebMetrics.titleFontSize, weight: .semibold))
+                .foregroundStyle(Color.white.opacity(0.95))
+
+            if case .smartList(.myDay) = shell.selection {
+                Text(Date(), format: .dateTime.month(.defaultDigits).day(.defaultDigits).weekday(.wide))
+                    .font(.system(size: ToDoWebMetrics.subtitleFontSize, weight: .semibold))
+                    .foregroundStyle(ToDoWebColors.subtitleText)
             }
-            Spacer()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var detailResizeHandle: some View {
+        ZStack {
+            Rectangle()
+                .fill(Color.clear)
+                .frame(width: ToDoWebMetrics.detailResizeHandleWidth)
+            Rectangle()
+                .fill(ToDoWebColors.handleLine)
+                .frame(width: ToDoWebMetrics.detailResizeLineWidth)
+        }
+        .contentShape(Rectangle())
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { value in
+                    if detailDragBaseWidth == nil {
+                        detailDragBaseWidth = detailWidth
+                    }
+                    let base = detailDragBaseWidth ?? detailWidth
+                    let candidate = base - value.translation.width
+                    detailWidth = shell.clampedDetailWidth(candidate, contentWidth: contentWidth)
+                }
+                .onEnded { _ in
+                    detailDragBaseWidth = nil
+                }
+        )
+    }
+
+    private var compactDetailPresentedBinding: Binding<Bool> {
+        Binding(
+            get: {
+                shell.detailPresentationMode(for: contentWidth, inlineThreshold: inlineDetailThreshold) == .modal
+            },
+            set: { presented in
+                if !presented {
+                    shell.closeDetail()
+                }
+            }
+        )
+    }
+
+    private func updateContentWidth(_ width: CGFloat) {
+        guard width.isFinite else { return }
+        guard abs(contentWidth - width) > 0.5 else { return }
+        contentWidth = width
+        clampDetailWidth(for: width)
+    }
+
+    private func clampDetailWidth(for contentWidth: CGFloat) {
+        detailWidth = shell.clampedDetailWidth(detailWidth, contentWidth: contentWidth)
+    }
+
+    private func reconcileDetailPresentation(for width: CGFloat) {
+        let nextMode = shell.detailPresentationMode(for: width, inlineThreshold: inlineDetailThreshold)
+        if shell.shouldResetDetailWidth(previousMode: lastDetailMode, nextMode: nextMode) {
+            detailWidth = ToDoWebMetrics.detailDefaultWidth
+        }
+        if nextMode == .inline {
+            clampDetailWidth(for: width)
+        }
+        lastDetailMode = nextMode
+    }
+
+    @ToolbarContentBuilder
+    private var taskToolbar: some ToolbarContent {
+        ToolbarItem(placement: .primaryAction) {
+            HStack(spacing: ToDoWebMetrics.toolbarButtonSpacing) {
+                if activeSmartList == .myDay {
+                    Button {
+                        showingMyDaySuggestions = true
+                    } label: {
+                        Image(systemName: "lightbulb")
+                            .frame(width: ToDoWebMetrics.toolbarButtonSize, height: ToDoWebMetrics.toolbarButtonSize)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(myDaySuggestions.isEmpty)
+                    .accessibilityLabel(Text("myday.suggestions.button"))
+                }
+
+                Menu {
+                    if shell.selectedTaskID != nil {
+                        Button("command.toggleComplete") {
+                            shell.toggleSelectedTaskCompletion(using: store)
+                        }
+                        Button("command.toggleImportant") {
+                            shell.toggleSelectedTaskImportant(using: store)
+                        }
+                        Button("delete.button", role: .destructive) {
+                            shell.deleteSelectedTask(from: store)
+                        }
+                        Divider()
+                    }
+
+                    Toggle("task.filter.showcompleted", isOn: Binding(
+                        get: { store.appPrefs.showCompletedSection },
+                        set: { value in
+                            store.setShowCompletedSection(value)
+                        }
+                    ))
+
+                    Divider()
+
+                    Button("settings.title") {
+                        showingSettings = true
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .frame(width: ToDoWebMetrics.toolbarButtonSize, height: ToDoWebMetrics.toolbarButtonSize)
+                }
+                .menuStyle(.borderlessButton)
+                .accessibilityLabel(Text("toolbar.more"))
+            }
         }
     }
 
