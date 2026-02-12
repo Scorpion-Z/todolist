@@ -7,7 +7,7 @@ struct AppShellView: View {
 
     @StateObject private var shell = AppShellViewModel()
     @State private var detailFocusRequestID = 0
-    @State private var columnVisibility: NavigationSplitViewVisibility = .doubleColumn
+    @State private var searchPresented = false
 
     @AppStorage("appLanguagePreference") private var appLanguagePreference = "system"
     @AppStorage("cloudSyncEnabled") private var cloudSyncEnabled = false
@@ -18,37 +18,37 @@ struct AppShellView: View {
     private var cloudSyncSupported: Bool { RootView.cloudKitSupported }
 
     var body: some View {
-        NavigationSplitView(columnVisibility: $columnVisibility) {
+        NavigationSplitView {
             SidebarView(store: store, shell: shell)
-                .frame(minWidth: 260)
+                .frame(minWidth: 240)
                 .navigationSplitViewColumnWidth(min: 240, ideal: 260, max: 320)
-        } content: {
-            taskContentColumn
+        } detail: {
+            contentColumn
                 .navigationTitle(currentSectionTitle)
-                .searchable(text: $shell.searchInput, placement: .toolbar, prompt: Text("search.placeholder"))
+                .searchable(
+                    text: $shell.searchInput,
+                    isPresented: $searchPresented,
+                    placement: .toolbar,
+                    prompt: Text("search.placeholder")
+                )
                 .toolbar { taskToolbar }
-                .background(AppTheme.surface0)
                 .onExitCommand {
                     shell.closeDetail()
                 }
-        } detail: {
-            detailColumn
-                .navigationSplitViewColumnWidth(min: 320, ideal: 380, max: 620)
         }
-        .navigationSplitViewStyle(.balanced)
+        .navigationSplitViewStyle(.prominentDetail)
         .frame(minWidth: 1080, minHeight: 760)
         .environment(\.locale, selectedLocale)
-        .onAppear {
-            syncColumnVisibility(force: true)
-        }
         .onChange(of: store.lists) { _, lists in
             let validCustomListIDs = Set(lists.filter { !$0.isSystem }.map(\.id))
             Task { @MainActor in
                 shell.reconcileSelection(validCustomListIDs: validCustomListIDs)
             }
         }
-        .onChange(of: shell.selectedTaskID) { _, _ in
-            syncColumnVisibility()
+        .onChange(of: shell.searchFocusToken) { _, _ in
+            Task { @MainActor in
+                searchPresented = true
+            }
         }
         .onChange(of: store.items) { _, items in
             guard let selectedTaskID = shell.selectedTaskID else { return }
@@ -57,8 +57,11 @@ struct AppShellView: View {
                 shell.closeDetail()
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .todoCommandNewTask)) { _ in
-            handleNewTaskCommand()
+        .onReceive(NotificationCenter.default.publisher(for: .todoCommandFocusQuickAdd)) { _ in
+            shell.requestQuickAddFocus()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .todoCommandFocusSearch)) { _ in
+            shell.requestSearchFocus()
         }
         .onReceive(NotificationCenter.default.publisher(for: .todoCommandToggleCompletion)) { _ in
             shell.toggleSelectedTaskCompletion(using: store)
@@ -90,23 +93,41 @@ struct AppShellView: View {
         }
     }
 
-    @ViewBuilder
-    private var detailColumn: some View {
-        if shell.selectedTaskID != nil {
-            TaskDetailView(
-                store: store,
-                selectedTaskID: selectedTaskBinding,
-                focusRequestID: detailFocusRequestID
-            )
-            .navigationTitle(String(localized: "detail.title"))
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else {
-            Color.clear
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+    private var contentColumn: some View {
+        ZStack {
+            if let image = AppTheme.backgroundImage(for: activeTheme) {
+                image
+                    .resizable()
+                    .scaledToFill()
+                    .overlay(Color.black.opacity(0.18))
+            } else {
+                LinearGradient(
+                    colors: AppTheme.gradient(for: activeTheme),
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .overlay(Color.black.opacity(0.18))
+            }
+
+            Group {
+                if shell.isDetailPresented && shell.selectedTaskID != nil {
+                    HSplitView {
+                        taskPanel
+                            .frame(minWidth: 560)
+
+                        detailPanel
+                            .frame(minWidth: 340, idealWidth: 420, maxWidth: 680)
+                    }
+                } else {
+                    taskPanel
+                }
+            }
+            .padding(16)
         }
+        .clipped()
     }
 
-    private var taskContentColumn: some View {
+    private var taskPanel: some View {
         VStack(spacing: 12) {
             if case .smartList(.myDay) = shell.selection {
                 Text(Date(), format: .dateTime.month(.defaultDigits).day(.defaultDigits).weekday(.wide))
@@ -137,23 +158,48 @@ struct AppShellView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            QuickAddBarView(
-                store: store,
-                activeSelection: shell.selection,
-                selectedTaskID: selectedTaskBinding,
-                focusRequestID: 0
-            )
+                QuickAddBarView(
+                    store: store,
+                    activeSelection: shell.selection,
+                    selectedTaskID: selectedTaskBinding,
+                    focusRequestID: shell.quickAddFocusToken
+                )
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(AppTheme.surface0)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(AppTheme.strokeSubtle, lineWidth: 1)
+        )
+    }
+
+    private var detailPanel: some View {
+        Group {
+            if shell.selectedTaskID != nil {
+                TaskDetailView(
+                    store: store,
+                    selectedTaskID: selectedTaskBinding,
+                    focusRequestID: detailFocusRequestID
+                )
+                .navigationTitle(String(localized: "detail.title"))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .padding(.vertical, 12)
+        .padding(.horizontal, 10)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(AppTheme.strokeSubtle, lineWidth: 1)
+        )
     }
 
     @ToolbarContentBuilder
     private var taskToolbar: some ToolbarContent {
         ToolbarItemGroup {
             Button {
-                handleNewTaskCommand()
+                shell.requestQuickAddFocus()
             } label: {
                 Label("command.newTask", systemImage: "plus")
             }
@@ -168,31 +214,23 @@ struct AppShellView: View {
                 .disabled(myDaySuggestions.isEmpty)
                 .accessibilityLabel(Text("myday.suggestions.button"))
             }
-
-            Button {
-                shell.toggleSelectedTaskCompletion(using: store)
-            } label: {
-                Label("command.toggleComplete", systemImage: "checkmark.circle")
-            }
-            .disabled(shell.selectedTaskID == nil)
-
-            Button {
-                shell.toggleSelectedTaskImportant(using: store)
-            } label: {
-                Label("command.toggleImportant", systemImage: "star")
-            }
-            .disabled(shell.selectedTaskID == nil)
-
-            Button(role: .destructive) {
-                shell.deleteSelectedTask(from: store)
-            } label: {
-                Label("delete.button", systemImage: "trash")
-            }
-            .disabled(shell.selectedTaskID == nil)
         }
 
         ToolbarItemGroup {
             Menu {
+                if shell.selectedTaskID != nil {
+                    Button("command.toggleComplete") {
+                        shell.toggleSelectedTaskCompletion(using: store)
+                    }
+                    Button("command.toggleImportant") {
+                        shell.toggleSelectedTaskImportant(using: store)
+                    }
+                    Button("delete.button", role: .destructive) {
+                        shell.deleteSelectedTask(from: store)
+                    }
+                    Divider()
+                }
+
                 Toggle("task.filter.showcompleted", isOn: Binding(
                     get: { store.appPrefs.showCompletedSection },
                     set: { value in
@@ -355,35 +393,24 @@ struct AppShellView: View {
         return cloudSyncEnabled ? String(localized: "settings.sync.state.on") : String(localized: "settings.sync.state.off")
     }
 
-    private func syncColumnVisibility(force: Bool = false) {
-        let target: NavigationSplitViewVisibility = shell.selectedTaskID == nil ? .doubleColumn : .all
-        guard force || columnVisibility != target else { return }
-        Task { @MainActor in
-            withAnimation(.easeInOut(duration: 0.18)) {
-                columnVisibility = target
+    private var activeTheme: ListThemeStyle {
+        switch shell.selection {
+        case .customList(let id):
+            return store.lists.first(where: { $0.id == id })?.theme ?? .graphite
+        case .smartList(let list):
+            switch list {
+            case .myDay:
+                return .ocean
+            case .planned:
+                return .forest
+            case .important:
+                return .sunrise
+            case .completed:
+                return .violet
+            case .all, .inbox:
+                return .graphite
             }
         }
-    }
-
-    private func handleNewTaskCommand() {
-        let targetListID = shell.creationTargetListID(defaultListID: TodoListEntity.defaultTasksListID)
-        let myDayDate: Date?
-        if activeSmartList == .myDay {
-            myDayDate = Date()
-        } else {
-            myDayDate = nil
-        }
-
-        let createdTaskID = store.createTask(
-            TaskDraft(
-                title: String(localized: "task.new.default"),
-                myDayDate: myDayDate
-            ),
-            inListID: targetListID
-        )
-        guard let createdTaskID else { return }
-        shell.openDetail(for: createdTaskID)
-        detailFocusRequestID += 1
     }
 }
 

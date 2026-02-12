@@ -2,7 +2,8 @@ import Foundation
 import SwiftUI
 
 extension Notification.Name {
-    static let todoCommandNewTask = Notification.Name("todo.command.newTask")
+    static let todoCommandFocusQuickAdd = Notification.Name("todo.command.focusQuickAdd")
+    static let todoCommandFocusSearch = Notification.Name("todo.command.focusSearch")
     static let todoCommandToggleCompletion = Notification.Name("todo.command.toggleCompletion")
     static let todoCommandToggleImportant = Notification.Name("todo.command.toggleImportant")
     static let todoCommandDeleteTask = Notification.Name("todo.command.deleteTask")
@@ -13,9 +14,14 @@ struct TodolistCommands: Commands {
     var body: some Commands {
         CommandMenu("command.menu.task") {
             Button("command.newTask") {
-                post(.todoCommandNewTask)
+                post(.todoCommandFocusQuickAdd)
             }
             .keyboardShortcut("n", modifiers: .command)
+
+            Button("command.focusSearch") {
+                post(.todoCommandFocusSearch)
+            }
+            .keyboardShortcut("f", modifiers: .command)
 
             Divider()
 

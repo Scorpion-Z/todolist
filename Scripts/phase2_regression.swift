@@ -65,6 +65,7 @@ struct Phase2RegressionMain {
         try await testListDeletionReordersManualOrderAndSelectionFallback()
         try await testAppShellActionDispatch()
         try await testAppShellDetailPresentationAndCreationTarget()
+        try await testAppShellFocusRequests()
         try await testDeferredDetailAutosaveDispatch()
         try await testConflictAwareDualStorageMerge()
     }
@@ -361,12 +362,23 @@ struct Phase2RegressionMain {
         try expect(shell.selectedTaskID == taskID, "openDetail should set selected task id")
         try expect(shell.isDetailPresented, "openDetail should present detail")
 
-        shell.closeDetail()
-        try expect(shell.selectedTaskID == nil, "closeDetail should clear selected task id")
-        try expect(!shell.isDetailPresented, "closeDetail should hide detail")
-
         shell.select(.smartList(.myDay))
+        try expect(shell.selectedTaskID == nil, "selecting another list should clear selected task id")
+        try expect(!shell.isDetailPresented, "selecting another list should close detail")
         try expect(shell.creationTargetListID(defaultListID: defaultListID) == defaultListID, "smart list selection should create task in default list")
+    }
+
+    @MainActor
+    static func testAppShellFocusRequests() async throws {
+        let shell = AppShellViewModel(selection: .smartList(.myDay))
+        let quickAddBefore = shell.quickAddFocusToken
+        let searchBefore = shell.searchFocusToken
+
+        shell.requestQuickAddFocus()
+        shell.requestSearchFocus()
+
+        try expect(shell.quickAddFocusToken == quickAddBefore + 1, "requestQuickAddFocus should increment focus token")
+        try expect(shell.searchFocusToken == searchBefore + 1, "requestSearchFocus should increment search token")
     }
 
     @MainActor

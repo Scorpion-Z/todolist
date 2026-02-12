@@ -80,3 +80,18 @@ if rg -n 'pillLabel\("smart\.(myDay|important)"' Sources/App/Features/TaskList/T
   echo "TaskRowView should use LocalizedStringKey for smart.* pills, not String literals."
   exit 1
 fi
+
+if rg -n 'WindowGroup' Sources/App/TodolistApp.swift >/dev/null; then
+  echo "TodolistApp should use a single Window scene instead of WindowGroup."
+  exit 1
+fi
+
+if rg -n '\.inspector\s*\(' Sources/App/Features/Shell/AppShellView.swift >/dev/null; then
+  echo "AppShellView should not use inspector for the task detail panel."
+  exit 1
+fi
+
+if ! rg -n 'todoCommandFocusQuickAdd|todoCommandFocusSearch' Sources/App/AppCommands.swift >/dev/null; then
+  echo "AppCommands should expose focus notifications for quick add and search."
+  exit 1
+fi

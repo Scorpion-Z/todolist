@@ -1,4 +1,9 @@
 import SwiftUI
+#if os(macOS)
+import AppKit
+#elseif canImport(UIKit)
+import UIKit
+#endif
 
 enum AppTheme {
     static let background: Color = {
@@ -86,6 +91,31 @@ enum AppTheme {
         case .violet:
             return [Color(red: 0.20, green: 0.17, blue: 0.37), Color(red: 0.45, green: 0.37, blue: 0.66)]
         }
+    }
+
+    static func backgroundAssetName(for style: ListThemeStyle) -> String {
+        switch style {
+        case .graphite:
+            return "ToDoBackgroundGraphite"
+        case .ocean:
+            return "ToDoBackgroundOcean"
+        case .forest:
+            return "ToDoBackgroundForest"
+        case .sunrise:
+            return "ToDoBackgroundSunrise"
+        case .violet:
+            return "ToDoBackgroundViolet"
+        }
+    }
+
+    static func backgroundImage(for style: ListThemeStyle) -> Image? {
+        let assetName = backgroundAssetName(for: style)
+#if os(macOS)
+        guard NSImage(named: NSImage.Name(assetName)) != nil else { return nil }
+#elseif canImport(UIKit)
+        guard UIImage(named: assetName) != nil else { return nil }
+#endif
+        return Image(assetName)
     }
 
     static func titleColor(for style: ListThemeStyle) -> Color {

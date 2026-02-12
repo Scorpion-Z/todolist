@@ -16,6 +16,8 @@ final class AppShellViewModel: ObservableObject {
     @Published var searchInput: String
     @Published var sidebarSearchText: String
     @Published var plannedFilter: PlannedFilter
+    @Published var quickAddFocusToken: Int
+    @Published var searchFocusToken: Int
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -33,6 +35,8 @@ final class AppShellViewModel: ObservableObject {
         self.searchInput = query.searchText
         self.sidebarSearchText = ""
         self.plannedFilter = .all
+        self.quickAddFocusToken = 0
+        self.searchFocusToken = 0
 
         bindSearchDebounce()
     }
@@ -87,6 +91,14 @@ final class AppShellViewModel: ObservableObject {
     func clearSearch() {
         searchInput = ""
         query.searchText = ""
+    }
+
+    func requestQuickAddFocus() {
+        quickAddFocusToken += 1
+    }
+
+    func requestSearchFocus() {
+        searchFocusToken += 1
     }
 
     func deleteSelectedTask(from store: TaskStore) {

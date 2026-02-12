@@ -8,6 +8,8 @@ struct TaskListView: View {
 
     @Binding var selectedTaskID: TodoItem.ID?
     @ObservedObject var store: TaskStore
+    @State private var uiSelectedTaskID: TodoItem.ID?
+    @State private var pendingSelection: TodoItem.ID?
 
     private let queryEngine = ListQueryEngine()
 
@@ -20,7 +22,7 @@ struct TaskListView: View {
     }
 
     var body: some View {
-        List(selection: $selectedTaskID) {
+        List(selection: $uiSelectedTaskID) {
             if smartList == .planned {
                 plannedOpenSections
             } else {
@@ -39,15 +41,36 @@ struct TaskListView: View {
                     .onDelete { offsets in
                         let ids = offsets.compactMap { completedTasks.indices.contains($0) ? completedTasks[$0].id : nil }
                         store.deleteTasks(ids: ids)
-                        if let selectedTaskID, ids.contains(selectedTaskID) {
-                            self.selectedTaskID = nil
-                        }
+                        clearSelectionIfNeeded(deletedIDs: ids)
                     }
                 }
             }
         }
         .listStyle(.inset)
         .scrollContentBackground(.hidden)
+        .onAppear {
+            uiSelectedTaskID = selectedTaskID
+            pendingSelection = nil
+        }
+        .onChange(of: uiSelectedTaskID) { _, newValue in
+            guard newValue != selectedTaskID else {
+                pendingSelection = nil
+                return
+            }
+
+            pendingSelection = newValue
+            Task { @MainActor in
+                guard pendingSelection == newValue else { return }
+                selectedTaskID = newValue
+                pendingSelection = nil
+            }
+        }
+        .onChange(of: selectedTaskID) { _, newValue in
+            pendingSelection = nil
+            if uiSelectedTaskID != newValue {
+                uiSelectedTaskID = newValue
+            }
+        }
     }
 
     private var openTasksSection: some View {
@@ -80,9 +103,7 @@ struct TaskListView: View {
                         section.items.indices.contains(index) ? section.items[index].id : nil
                     }
                     store.deleteTasks(ids: ids)
-                    if let selectedTaskID, ids.contains(selectedTaskID) {
-                        self.selectedTaskID = nil
-                    }
+                    clearSelectionIfNeeded(deletedIDs: ids)
                 }
             }
         }
@@ -94,7 +115,7 @@ struct TaskListView: View {
             isSelected: selectedTaskID == item.id,
             isInMyDay: queryEngine.isInMyDay(item, referenceDate: Date()),
             onSelect: {
-                selectedTaskID = item.id
+                uiSelectedTaskID = item.id
             },
             onToggleCompletion: {
                 store.toggleCompletion(id: item.id)
@@ -110,9 +131,7 @@ struct TaskListView: View {
                 }
             },
             onDelete: {
-                if selectedTaskID == item.id {
-                    selectedTaskID = nil
-                }
+                clearSelectionIfNeeded(deletedIDs: [item.id])
                 store.deleteTasks(ids: [item.id])
             }
         )
@@ -132,9 +151,7 @@ struct TaskListView: View {
             }
             Divider()
             Button("delete.button", role: .destructive) {
-                if selectedTaskID == item.id {
-                    selectedTaskID = nil
-                }
+                clearSelectionIfNeeded(deletedIDs: [item.id])
                 store.deleteTasks(ids: [item.id])
             }
         }
@@ -167,8 +184,16 @@ struct TaskListView: View {
             openTasks.indices.contains(index) ? openTasks[index].id : nil
         }
         store.deleteTasks(ids: ids)
-        if let selectedTaskID, ids.contains(selectedTaskID) {
-            self.selectedTaskID = nil
+        clearSelectionIfNeeded(deletedIDs: ids)
+    }
+
+    private func clearSelectionIfNeeded(deletedIDs: [UUID]) {
+        guard let currentID = uiSelectedTaskID else { return }
+        guard deletedIDs.contains(currentID) else { return }
+        uiSelectedTaskID = nil
+        pendingSelection = nil
+        Task { @MainActor in
+            selectedTaskID = nil
         }
     }
 }
