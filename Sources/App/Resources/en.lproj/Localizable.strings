@@ -25,6 +25,7 @@
 "newtodo.placeholder" = "New todo";
 "add.button" = "Add";
 "newtask.focus" = "Focus new task";
+"task.new.default" = "New task";
 "newtask.moreOptions" = "More options";
 "quickfill.title" = "Quick fill";
 "quickfill.today" = "Today";
@@ -253,7 +254,11 @@
 "command.toggleComplete" = "Toggle Completion";
 "command.toggleImportant" = "Toggle Important";
 "command.deleteTask" = "Delete Task";
+"command.closeDetail" = "Close Detail";
 "toolbar.more" = "More";
+"myday.suggestions.button" = "Suggestions";
+"myday.suggestions.title" = "Suggested for My Day";
+"myday.suggestions.add" = "Add";
 
 "overview.detail.empty" = "Select a list to start.";
 "theme.picker.title" = "Choose Theme";

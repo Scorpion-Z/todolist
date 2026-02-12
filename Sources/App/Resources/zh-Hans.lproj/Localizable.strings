@@ -25,6 +25,7 @@
 "newtodo.placeholder" = "新建待办";
 "add.button" = "添加";
 "newtask.focus" = "聚焦新增";
+"task.new.default" = "新任务";
 "newtask.moreOptions" = "更多选项";
 "quickfill.title" = "一键填充";
 "quickfill.today" = "今日";
@@ -253,7 +254,11 @@
 "command.toggleComplete" = "切换完成状态";
 "command.toggleImportant" = "切换重要状态";
 "command.deleteTask" = "删除任务";
+"command.closeDetail" = "关闭详情";
 "toolbar.more" = "更多操作";
+"myday.suggestions.button" = "建议";
+"myday.suggestions.title" = "“我的一天”建议";
+"myday.suggestions.add" = "添加";
 
 "overview.detail.empty" = "请选择一个列表开始处理任务。";
 "theme.picker.title" = "选择主题";

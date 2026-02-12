@@ -3,6 +3,7 @@ import SwiftUI
 struct TaskDetailView: View {
     @ObservedObject var store: TaskStore
     @Binding var selectedTaskID: TodoItem.ID?
+    let focusRequestID: Int
 
     @State private var draft = Draft.empty
     @State private var loadedItemID: UUID?
@@ -11,6 +12,7 @@ struct TaskDetailView: View {
     @State private var isDraftDirty = false
     @State private var autosaveTask: Task<Void, Never>?
     @State private var isApplyingStoreUpdate = false
+    @FocusState private var titleFieldFocused: Bool
 
     private static let autosaveDelayNanoseconds: UInt64 = 350_000_000
 
@@ -32,6 +34,10 @@ struct TaskDetailView: View {
             flushDraftIfNeeded(reason: "disappear")
             cancelAutosave()
         }
+        .onChange(of: focusRequestID) { _, _ in
+            guard selectedTaskID != nil else { return }
+            titleFieldFocused = true
+        }
     }
 
     private func detailEditor(for item: TodoItem) -> some View {
@@ -51,6 +57,7 @@ struct TaskDetailView: View {
                 TextField("edit.field.title", text: binding(\.title))
                     .font(AppTypography.title)
                     .textFieldStyle(.roundedBorder)
+                    .focused($titleFieldFocused)
 
                 HStack(spacing: 10) {
                     Toggle("smart.important", isOn: binding(\.isImportant))

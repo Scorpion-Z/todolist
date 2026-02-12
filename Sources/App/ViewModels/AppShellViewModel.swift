@@ -4,13 +4,13 @@ import Combine
 @MainActor
 final class AppShellViewModel: ObservableObject {
     enum SidebarSelection: Hashable {
-        case overview
         case smartList(SmartListID)
         case customList(UUID)
     }
 
     @Published var selection: SidebarSelection
     @Published var selectedTaskID: TodoItem.ID?
+    @Published var isDetailPresented: Bool
     @Published var query: TaskQuery
     @Published var useGlobalSearch: Bool
     @Published var searchInput: String
@@ -27,6 +27,7 @@ final class AppShellViewModel: ObservableObject {
     ) {
         self.selection = selection
         self.selectedTaskID = selectedTaskID
+        self.isDetailPresented = selectedTaskID != nil
         self.query = query
         self.useGlobalSearch = useGlobalSearch
         self.searchInput = query.searchText
@@ -38,8 +39,6 @@ final class AppShellViewModel: ObservableObject {
 
     var activeList: SmartListID {
         switch selection {
-        case .overview:
-            return .myDay
         case .smartList(let list):
             return list
         case .customList:
@@ -51,26 +50,38 @@ final class AppShellViewModel: ObservableObject {
         switch selection {
         case .customList(let id):
             return id
-        case .overview, .smartList:
+        case .smartList:
             return nil
         }
-    }
-
-    var showingTaskArea: Bool {
-        if case .overview = selection {
-            return false
-        }
-        return true
     }
 
     func select(_ selection: SidebarSelection) {
         self.selection = selection
         plannedFilter = .all
-        selectedTaskID = nil
+        closeDetail()
     }
 
     func selectTask(_ id: TodoItem.ID?) {
+        openDetail(for: id)
+    }
+
+    func openDetail(for id: TodoItem.ID?) {
         selectedTaskID = id
+        isDetailPresented = id != nil
+    }
+
+    func closeDetail() {
+        selectedTaskID = nil
+        isDetailPresented = false
+    }
+
+    func creationTargetListID(defaultListID: UUID) -> UUID {
+        switch selection {
+        case .customList(let id):
+            return id
+        case .smartList:
+            return defaultListID
+        }
     }
 
     func clearSearch() {
@@ -81,7 +92,7 @@ final class AppShellViewModel: ObservableObject {
     func deleteSelectedTask(from store: TaskStore) {
         guard let selectedTaskID else { return }
         store.deleteTasks(ids: [selectedTaskID])
-        self.selectedTaskID = nil
+        closeDetail()
     }
 
     func toggleSelectedTaskCompletion(using store: TaskStore) {
@@ -98,7 +109,7 @@ final class AppShellViewModel: ObservableObject {
         guard case .customList(let id) = selection else { return }
         guard !validCustomListIDs.contains(id) else { return }
         selection = .smartList(.myDay)
-        selectedTaskID = nil
+        closeDetail()
     }
 
     private func bindSearchDebounce() {

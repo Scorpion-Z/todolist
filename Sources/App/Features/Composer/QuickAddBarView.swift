@@ -84,7 +84,7 @@ struct QuickAddBarView: View {
         switch activeSelection {
         case .customList(let id):
             return id
-        case .overview, .smartList:
+        case .smartList:
             return TodoListEntity.defaultTasksListID
         }
     }

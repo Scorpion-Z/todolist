@@ -21,17 +21,6 @@ struct SidebarView: View {
                 .padding(.bottom, 10)
 
             List(selection: selectionBinding) {
-                Section("list.section.insights") {
-                    Label {
-                        Text("overview.title")
-                    } icon: {
-                        Image(systemName: "chart.bar")
-                            .foregroundStyle(AppTheme.secondaryText)
-                    }
-                    .contentShape(Rectangle())
-                    .tag(AppShellViewModel.SidebarSelection.overview)
-                }
-
                 Section("list.section.smart") {
                     smartRow(title: String(localized: "smart.myDay"), icon: "sun.max", selection: .smartList(.myDay), count: store.taskCount(for: .myDay))
                     smartRow(title: String(localized: "smart.planned"), icon: "calendar", selection: .smartList(.planned), count: store.taskCount(for: .planned))
@@ -201,6 +190,23 @@ struct SidebarView: View {
         }
         .contentShape(Rectangle())
         .tag(AppShellViewModel.SidebarSelection.customList(list.id))
+        .contextMenu {
+            Menu("theme.picker.title") {
+                ForEach(ListThemeStyle.allCases) { style in
+                    Button {
+                        store.setListTheme(id: list.id, theme: style)
+                    } label: {
+                        Text(style.titleKey)
+                    }
+                }
+            }
+
+            Divider()
+
+            Button("delete.button", role: .destructive) {
+                store.deleteList(id: list.id)
+            }
+        }
     }
 
     private var selectionBinding: Binding<AppShellViewModel.SidebarSelection?> {

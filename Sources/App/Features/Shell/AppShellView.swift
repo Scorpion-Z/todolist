@@ -6,13 +6,13 @@ struct AppShellView: View {
     @ObservedObject var store: TaskStore
 
     @StateObject private var shell = AppShellViewModel()
-    @State private var quickAddFocusRequestID = 0
+    @State private var detailFocusRequestID = 0
 
     @AppStorage("appLanguagePreference") private var appLanguagePreference = "system"
     @AppStorage("cloudSyncEnabled") private var cloudSyncEnabled = false
 
     @State private var showingSettings = false
-    @State private var showingThemePicker = false
+    @State private var showingMyDaySuggestions = false
 
     private var cloudSyncSupported: Bool { RootView.cloudKitSupported }
 
@@ -20,86 +20,88 @@ struct AppShellView: View {
         NavigationSplitView {
             SidebarView(store: store, shell: shell)
                 .frame(minWidth: 260)
-        } content: {
-            contentColumn
         } detail: {
-            detailColumn
-        }
-        .navigationSplitViewStyle(.balanced)
-        .frame(minWidth: 1180, minHeight: 760)
-        .environment(\.locale, selectedLocale)
-        .onChange(of: store.lists) { _, lists in
-            let validCustomListIDs = Set(lists.filter { !$0.isSystem }.map(\.id))
-            Task { @MainActor in
-                shell.reconcileSelection(validCustomListIDs: validCustomListIDs)
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .todoCommandNewTask)) { _ in
-            handleNewTaskCommand()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .todoCommandToggleCompletion)) { _ in
-            guard shell.showingTaskArea else { return }
-            shell.toggleSelectedTaskCompletion(using: store)
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .todoCommandToggleImportant)) { _ in
-            guard shell.showingTaskArea else { return }
-            shell.toggleSelectedTaskImportant(using: store)
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .todoCommandDeleteTask)) { _ in
-            guard shell.showingTaskArea else { return }
-            shell.deleteSelectedTask(from: store)
-        }
-        .sheet(isPresented: $showingSettings) {
-            settingsSheet
-                .frame(minWidth: 460, minHeight: 340)
-        }
-        .sheet(isPresented: $showingThemePicker) {
-            ThemePickerSheet(
-                selectedTheme: effectiveTheme,
-                onSelect: { style in
-                    if let customID = shell.activeCustomListID {
-                        store.setListTheme(id: customID, theme: style)
-                    }
-                }
-            )
-            .frame(minWidth: 420, minHeight: 240)
-        }
-    }
-
-    @ViewBuilder
-    private var contentColumn: some View {
-        if shell.showingTaskArea {
             taskContentColumn
                 .navigationTitle(currentSectionTitle)
                 .searchable(text: $shell.searchInput, placement: .toolbar, prompt: Text("search.placeholder"))
                 .toolbar { taskToolbar }
                 .background(AppTheme.surface0)
                 .onExitCommand {
-                    shell.selectTask(nil)
+                    shell.closeDetail()
                 }
-        } else {
-            OverviewDashboardView(store: store)
-                .navigationTitle(currentSectionTitle)
-                .toolbar { overviewToolbar }
+        }
+        .navigationSplitViewStyle(.balanced)
+        .frame(minWidth: 1080, minHeight: 760)
+        .environment(\.locale, selectedLocale)
+        .inspector(isPresented: inspectorBinding) {
+            detailInspector
+        }
+        .onChange(of: store.lists) { _, lists in
+            let validCustomListIDs = Set(lists.filter { !$0.isSystem }.map(\.id))
+            Task { @MainActor in
+                shell.reconcileSelection(validCustomListIDs: validCustomListIDs)
+            }
+        }
+        .onChange(of: store.items) { _, items in
+            guard let selectedTaskID = shell.selectedTaskID else { return }
+            guard !items.contains(where: { $0.id == selectedTaskID }) else { return }
+            Task { @MainActor in
+                shell.closeDetail()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .todoCommandNewTask)) { _ in
+            handleNewTaskCommand()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .todoCommandToggleCompletion)) { _ in
+            shell.toggleSelectedTaskCompletion(using: store)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .todoCommandToggleImportant)) { _ in
+            shell.toggleSelectedTaskImportant(using: store)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .todoCommandDeleteTask)) { _ in
+            shell.deleteSelectedTask(from: store)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .todoCommandCloseDetail)) { _ in
+            shell.closeDetail()
+        }
+        .sheet(isPresented: $showingSettings) {
+            settingsSheet
+                .frame(minWidth: 460, minHeight: 340)
+        }
+        .sheet(isPresented: $showingMyDaySuggestions) {
+            MyDaySuggestionsSheet(
+                suggestions: myDaySuggestions,
+                onAdd: { id in
+                    store.addTaskToMyDay(id: id)
+                    shell.openDetail(for: id)
+                    detailFocusRequestID += 1
+                    showingMyDaySuggestions = false
+                }
+            )
+            .frame(minWidth: 460, minHeight: 360)
         }
     }
 
     @ViewBuilder
-    private var detailColumn: some View {
-        if shell.showingTaskArea {
-            TaskDetailView(
-                store: store,
-                selectedTaskID: Binding(
-                    get: { shell.selectedTaskID },
-                    set: { shell.selectTask($0) }
-                )
-            )
-            .navigationTitle(String(localized: "detail.title"))
-        } else {
-            ContentUnavailableView("overview.detail.empty", systemImage: "chart.bar")
-                .foregroundStyle(AppTheme.secondaryText)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
+    private var detailInspector: some View {
+        TaskDetailView(
+            store: store,
+            selectedTaskID: selectedTaskBinding,
+            focusRequestID: detailFocusRequestID
+        )
+        .navigationTitle(String(localized: "detail.title"))
+        .frame(minWidth: 320)
+    }
+
+    private var inspectorBinding: Binding<Bool> {
+        Binding(
+            get: { shell.isDetailPresented && shell.selectedTaskID != nil },
+            set: { presented in
+                if !presented {
+                    shell.closeDetail()
+                }
+            }
+        )
     }
 
     private var taskContentColumn: some View {
@@ -126,10 +128,7 @@ struct AppShellView: View {
                         smartList: activeSmartList,
                         customListID: shell.activeCustomListID,
                         showCompletedSection: store.appPrefs.showCompletedSection,
-                        selectedTaskID: Binding(
-                            get: { shell.selectedTaskID },
-                            set: { shell.selectTask($0) }
-                        ),
+                        selectedTaskID: selectedTaskBinding,
                         store: store
                     )
                 }
@@ -139,11 +138,8 @@ struct AppShellView: View {
             QuickAddBarView(
                 store: store,
                 activeSelection: shell.selection,
-                selectedTaskID: Binding(
-                    get: { shell.selectedTaskID },
-                    set: { shell.selectTask($0) }
-                ),
-                focusRequestID: quickAddFocusRequestID
+                selectedTaskID: selectedTaskBinding,
+                focusRequestID: 0
             )
         }
         .padding(.horizontal, 16)
@@ -160,6 +156,16 @@ struct AppShellView: View {
                 Label("command.newTask", systemImage: "plus")
             }
             .accessibilityLabel(Text("command.newTask"))
+
+            if activeSmartList == .myDay {
+                Button {
+                    showingMyDaySuggestions = true
+                } label: {
+                    Label("myday.suggestions.button", systemImage: "lightbulb")
+                }
+                .disabled(myDaySuggestions.isEmpty)
+                .accessibilityLabel(Text("myday.suggestions.button"))
+            }
 
             Button {
                 shell.toggleSelectedTaskCompletion(using: store)
@@ -184,13 +190,6 @@ struct AppShellView: View {
         }
 
         ToolbarItemGroup {
-            Button {
-                showingThemePicker = true
-            } label: {
-                Image(systemName: "swatchpalette")
-            }
-            .accessibilityLabel(Text("theme.picker.title"))
-
             Menu {
                 Toggle("task.filter.showcompleted", isOn: Binding(
                     get: { store.appPrefs.showCompletedSection },
@@ -199,6 +198,20 @@ struct AppShellView: View {
                     }
                 ))
 
+                if let customID = shell.activeCustomListID {
+                    Menu("theme.picker.title") {
+                        ForEach(ListThemeStyle.allCases) { style in
+                            Button {
+                                store.setListTheme(id: customID, theme: style)
+                            } label: {
+                                Text(style.titleKey)
+                            }
+                        }
+                    }
+                }
+
+                Divider()
+
                 Button("settings.title") {
                     showingSettings = true
                 }
@@ -206,17 +219,6 @@ struct AppShellView: View {
                 Image(systemName: "ellipsis.circle")
             }
             .accessibilityLabel(Text("toolbar.more"))
-        }
-    }
-
-    @ToolbarContentBuilder
-    private var overviewToolbar: some ToolbarContent {
-        ToolbarItemGroup {
-            Button {
-                showingSettings = true
-            } label: {
-                Label("settings.title", systemImage: "gearshape")
-            }
         }
     }
 
@@ -239,30 +241,6 @@ struct AppShellView: View {
         }
     }
 
-    private var effectiveTheme: ListThemeStyle {
-        if let customID = shell.activeCustomListID,
-           let list = store.lists.first(where: { $0.id == customID }) {
-            return list.theme
-        }
-
-        switch shell.selection {
-        case .overview:
-            return .graphite
-        case .smartList(.myDay):
-            return .ocean
-        case .smartList(.planned):
-            return .forest
-        case .smartList(.important):
-            return .sunrise
-        case .smartList(.all), .smartList(.inbox):
-            return .graphite
-        case .smartList(.completed):
-            return .violet
-        case .customList:
-            return .graphite
-        }
-    }
-
     private var activeSmartList: SmartListID? {
         if case .smartList(let smart) = shell.selection {
             return smart
@@ -273,8 +251,6 @@ struct AppShellView: View {
     private var visibleTasks: [TodoItem] {
         let selection: TaskStoreSelection
         switch shell.selection {
-        case .overview:
-            return []
         case .smartList(let smart):
             selection = .smartList(smart)
         case .customList(let id):
@@ -289,10 +265,19 @@ struct AppShellView: View {
         )
     }
 
+    private var selectedTaskBinding: Binding<TodoItem.ID?> {
+        Binding(
+            get: { shell.selectedTaskID },
+            set: { shell.openDetail(for: $0) }
+        )
+    }
+
+    private var myDaySuggestions: [MyDaySuggestion] {
+        store.myDaySuggestions(limit: 8)
+    }
+
     private var currentSectionTitle: String {
         switch shell.selection {
-        case .overview:
-            return String(localized: "overview.title")
         case .smartList(let list):
             switch list {
             case .inbox:
@@ -369,49 +354,71 @@ struct AppShellView: View {
     }
 
     private func handleNewTaskCommand() {
-        if !shell.showingTaskArea {
-            shell.select(.smartList(.myDay))
+        let targetListID = shell.creationTargetListID(defaultListID: TodoListEntity.defaultTasksListID)
+        let myDayDate: Date?
+        if activeSmartList == .myDay {
+            myDayDate = Date()
+        } else {
+            myDayDate = nil
         }
-        quickAddFocusRequestID += 1
+
+        let createdTaskID = store.createTask(
+            TaskDraft(
+                title: String(localized: "task.new.default"),
+                myDayDate: myDayDate
+            ),
+            inListID: targetListID
+        )
+        guard let createdTaskID else { return }
+        shell.openDetail(for: createdTaskID)
+        detailFocusRequestID += 1
     }
 }
 
-private struct ThemePickerSheet: View {
-    let selectedTheme: ListThemeStyle
-    let onSelect: (ListThemeStyle) -> Void
+private struct MyDaySuggestionsSheet: View {
+    let suggestions: [MyDaySuggestion]
+    let onAdd: (UUID) -> Void
+
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("theme.picker.title")
-                .font(AppTypography.sectionTitle)
+        NavigationStack {
+            List {
+                if suggestions.isEmpty {
+                    Text("myday.suggestions.empty")
+                        .foregroundStyle(AppTheme.secondaryText)
+                } else {
+                    ForEach(suggestions) { suggestion in
+                        HStack(alignment: .center, spacing: 10) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(suggestion.item.title)
+                                    .font(AppTypography.sectionTitle)
+                                    .lineLimit(1)
 
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 12)], spacing: 12) {
-                ForEach(ListThemeStyle.allCases) { style in
-                    Button {
-                        onSelect(style)
-                        dismiss()
-                    } label: {
-                        VStack(alignment: .leading, spacing: 8) {
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(LinearGradient(colors: AppTheme.gradient(for: style), startPoint: .topLeading, endPoint: .bottomTrailing))
-                                .frame(height: 72)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .stroke(selectedTheme == style ? AppTheme.accentStrong : AppTheme.strokeSubtle, lineWidth: 2)
-                                )
-                            Text(style.titleKey)
-                                .font(AppTypography.caption)
-                                .foregroundStyle(.primary)
+                                Text(suggestion.reason.titleKey)
+                                    .font(AppTypography.caption)
+                                    .foregroundStyle(AppTheme.secondaryText)
+                            }
+
+                            Spacer()
+
+                            Button("myday.suggestions.add") {
+                                onAdd(suggestion.item.id)
+                            }
+                            .buttonStyle(.bordered)
                         }
                     }
-                    .buttonStyle(.plain)
                 }
             }
-
-            Spacer()
+            .navigationTitle("myday.suggestions.title")
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("template.manager.done") {
+                        dismiss()
+                    }
+                }
+            }
         }
-        .padding(16)
     }
 }
 

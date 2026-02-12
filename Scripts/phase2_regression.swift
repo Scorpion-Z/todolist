@@ -60,9 +60,11 @@ struct Phase2RegressionMain {
         try testListSemanticsAndCrossDayMyDay()
         try testQuickAddParser()
         try await testTaskStoreCompletionAndPersistence()
+        try await testCreateTaskReturnsIDAndMyDayDate()
         try await testMyDaySuggestionsAndStats()
         try await testListDeletionReordersManualOrderAndSelectionFallback()
         try await testAppShellActionDispatch()
+        try await testAppShellDetailPresentationAndCreationTarget()
         try await testDeferredDetailAutosaveDispatch()
         try await testConflictAwareDualStorageMerge()
     }
@@ -222,6 +224,30 @@ struct Phase2RegressionMain {
     }
 
     @MainActor
+    static func testCreateTaskReturnsIDAndMyDayDate() async throws {
+        let storage = MemoryStorage()
+        let store = TaskStore(items: [], storage: storage)
+        let calendar = Calendar.current
+        let targetDate = Date()
+
+        let createdID = store.createTask(TaskDraft(title: "created task"))
+        guard let createdID else {
+            throw RegressionError.failed("createTask should return created task id")
+        }
+        guard let created = store.item(withID: createdID) else {
+            throw RegressionError.failed("created task should be queryable by returned id")
+        }
+        try expect(created.title == "created task", "returned id should match created task")
+
+        let myDayID = store.createTask(TaskDraft(title: "myday task", myDayDate: targetDate))
+        guard let myDayID, let myDayTask = store.item(withID: myDayID), let myDayDate = myDayTask.myDayDate else {
+            throw RegressionError.failed("createTask should preserve myDayDate when provided")
+        }
+        try expect(calendar.isDate(myDayDate, inSameDayAs: targetDate), "createTask should keep myDayDate on the same day")
+        try expect(myDayDate == calendar.startOfDay(for: targetDate), "createTask should normalize myDayDate to start of day")
+    }
+
+    @MainActor
     static func testMyDaySuggestionsAndStats() async throws {
         let calendar = fixedCalendar()
         let now = makeDate(2026, 2, 9, 10, 0)
@@ -319,6 +345,28 @@ struct Phase2RegressionMain {
         shell.deleteSelectedTask(from: store)
         try expect(store.item(withID: item.id) == nil, "shell action should delete selected task")
         try expect(shell.selectedTaskID == nil, "shell should clear selected task after deletion")
+        try expect(shell.isDetailPresented == false, "shell should close detail after deleting selected task")
+    }
+
+    @MainActor
+    static func testAppShellDetailPresentationAndCreationTarget() async throws {
+        let customListID = UUID(uuidString: "00000000-0000-0000-0000-000000000450")!
+        let defaultListID = TodoListEntity.defaultTasksListID
+        let taskID = UUID(uuidString: "00000000-0000-0000-0000-000000000451")!
+
+        let shell = AppShellViewModel(selection: .customList(customListID))
+        try expect(shell.creationTargetListID(defaultListID: defaultListID) == customListID, "custom selection should create task in active custom list")
+
+        shell.openDetail(for: taskID)
+        try expect(shell.selectedTaskID == taskID, "openDetail should set selected task id")
+        try expect(shell.isDetailPresented, "openDetail should present detail")
+
+        shell.closeDetail()
+        try expect(shell.selectedTaskID == nil, "closeDetail should clear selected task id")
+        try expect(!shell.isDetailPresented, "closeDetail should hide detail")
+
+        shell.select(.smartList(.myDay))
+        try expect(shell.creationTargetListID(defaultListID: defaultListID) == defaultListID, "smart list selection should create task in default list")
     }
 
     @MainActor

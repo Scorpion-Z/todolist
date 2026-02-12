@@ -6,6 +6,7 @@ extension Notification.Name {
     static let todoCommandToggleCompletion = Notification.Name("todo.command.toggleCompletion")
     static let todoCommandToggleImportant = Notification.Name("todo.command.toggleImportant")
     static let todoCommandDeleteTask = Notification.Name("todo.command.deleteTask")
+    static let todoCommandCloseDetail = Notification.Name("todo.command.closeDetail")
 }
 
 struct TodolistCommands: Commands {
@@ -32,6 +33,13 @@ struct TodolistCommands: Commands {
                 post(.todoCommandDeleteTask)
             }
             .keyboardShortcut(.delete, modifiers: [])
+
+            Divider()
+
+            Button("command.closeDetail") {
+                post(.todoCommandCloseDetail)
+            }
+            .keyboardShortcut(.escape, modifiers: [])
         }
     }
 

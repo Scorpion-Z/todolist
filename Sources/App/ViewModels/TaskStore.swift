@@ -351,9 +351,10 @@ final class TaskStore: ObservableObject {
         schedulePersist()
     }
 
-    func createTask(_ draft: TaskDraft, inListID listID: UUID? = nil) {
+    @discardableResult
+    func createTask(_ draft: TaskDraft, inListID listID: UUID? = nil) -> UUID? {
         let trimmedTitle = draft.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedTitle.isEmpty else { return }
+        guard !trimmedTitle.isEmpty else { return nil }
 
         let targetListID = validatedListID(listID ?? TodoListEntity.defaultTasksListID)
         let now = Date()
@@ -378,6 +379,7 @@ final class TaskStore: ObservableObject {
         rebuildTags()
         schedulePersist()
         scheduleNotification(for: item)
+        return item.id
     }
 
     @discardableResult
@@ -469,6 +471,10 @@ final class TaskStore: ObservableObject {
         items[index].myDayDate = normalizeToStartOfDay(date)
         items[index].updatedAt = Date()
         schedulePersist()
+    }
+
+    func addTaskToMyDay(id: UUID, date: Date = Date()) {
+        addToMyDay(id: id, date: date)
     }
 
     func removeFromMyDay(id: UUID) {
