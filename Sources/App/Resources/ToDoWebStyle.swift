@@ -46,24 +46,160 @@ enum ToDoWebMetrics {
 }
 
 enum ToDoWebColors {
-    static let backgroundOverlay = Color.black.opacity(0.30)
-    static let panelFill = Color.black.opacity(0.24)
+    struct Palette {
+        let isDark: Bool
+        let backgroundOverlayOpacity: Double
+        let panelFillOpacity: Double
+        let rowDefaultBackgroundOpacity: Double
+        let rowHoverBackgroundOpacity: Double
+        let rowSelectedBackgroundOpacity: Double
+        let separatorPrimaryOpacity: Double
+        let separatorSecondaryOpacity: Double
+        let separatorBorderOpacity: Double
+        let rowSelectedBorderOpacity: Double
+        let quickAddBackgroundOpacity: Double
+        let quickAddFocusBorderOpacity: Double
+        let primaryTextOpacity: Double
+        let secondaryTextOpacity: Double
+        let subtitleTextOpacity: Double
+        let toolbarHoverFillOpacity: Double
 
-    static let rowDefaultBackground = Color.black.opacity(0.22)
-    static let rowHoverBackground = Color.black.opacity(0.28)
-    static let rowSelectedBackground = Color.white.opacity(0.18)
-    static let separatorPrimary = Color.white.opacity(0.22)
-    static let separatorSecondary = Color.white.opacity(0.14)
-    static let separatorBorder = Color.white.opacity(0.12)
-    static let rowSelectedBorder = Color.white.opacity(0.38)
+        private var foregroundBase: Color { isDark ? .white : .black }
+        private var surfaceBase: Color { isDark ? .black : .white }
 
-    static let quickAddBackground = Color.black.opacity(0.30)
-    static let quickAddBorder = separatorBorder
-    static let quickAddFocusBorder = Color.white.opacity(0.28)
+        var backgroundOverlay: Color {
+            surfaceBase.opacity(backgroundOverlayOpacity)
+        }
 
-    static let secondaryText = Color.white.opacity(0.75)
-    static let subtitleText = Color.white.opacity(0.82)
-    static let handleLine = separatorPrimary
+        var panelFill: Color {
+            surfaceBase.opacity(panelFillOpacity)
+        }
+
+        var rowDefaultBackground: Color {
+            surfaceBase.opacity(rowDefaultBackgroundOpacity)
+        }
+
+        var rowHoverBackground: Color {
+            surfaceBase.opacity(rowHoverBackgroundOpacity)
+        }
+
+        var rowSelectedBackground: Color {
+            surfaceBase.opacity(rowSelectedBackgroundOpacity)
+        }
+
+        var separatorPrimary: Color {
+            foregroundBase.opacity(separatorPrimaryOpacity)
+        }
+
+        var separatorSecondary: Color {
+            foregroundBase.opacity(separatorSecondaryOpacity)
+        }
+
+        var separatorBorder: Color {
+            foregroundBase.opacity(separatorBorderOpacity)
+        }
+
+        var rowSelectedBorder: Color {
+            foregroundBase.opacity(rowSelectedBorderOpacity)
+        }
+
+        var quickAddBackground: Color {
+            surfaceBase.opacity(quickAddBackgroundOpacity)
+        }
+
+        var quickAddBorder: Color {
+            separatorBorder
+        }
+
+        var quickAddFocusBorder: Color {
+            if isDark {
+                return foregroundBase.opacity(quickAddFocusBorderOpacity)
+            }
+            return Color.accentColor.opacity(quickAddFocusBorderOpacity)
+        }
+
+        var primaryText: Color {
+            foregroundBase.opacity(primaryTextOpacity)
+        }
+
+        var secondaryText: Color {
+            foregroundBase.opacity(secondaryTextOpacity)
+        }
+
+        var subtitleText: Color {
+            foregroundBase.opacity(subtitleTextOpacity)
+        }
+
+        var toolbarHoverFill: Color {
+            foregroundBase.opacity(toolbarHoverFillOpacity)
+        }
+
+        var handleLine: Color {
+            separatorPrimary
+        }
+
+        var overdueTint: Color {
+            Color.red.opacity(isDark ? 0.95 : 0.85)
+        }
+    }
+
+    static let dark = Palette(
+        isDark: true,
+        backgroundOverlayOpacity: 0.30,
+        panelFillOpacity: 0.24,
+        rowDefaultBackgroundOpacity: 0.22,
+        rowHoverBackgroundOpacity: 0.28,
+        rowSelectedBackgroundOpacity: 0.18,
+        separatorPrimaryOpacity: 0.22,
+        separatorSecondaryOpacity: 0.14,
+        separatorBorderOpacity: 0.12,
+        rowSelectedBorderOpacity: 0.38,
+        quickAddBackgroundOpacity: 0.30,
+        quickAddFocusBorderOpacity: 0.28,
+        primaryTextOpacity: 0.95,
+        secondaryTextOpacity: 0.75,
+        subtitleTextOpacity: 0.82,
+        toolbarHoverFillOpacity: 0.08
+    )
+
+    static let light = Palette(
+        isDark: false,
+        backgroundOverlayOpacity: 0.18,
+        panelFillOpacity: 0.58,
+        rowDefaultBackgroundOpacity: 0.44,
+        rowHoverBackgroundOpacity: 0.52,
+        rowSelectedBackgroundOpacity: 0.66,
+        separatorPrimaryOpacity: 0.22,
+        separatorSecondaryOpacity: 0.14,
+        separatorBorderOpacity: 0.12,
+        rowSelectedBorderOpacity: 0.32,
+        quickAddBackgroundOpacity: 0.58,
+        quickAddFocusBorderOpacity: 0.62,
+        primaryTextOpacity: 0.92,
+        secondaryTextOpacity: 0.68,
+        subtitleTextOpacity: 0.74,
+        toolbarHoverFillOpacity: 0.10
+    )
+
+    static func palette(for colorScheme: ColorScheme) -> Palette {
+        colorScheme == .dark ? dark : light
+    }
+
+    static let backgroundOverlay = dark.backgroundOverlay
+    static let panelFill = dark.panelFill
+    static let rowDefaultBackground = dark.rowDefaultBackground
+    static let rowHoverBackground = dark.rowHoverBackground
+    static let rowSelectedBackground = dark.rowSelectedBackground
+    static let separatorPrimary = dark.separatorPrimary
+    static let separatorSecondary = dark.separatorSecondary
+    static let separatorBorder = dark.separatorBorder
+    static let rowSelectedBorder = dark.rowSelectedBorder
+    static let quickAddBackground = dark.quickAddBackground
+    static let quickAddBorder = dark.quickAddBorder
+    static let quickAddFocusBorder = dark.quickAddFocusBorder
+    static let secondaryText = dark.secondaryText
+    static let subtitleText = dark.subtitleText
+    static let handleLine = dark.handleLine
 }
 
 enum ToDoWebMotion {

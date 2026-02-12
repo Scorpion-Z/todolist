@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 enum RegressionError: Error, CustomStringConvertible {
     case failed(String)
@@ -59,6 +60,8 @@ struct Phase2RegressionMain {
         try testTodoItemCompatibility()
         try testListSemanticsAndCrossDayMyDay()
         try testQuickAddParser()
+        try testAppAppearancePreferenceMapping()
+        try testToDoWebColorPalettes()
         try await testTaskStoreCompletionAndPersistence()
         try await testCreateTaskReturnsIDAndMyDayDate()
         try await testMyDaySuggestionsAndStats()
@@ -193,6 +196,24 @@ struct Phase2RegressionMain {
         } else {
             throw RegressionError.failed("quick add tonight due date missing")
         }
+    }
+
+    static func testAppAppearancePreferenceMapping() throws {
+        try expect(AppAppearancePreference.system.colorScheme == nil, "system appearance should map to nil preferredColorScheme")
+        try expect(AppAppearancePreference.light.colorScheme == .light, "light appearance should map to .light")
+        try expect(AppAppearancePreference.dark.colorScheme == .dark, "dark appearance should map to .dark")
+    }
+
+    static func testToDoWebColorPalettes() throws {
+        let dark = ToDoWebColors.palette(for: .dark)
+        let light = ToDoWebColors.palette(for: .light)
+
+        try expect(dark.backgroundOverlayOpacity > 0, "dark palette overlay opacity should be non-zero")
+        try expect(light.backgroundOverlayOpacity > 0, "light palette overlay opacity should be non-zero")
+        try expect(dark.separatorBorderOpacity > 0, "dark palette border opacity should be non-zero")
+        try expect(light.separatorBorderOpacity > 0, "light palette border opacity should be non-zero")
+        try expect(dark.primaryTextOpacity > dark.secondaryTextOpacity, "dark palette primary text should be stronger than secondary")
+        try expect(light.primaryTextOpacity > light.secondaryTextOpacity, "light palette primary text should be stronger than secondary")
     }
 
     @MainActor

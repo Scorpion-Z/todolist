@@ -46,7 +46,7 @@ struct TaskListView: View {
                 }
             }
         }
-        .listStyle(.inset)
+        .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .onAppear {
             uiSelectedTaskID = selectedTaskID

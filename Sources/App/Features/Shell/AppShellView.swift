@@ -14,7 +14,11 @@ struct AppShellView: View {
     @State private var lastDetailMode: AppShellViewModel.DetailPresentationMode = .hidden
 
     @AppStorage("appLanguagePreference") private var appLanguagePreference = "system"
+    @AppStorage("appAppearancePreference") private var appAppearancePreference = AppAppearancePreference.system.rawValue
+    @AppStorage("lightModeBackgroundEnabled") private var lightModeBackgroundEnabled = true
     @AppStorage("cloudSyncEnabled") private var cloudSyncEnabled = false
+
+    @Environment(\.colorScheme) private var colorScheme
 
     @State private var showingSettings = false
     @State private var showingMyDaySuggestions = false
@@ -113,8 +117,12 @@ struct AppShellView: View {
 
             ZStack {
                 backgroundLayer
-                contentLayout(for: mode)
-                    .padding(ToDoWebMetrics.contentPadding)
+                ViewThatFits(in: .horizontal) {
+                    contentLayout(for: mode, compactHeader: false)
+                        .padding(ToDoWebMetrics.contentPadding)
+                    contentLayout(for: mode, compactHeader: true)
+                        .padding(ToDoWebMetrics.contentPadding)
+                }
             }
             .onAppear {
                 updateContentWidth(width)
@@ -128,54 +136,62 @@ struct AppShellView: View {
                 reconcileDetailPresentation(for: width)
             }
         }
-        .clipped()
     }
 
     private var backgroundLayer: some View {
-        Group {
-            if let image = AppTheme.backgroundImage(for: activeTheme) {
-                image
-                    .resizable()
-                    .scaledToFill()
-                    .overlay(AppTheme.backgroundOverlay)
+        let shouldShowBackgroundImage = resolvedColorScheme == .dark || lightModeBackgroundEnabled
+        return Group {
+            if shouldShowBackgroundImage {
+                if let image = AppTheme.backgroundImage(for: activeTheme) {
+                    image
+                        .resizable()
+                        .scaledToFill()
+                        .overlay(palette.backgroundOverlay)
+                } else {
+                    LinearGradient(
+                        colors: AppTheme.gradient(for: activeTheme),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .overlay(palette.backgroundOverlay)
+                }
             } else {
                 LinearGradient(
-                    colors: AppTheme.gradient(for: activeTheme),
+                    colors: [AppTheme.surface0, AppTheme.surface1],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
-                .overlay(AppTheme.backgroundOverlay)
             }
         }
     }
 
     @ViewBuilder
-    private func contentLayout(for mode: AppShellViewModel.DetailPresentationMode) -> some View {
+    private func contentLayout(for mode: AppShellViewModel.DetailPresentationMode, compactHeader: Bool) -> some View {
         switch mode {
         case .inline:
             HStack(spacing: 0) {
-                taskPanel
+                taskPanel(compactHeader: compactHeader)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 detailResizeHandle
                 detailPanel
                     .frame(width: detailWidth)
             }
         case .modal, .hidden:
-            taskPanel
+            taskPanel(compactHeader: compactHeader)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 
-    private var taskPanel: some View {
+    private func taskPanel(compactHeader: Bool) -> some View {
         VStack(spacing: 0) {
-            taskListHeader
-                .padding(.horizontal, ToDoWebMetrics.titleHorizontalPadding)
-                .padding(.top, ToDoWebMetrics.titleTopPadding)
-                .padding(.bottom, ToDoWebMetrics.titleBottomPadding)
+            taskListHeader(compact: compactHeader)
+                .padding(.horizontal, compactHeader ? 16 : ToDoWebMetrics.titleHorizontalPadding)
+                .padding(.top, compactHeader ? 14 : ToDoWebMetrics.titleTopPadding)
+                .padding(.bottom, compactHeader ? 8 : ToDoWebMetrics.titleBottomPadding)
 
             if visibleTasks.isEmpty {
                 ContentUnavailableView("task.empty.title", systemImage: "checklist")
-                    .foregroundStyle(Color.white.opacity(0.82))
+                    .foregroundStyle(palette.subtitleText)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 TaskListView(
@@ -187,6 +203,7 @@ struct AppShellView: View {
                     store: store
                 )
                 .padding(.horizontal, 4)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
 
             QuickAddBarView(
@@ -199,10 +216,10 @@ struct AppShellView: View {
             .padding(.top, 10)
             .padding(.bottom, 14)
         }
-        .background(AppTheme.panelFill, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(palette.panelFill, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(ToDoWebColors.separatorBorder, lineWidth: 1)
+                .stroke(palette.separatorBorder, lineWidth: 1)
         )
     }
 
@@ -214,10 +231,10 @@ struct AppShellView: View {
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(10)
-        .background(AppTheme.panelFill, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(palette.panelFill, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(ToDoWebColors.separatorBorder, lineWidth: 1)
+                .stroke(palette.separatorBorder, lineWidth: 1)
         )
     }
 
@@ -239,16 +256,16 @@ struct AppShellView: View {
         }
     }
 
-    private var taskListHeader: some View {
+    private func taskListHeader(compact: Bool) -> some View {
         VStack(alignment: .leading, spacing: ToDoWebMetrics.titleSpacing) {
             Text(currentSectionTitle)
-                .font(.system(size: ToDoWebMetrics.titleFontSize, weight: .semibold))
-                .foregroundStyle(Color.white.opacity(0.95))
+                .font(.system(size: compact ? 34 : ToDoWebMetrics.titleFontSize, weight: .semibold))
+                .foregroundStyle(palette.primaryText)
 
             if case .smartList(.myDay) = shell.selection {
                 Text(Date(), format: .dateTime.month(.defaultDigits).day(.defaultDigits).weekday(.wide))
-                    .font(.system(size: ToDoWebMetrics.subtitleFontSize, weight: .semibold))
-                    .foregroundStyle(ToDoWebColors.subtitleText)
+                    .font(.system(size: compact ? 18 : ToDoWebMetrics.subtitleFontSize, weight: .semibold))
+                    .foregroundStyle(palette.subtitleText)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -260,7 +277,7 @@ struct AppShellView: View {
                 .fill(Color.clear)
                 .frame(width: ToDoWebMetrics.detailResizeHandleWidth)
             Rectangle()
-                .fill(ToDoWebColors.handleLine)
+                .fill(palette.handleLine)
                 .frame(width: ToDoWebMetrics.detailResizeLineWidth)
         }
         .contentShape(Rectangle())
@@ -320,7 +337,13 @@ struct AppShellView: View {
         ToolbarItem(placement: .primaryAction) {
             HStack(spacing: ToDoWebMetrics.toolbarIconSpacing) {
                 if activeSmartList == .myDay {
-                    ToolbarIconButton(systemName: "lightbulb", accessibilityKey: "myday.suggestions.button", isEnabled: !myDaySuggestions.isEmpty) {
+                    ToolbarIconButton(
+                        systemName: "lightbulb",
+                        accessibilityKey: "myday.suggestions.button",
+                        isEnabled: !myDaySuggestions.isEmpty,
+                        symbolColor: palette.primaryText,
+                        hoverFill: palette.toolbarHoverFill
+                    ) {
                         showingMyDaySuggestions = true
                     }
                 }
@@ -355,7 +378,11 @@ struct AppShellView: View {
                         }
                     }
                 } label: {
-                    ToolbarIconMenuLabel(systemName: "ellipsis.circle")
+                    ToolbarIconMenuLabel(
+                        systemName: "ellipsis.circle",
+                        symbolColor: palette.primaryText,
+                        hoverFill: palette.toolbarHoverFill
+                    )
                 }
                 .menuStyle(.borderlessButton)
                 .accessibilityLabel(Text("toolbar.more"))
@@ -431,8 +458,35 @@ struct AppShellView: View {
         }
     }
 
+    private var appearancePreference: AppAppearancePreference {
+        AppAppearancePreference(rawValue: appAppearancePreference) ?? .system
+    }
+
+    private var resolvedColorScheme: ColorScheme {
+        appearancePreference.colorScheme ?? colorScheme
+    }
+
+    private var palette: ToDoWebColors.Palette {
+        ToDoWebColors.palette(for: resolvedColorScheme)
+    }
+
     private var settingsSheet: some View {
         Form {
+            Section("settings.appearance.section") {
+                Picker("settings.appearance.label", selection: $appAppearancePreference) {
+                    ForEach(AppAppearancePreference.allCases) { appearance in
+                        Text(appearance.localizedTitleKey).tag(appearance.rawValue)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                Toggle("settings.appearance.lightBackground.toggle", isOn: $lightModeBackgroundEnabled)
+
+                Text("settings.appearance.hint")
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppTheme.secondaryText)
+            }
+
             Section("settings.language.section") {
                 Picker("settings.language", selection: $appLanguagePreference) {
                     Text("settings.language.system").tag("system")
@@ -500,13 +554,20 @@ private struct ToolbarIconButton: View {
     let systemName: String
     let accessibilityKey: LocalizedStringKey
     let isEnabled: Bool
+    let symbolColor: Color
+    let hoverFill: Color
     let action: () -> Void
 
     @State private var isHovered = false
 
     var body: some View {
         Button(action: action) {
-            ToolbarIconLabel(systemName: systemName, isHovered: isHovered)
+            ToolbarIconLabel(
+                systemName: systemName,
+                isHovered: isHovered,
+                symbolColor: symbolColor,
+                hoverFill: hoverFill
+            )
         }
         .buttonStyle(.plain)
         .disabled(!isEnabled)
@@ -522,14 +583,17 @@ private struct ToolbarIconButton: View {
 private struct ToolbarIconLabel: View {
     let systemName: String
     var isHovered: Bool = false
+    let symbolColor: Color
+    let hoverFill: Color
 
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(isHovered ? Color.white.opacity(0.08) : Color.clear)
+                .fill(isHovered ? hoverFill : Color.clear)
                 .frame(width: ToDoWebMetrics.toolbarIconVisualSize, height: ToDoWebMetrics.toolbarIconVisualSize)
             Image(systemName: systemName)
                 .font(.system(size: ToDoWebMetrics.toolbarIconGlyphSize, weight: .medium))
+                .foregroundStyle(symbolColor)
         }
         .frame(width: ToDoWebMetrics.toolbarIconHitArea, height: ToDoWebMetrics.toolbarIconHitArea)
     }
@@ -537,11 +601,18 @@ private struct ToolbarIconLabel: View {
 
 private struct ToolbarIconMenuLabel: View {
     let systemName: String
+    let symbolColor: Color
+    let hoverFill: Color
 
     @State private var isHovered = false
 
     var body: some View {
-        ToolbarIconLabel(systemName: systemName, isHovered: isHovered)
+        ToolbarIconLabel(
+            systemName: systemName,
+            isHovered: isHovered,
+            symbolColor: symbolColor,
+            hoverFill: hoverFill
+        )
             .onHover { hovering in
                 withAnimation(ToDoWebMotion.hoverBezier) {
                     isHovered = hovering
@@ -599,6 +670,7 @@ private struct MyDaySuggestionsSheet: View {
 
 struct RootView: View {
     @AppStorage("cloudSyncEnabled") private var cloudSyncEnabled = false
+    @AppStorage("appAppearancePreference") private var appAppearancePreference = AppAppearancePreference.system.rawValue
     @State private var store: TaskStore
     static let cloudKitSupported = detectCloudKitSupport()
     private static let iCloudContainerEntitlement = "com.apple.developer.icloud-container-identifiers"
@@ -612,6 +684,7 @@ struct RootView: View {
     var body: some View {
         AppShellView(store: store)
             .id(cloudSyncEnabled)
+            .preferredColorScheme(preferredColorScheme)
             .onChange(of: cloudSyncEnabled) { _, enabled in
                 let normalized = RootView.normalizedSyncEnabled(enabled)
                 if normalized != enabled {
@@ -620,6 +693,10 @@ struct RootView: View {
                 let snapshot = store.items
                 store = RootView.makeStore(syncEnabled: normalized, preloadItems: snapshot)
             }
+    }
+
+    private var preferredColorScheme: ColorScheme? {
+        (AppAppearancePreference(rawValue: appAppearancePreference) ?? .system).colorScheme
     }
 
     private static func makeStore(syncEnabled: Bool, preloadItems: [TodoItem] = []) -> TaskStore {

@@ -16,9 +16,10 @@
 		A1A1A1A1A1A1A1A1A1A1A1C1 /* QuickAddParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1C2 /* QuickAddParser.swift */; };
 		A1A1A1A1A1A1A1A1A1A1A1A9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1A1A1A1A1A1A1A1A1A1A1AA /* Assets.xcassets */; };
 		B1B1B1B1B1B1B1B1B1B1B1B1 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = B1B1B1B1B1B1B1B1B1B1B1B2 /* Localizable.strings */; };
-		D1D1D1D1D1D1D1D1D1D1D1D1 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1D2 /* Theme.swift */; };
-		F0D0D0D0D0D0D0D0D0D0D001 /* ToDoWebStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0D0D0D0D0D0D0D0D0D0D002 /* ToDoWebStyle.swift */; };
-		FEB000000000000000000001 /* AppShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA000000000000000000001 /* AppShellView.swift */; };
+			D1D1D1D1D1D1D1D1D1D1D1D1 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1D1D1D1D1D1D1D1D1D1D1D2 /* Theme.swift */; };
+			F0D0D0D0D0D0D0D0D0D0D001 /* ToDoWebStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0D0D0D0D0D0D0D0D0D0D002 /* ToDoWebStyle.swift */; };
+			F0D0D0D0D0D0D0D0D0D0D003 /* AppAppearancePreference.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0D0D0D0D0D0D0D0D0D0D004 /* AppAppearancePreference.swift */; };
+			FEB000000000000000000001 /* AppShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA000000000000000000001 /* AppShellView.swift */; };
 		FEB000000000000000000002 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA000000000000000000002 /* SidebarView.swift */; };
 		FEB000000000000000000003 /* TaskListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA000000000000000000003 /* TaskListView.swift */; };
 		FEB000000000000000000004 /* TaskRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA000000000000000000004 /* TaskRowView.swift */; };
@@ -44,9 +45,10 @@
 		A1A1A1A1A1A1A1A1A1A1A1AC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B1B1B1B1B1B1B1B1B1B1B1B3 /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = Localizable.strings; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		B1B1B1B1B1B1B1B1B1B1B1B4 /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = Localizable.strings; path = zh-Hans.lproj/Localizable.strings; sourceTree = "<group>"; };
-		D1D1D1D1D1D1D1D1D1D1D1D2 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
-		F0D0D0D0D0D0D0D0D0D0D002 /* ToDoWebStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToDoWebStyle.swift; sourceTree = "<group>"; };
-		FEA000000000000000000001 /* AppShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../Features/Shell/AppShellView.swift; sourceTree = "<group>"; };
+			D1D1D1D1D1D1D1D1D1D1D1D2 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+			F0D0D0D0D0D0D0D0D0D0D002 /* ToDoWebStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToDoWebStyle.swift; sourceTree = "<group>"; };
+			F0D0D0D0D0D0D0D0D0D0D004 /* AppAppearancePreference.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppAppearancePreference.swift; sourceTree = "<group>"; };
+			FEA000000000000000000001 /* AppShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../Features/Shell/AppShellView.swift; sourceTree = "<group>"; };
 		FEA000000000000000000002 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../Features/Shell/SidebarView.swift; sourceTree = "<group>"; };
 		FEA000000000000000000003 /* TaskListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../Features/TaskList/TaskListView.swift; sourceTree = "<group>"; };
 		FEA000000000000000000004 /* TaskRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../Features/TaskList/TaskRowView.swift; sourceTree = "<group>"; };
@@ -152,6 +154,7 @@
 					B1B1B1B1B1B1B1B1B1B1B1B2 /* Localizable.strings */,
 					D1D1D1D1D1D1D1D1D1D1D1D2 /* Theme.swift */,
 					F0D0D0D0D0D0D0D0D0D0D002 /* ToDoWebStyle.swift */,
+					F0D0D0D0D0D0D0D0D0D0D004 /* AppAppearancePreference.swift */,
 				);
 				path = Resources;
 				sourceTree = "<group>";
@@ -236,10 +239,11 @@
 				files = (
 					A1A1A1A1A1A1A1A1A1A1A1A1 /* TodolistApp.swift in Sources */,
 					A1A1A1A1A1A1A1A1A1A1A1C9 /* AppCommands.swift in Sources */,
-					D1D1D1D1D1D1D1D1D1D1D1D1 /* Theme.swift in Sources */,
-					F0D0D0D0D0D0D0D0D0D0D001 /* ToDoWebStyle.swift in Sources */,
-					A1A1A1A1A1A1A1A1A1A1A1A5 /* TodoItem.swift in Sources */,
-				A1A1A1A1A1A1A1A1A1A1A1C5 /* Tag.swift in Sources */,
+						D1D1D1D1D1D1D1D1D1D1D1D1 /* Theme.swift in Sources */,
+						F0D0D0D0D0D0D0D0D0D0D001 /* ToDoWebStyle.swift in Sources */,
+						F0D0D0D0D0D0D0D0D0D0D003 /* AppAppearancePreference.swift in Sources */,
+						A1A1A1A1A1A1A1A1A1A1A1A5 /* TodoItem.swift in Sources */,
+					A1A1A1A1A1A1A1A1A1A1A1C5 /* Tag.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1C7 /* Subtask.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1CA /* TodoStorage.swift in Sources */,
 				A1A1A1A1A1A1A1A1A1A1A1C1 /* QuickAddParser.swift in Sources */,

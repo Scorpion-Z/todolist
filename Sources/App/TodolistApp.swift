@@ -6,6 +6,7 @@ struct TodolistApp: App {
         Window("app.title", id: "main") {
             RootView()
         }
+        .defaultSize(width: 1280, height: 820)
         .commands {
             TodolistCommands()
             CommandGroup(replacing: .newItem) { }

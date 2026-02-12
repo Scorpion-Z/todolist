@@ -9,6 +9,8 @@ struct TaskRowView: View {
     let onToggleImportant: () -> Void
     let onToggleMyDay: () -> Void
     let onDelete: () -> Void
+
+    @Environment(\.colorScheme) private var colorScheme
     @State private var isHovered = false
 
     var body: some View {
@@ -16,7 +18,7 @@ struct TaskRowView: View {
             Button(action: onToggleCompletion) {
                 Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 17, weight: .medium))
-                    .foregroundStyle(item.isCompleted ? Color.white.opacity(0.95) : Color.white.opacity(0.75))
+                    .foregroundStyle(item.isCompleted ? palette.primaryText : palette.secondaryText)
             }
             .buttonStyle(.plain)
             .accessibilityLabel(Text(item.isCompleted ? "mark.open" : "mark.done"))
@@ -24,8 +26,8 @@ struct TaskRowView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.title)
                     .font(AppTypography.body)
-                    .foregroundStyle(item.isCompleted ? Color.white.opacity(0.64) : Color.white.opacity(0.95))
-                    .strikethrough(item.isCompleted, color: Color.white.opacity(0.6))
+                    .foregroundStyle(item.isCompleted ? palette.secondaryText : palette.primaryText)
+                    .strikethrough(item.isCompleted, color: palette.secondaryText)
 
                 HStack(spacing: 6) {
                     if let dueDate = item.dueDate {
@@ -37,14 +39,14 @@ struct TaskRowView: View {
                     if isInMyDay {
                         Text("smart.myDay")
                             .font(AppTypography.caption)
-                            .foregroundStyle(ToDoWebColors.secondaryText)
+                            .foregroundStyle(palette.secondaryText)
                     }
 
                     if !item.subtasks.isEmpty {
                         let done = item.subtasks.filter(\.isCompleted).count
                         Text("\(done)/\(item.subtasks.count)")
                             .font(AppTypography.caption)
-                            .foregroundStyle(ToDoWebColors.secondaryText)
+                            .foregroundStyle(palette.secondaryText)
                     }
                 }
             }
@@ -54,7 +56,7 @@ struct TaskRowView: View {
             HStack(spacing: 6) {
                 Button(action: onToggleImportant) {
                     Image(systemName: item.isImportant ? "star.fill" : "star")
-                        .foregroundStyle(item.isImportant ? .yellow : Color.white.opacity(0.6))
+                        .foregroundStyle(item.isImportant ? .yellow : palette.secondaryText)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(Text(item.isImportant ? "important.remove" : "important.add"))
@@ -67,7 +69,7 @@ struct TaskRowView: View {
                     Button("delete.button", role: .destructive, action: onDelete)
                 } label: {
                     Image(systemName: "ellipsis")
-                        .foregroundStyle(Color.white.opacity(0.6))
+                        .foregroundStyle(palette.secondaryText)
                         .frame(width: 22)
                 }
                 .menuStyle(.borderlessButton)
@@ -104,22 +106,26 @@ struct TaskRowView: View {
 
     private var rowBackgroundColor: Color {
         if isSelected {
-            return ToDoWebColors.rowSelectedBackground
+            return palette.rowSelectedBackground
         }
-        return isHovered ? ToDoWebColors.rowHoverBackground : ToDoWebColors.rowDefaultBackground
+        return isHovered ? palette.rowHoverBackground : palette.rowDefaultBackground
     }
 
     private var rowBorderColor: Color {
-        isSelected ? ToDoWebColors.rowSelectedBorder : ToDoWebColors.separatorBorder
+        isSelected ? palette.rowSelectedBorder : palette.separatorBorder
     }
 
     private func dueTint(dueDate: Date, isCompleted: Bool) -> Color {
         if isCompleted {
-            return ToDoWebColors.secondaryText
+            return palette.secondaryText
         }
         if dueDate < Calendar.current.startOfDay(for: Date()) {
-            return Color.red.opacity(0.95)
+            return palette.overdueTint
         }
-        return ToDoWebColors.secondaryText
+        return palette.secondaryText
+    }
+
+    private var palette: ToDoWebColors.Palette {
+        ToDoWebColors.palette(for: colorScheme)
     }
 }

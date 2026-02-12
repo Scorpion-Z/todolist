@@ -199,6 +199,13 @@
 "myday.progress.celebrate" = "做得很好，今天任务已全部完成。";
 
 "settings.title" = "设置";
+"settings.appearance.section" = "外观";
+"settings.appearance.label" = "外观";
+"settings.appearance.system" = "跟随系统";
+"settings.appearance.light" = "浅色";
+"settings.appearance.dark" = "深色";
+"settings.appearance.lightBackground.toggle" = "浅色模式显示背景图";
+"settings.appearance.hint" = "浅色模式可关闭背景图以提升阅读性。";
 "settings.language.section" = "语言";
 "settings.language" = "语言";
 "settings.language.system" = "跟随系统";

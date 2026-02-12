@@ -199,6 +199,13 @@
 "myday.progress.celebrate" = "Great work. My Day is complete.";
 
 "settings.title" = "Settings";
+"settings.appearance.section" = "Appearance";
+"settings.appearance.label" = "Appearance";
+"settings.appearance.system" = "System";
+"settings.appearance.light" = "Light";
+"settings.appearance.dark" = "Dark";
+"settings.appearance.lightBackground.toggle" = "Show background image in Light mode";
+"settings.appearance.hint" = "Light mode can hide the background image for cleaner readability.";
 "settings.language.section" = "Language";
 "settings.language" = "Language";
 "settings.language.system" = "System";

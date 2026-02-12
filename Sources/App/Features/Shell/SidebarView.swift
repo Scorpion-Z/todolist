@@ -4,6 +4,7 @@ struct SidebarView: View {
     @ObservedObject var store: TaskStore
     @ObservedObject var shell: AppShellViewModel
 
+    @Environment(\.colorScheme) private var colorScheme
     @State private var showingListManagement = false
     @State private var uiSelection: AppShellViewModel.SidebarSelection?
     @State private var pendingSelection: AppShellViewModel.SidebarSelection?
@@ -65,7 +66,7 @@ struct SidebarView: View {
             .background(AppTheme.sidebarBackground)
 
             Rectangle()
-                .fill(ToDoWebColors.separatorPrimary)
+                .fill(palette.separatorPrimary)
                 .frame(height: 1)
 
             HStack(spacing: 8) {
@@ -149,7 +150,7 @@ struct SidebarView: View {
         .clipShape(RoundedRectangle(cornerRadius: ToDoWebMetrics.sidebarSearchCornerRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: ToDoWebMetrics.sidebarSearchCornerRadius, style: .continuous)
-                .stroke(ToDoWebColors.separatorBorder, lineWidth: 1)
+                .stroke(palette.separatorBorder, lineWidth: 1)
         )
     }
 
@@ -223,6 +224,10 @@ struct SidebarView: View {
                 }
             }
         }
+    }
+
+    private var palette: ToDoWebColors.Palette {
+        ToDoWebColors.palette(for: colorScheme)
     }
 
 }

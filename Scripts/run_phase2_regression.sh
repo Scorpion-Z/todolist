@@ -14,6 +14,7 @@ xcrun swiftc -emit-executable \
   Sources/App/Models/Subtask.swift \
   Sources/App/Models/TodoItem.swift \
   Sources/App/Parsing/QuickAddParser.swift \
+  Sources/App/Resources/AppAppearancePreference.swift \
   Sources/App/Resources/ToDoWebStyle.swift \
   Sources/App/ViewModels/ListQueryEngine.swift \
   Sources/App/ViewModels/AppShellViewModel.swift \
@@ -55,6 +56,13 @@ REQUIRED_LOCALIZATION_KEYS=(
   "repeat.daily"
   "repeat.weekly"
   "repeat.monthly"
+  "settings.appearance.section"
+  "settings.appearance.label"
+  "settings.appearance.system"
+  "settings.appearance.light"
+  "settings.appearance.dark"
+  "settings.appearance.lightBackground.toggle"
+  "settings.appearance.hint"
 )
 
 check_required_keys() {
@@ -127,6 +135,11 @@ if [[ ! -f Sources/App/Resources/ToDoWebStyle.swift ]]; then
   exit 1
 fi
 
+if [[ ! -f Sources/App/Resources/AppAppearancePreference.swift ]]; then
+  echo "AppAppearancePreference.swift should exist for appearance mode mapping."
+  exit 1
+fi
+
 for file in \
   Sources/App/Features/Shell/AppShellView.swift \
   Sources/App/Features/Shell/SidebarView.swift \
@@ -156,5 +169,20 @@ fi
 
 if rg -n '\.easeOut\(' Sources/App/Features/TaskList/TaskRowView.swift >/dev/null; then
   echo "TaskRowView hover behavior should use ToDoWebMotion.hoverBezier, not direct easeOut."
+  exit 1
+fi
+
+if rg -n '\.clipped\(\)' Sources/App/Features/Shell/AppShellView.swift >/dev/null; then
+  echo "AppShellView content column should avoid clipped() to prevent resize-time content truncation."
+  exit 1
+fi
+
+if ! rg -n '\.preferredColorScheme\(' Sources/App/Features/Shell/AppShellView.swift >/dev/null; then
+  echo "RootView should apply preferredColorScheme based on appearance preference."
+  exit 1
+fi
+
+if ! rg -n '\.listStyle\(\.plain\)' Sources/App/Features/TaskList/TaskListView.swift >/dev/null; then
+  echo "TaskListView should use plain list style for stable resize behavior."
   exit 1
 fi
