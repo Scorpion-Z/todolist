@@ -157,6 +157,11 @@ if ! rg -n 'hoverBezier\s*:.*timingCurve\(' Sources/App/Resources/ToDoWebStyle.s
   exit 1
 fi
 
+if ! rg -n 'scaleFactor\(for contentWidth:' Sources/App/Resources/ToDoWebStyle.swift >/dev/null; then
+  echo "ToDoWebStyle should provide scaleFactor(for:) for adaptive proportional layout."
+  exit 1
+fi
+
 if ! rg -n 'toolbarIconHitArea' Sources/App/Features/Shell/AppShellView.swift >/dev/null; then
   echo "AppShellView should use toolbarIconHitArea token for toolbar icon hit targets."
   exit 1
@@ -184,5 +189,30 @@ fi
 
 if ! rg -n '\.listStyle\(\.plain\)' Sources/App/Features/TaskList/TaskListView.swift >/dev/null; then
   echo "TaskListView should use plain list style for stable resize behavior."
+  exit 1
+fi
+
+if rg -n 'AppTheme\.sidebarBackground' Sources/App/Features/Shell/SidebarView.swift >/dev/null; then
+  echo "SidebarView should use palette-driven sidebar colors instead of AppTheme.sidebarBackground."
+  exit 1
+fi
+
+if ! rg -n 'frame\(maxWidth:\s*\.infinity,\s*minHeight:\s*ToDoWebMetrics\.taskRowMinHeight' Sources/App/Features/TaskList/TaskRowView.swift >/dev/null; then
+  echo "TaskRowView should keep maxWidth .infinity to avoid left-clustered narrow rows."
+  exit 1
+fi
+
+if ! rg -n 'quickAddActionMinWidth' Sources/App/Resources/ToDoWebStyle.swift Sources/App/Features/Composer/QuickAddBarView.swift >/dev/null; then
+  echo "QuickAdd action width should be tokenized via quickAddActionMinWidth."
+  exit 1
+fi
+
+if ! rg -n 'sidebarSelectionBorder' Sources/App/Features/Shell/SidebarView.swift Sources/App/Resources/ToDoWebStyle.swift >/dev/null; then
+  echo "Sidebar selected rows should use sidebarSelectionBorder token."
+  exit 1
+fi
+
+if ! rg -F -n 'stroke(palette.panelBorder' Sources/App/Features/Shell/AppShellView.swift >/dev/null; then
+  echo "AppShellView main panels should use panelBorder token."
   exit 1
 fi

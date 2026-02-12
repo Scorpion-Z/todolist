@@ -22,6 +22,7 @@ enum ToDoWebMetrics {
     static let quickAddCornerRadius: CGFloat = 8
     static let quickAddHorizontalPadding: CGFloat = 14
     static let quickAddVerticalPadding: CGFloat = 12
+    static let quickAddActionMinWidth: CGFloat = 80
 
     static let detailDefaultWidth: CGFloat = 400
     static let detailMinWidth: CGFloat = 360
@@ -43,6 +44,45 @@ enum ToDoWebMetrics {
 
     static let detailFieldSpacing: CGFloat = 12
     static let detailSectionSpacing: CGFloat = 14
+
+    static func scaleFactor(for contentWidth: CGFloat) -> CGFloat {
+        let minScale: CGFloat = 0.86
+        let maxScale: CGFloat = 1.0
+        let minWidth: CGFloat = 760
+        let idealWidth: CGFloat = 1320
+
+        guard contentWidth.isFinite else { return maxScale }
+        if contentWidth <= minWidth { return minScale }
+        if contentWidth >= idealWidth { return maxScale }
+
+        let progress = (contentWidth - minWidth) / (idealWidth - minWidth)
+        return minScale + progress * (maxScale - minScale)
+    }
+}
+
+struct ToDoWebAdaptiveMetrics {
+    let scale: CGFloat
+    let contentPadding: CGFloat
+    let titleTopPadding: CGFloat
+    let titleBottomPadding: CGFloat
+    let titleHorizontalPadding: CGFloat
+    let titleFontSize: CGFloat
+    let subtitleFontSize: CGFloat
+    let quickAddTopPadding: CGFloat
+    let quickAddBottomPadding: CGFloat
+
+    init(contentWidth: CGFloat) {
+        let factor = ToDoWebMetrics.scaleFactor(for: contentWidth)
+        scale = factor
+        contentPadding = max(12, ToDoWebMetrics.contentPadding * factor)
+        titleTopPadding = max(12, ToDoWebMetrics.titleTopPadding * factor)
+        titleBottomPadding = max(8, ToDoWebMetrics.titleBottomPadding * factor)
+        titleHorizontalPadding = max(14, ToDoWebMetrics.titleHorizontalPadding * factor)
+        titleFontSize = max(34, ToDoWebMetrics.titleFontSize * factor)
+        subtitleFontSize = max(18, ToDoWebMetrics.subtitleFontSize * factor)
+        quickAddTopPadding = max(8, 10 * factor)
+        quickAddBottomPadding = max(10, 14 * factor)
+    }
 }
 
 enum ToDoWebColors {
@@ -63,6 +103,12 @@ enum ToDoWebColors {
         let secondaryTextOpacity: Double
         let subtitleTextOpacity: Double
         let toolbarHoverFillOpacity: Double
+        let sidebarBackgroundOpacity: Double
+        let sidebarRowBackgroundOpacity: Double
+        let sidebarSearchBackgroundOpacity: Double
+        let sidebarSelectionBackgroundOpacity: Double
+        let sidebarTextPrimaryOpacity: Double
+        let sidebarTextSecondaryOpacity: Double
 
         private var foregroundBase: Color { isDark ? .white : .black }
         private var surfaceBase: Color { isDark ? .black : .white }
@@ -103,6 +149,10 @@ enum ToDoWebColors {
             foregroundBase.opacity(rowSelectedBorderOpacity)
         }
 
+        var panelBorder: Color {
+            separatorBorder
+        }
+
         var quickAddBackground: Color {
             surfaceBase.opacity(quickAddBackgroundOpacity)
         }
@@ -141,6 +191,49 @@ enum ToDoWebColors {
         var overdueTint: Color {
             Color.red.opacity(isDark ? 0.95 : 0.85)
         }
+
+        var sidebarBackground: Color {
+            if isDark {
+                return surfaceBase.opacity(sidebarBackgroundOpacity)
+            }
+            return Color(red: 0.95, green: 0.96, blue: 0.97).opacity(sidebarBackgroundOpacity)
+        }
+
+        var sidebarRowBackground: Color {
+            if isDark {
+                return surfaceBase.opacity(sidebarRowBackgroundOpacity)
+            }
+            return .black.opacity(sidebarRowBackgroundOpacity)
+        }
+
+        var sidebarSearchBackground: Color {
+            if isDark {
+                return surfaceBase.opacity(sidebarSearchBackgroundOpacity)
+            }
+            return .white.opacity(sidebarSearchBackgroundOpacity)
+        }
+
+        var sidebarSelectionBackground: Color {
+            if isDark {
+                return .white.opacity(sidebarSelectionBackgroundOpacity)
+            }
+            return Color.accentColor.opacity(sidebarSelectionBackgroundOpacity)
+        }
+
+        var sidebarSelectionBorder: Color {
+            if isDark {
+                return Color.white.opacity(0.28)
+            }
+            return Color.accentColor.opacity(0.28)
+        }
+
+        var sidebarTextPrimary: Color {
+            foregroundBase.opacity(sidebarTextPrimaryOpacity)
+        }
+
+        var sidebarTextSecondary: Color {
+            foregroundBase.opacity(sidebarTextSecondaryOpacity)
+        }
     }
 
     static let dark = Palette(
@@ -159,26 +252,38 @@ enum ToDoWebColors {
         primaryTextOpacity: 0.95,
         secondaryTextOpacity: 0.75,
         subtitleTextOpacity: 0.82,
-        toolbarHoverFillOpacity: 0.08
+        toolbarHoverFillOpacity: 0.08,
+        sidebarBackgroundOpacity: 0.88,
+        sidebarRowBackgroundOpacity: 0.16,
+        sidebarSearchBackgroundOpacity: 0.24,
+        sidebarSelectionBackgroundOpacity: 0.18,
+        sidebarTextPrimaryOpacity: 0.94,
+        sidebarTextSecondaryOpacity: 0.68
     )
 
     static let light = Palette(
         isDark: false,
-        backgroundOverlayOpacity: 0.18,
-        panelFillOpacity: 0.58,
-        rowDefaultBackgroundOpacity: 0.44,
-        rowHoverBackgroundOpacity: 0.52,
-        rowSelectedBackgroundOpacity: 0.66,
-        separatorPrimaryOpacity: 0.22,
-        separatorSecondaryOpacity: 0.14,
-        separatorBorderOpacity: 0.12,
-        rowSelectedBorderOpacity: 0.32,
-        quickAddBackgroundOpacity: 0.58,
-        quickAddFocusBorderOpacity: 0.62,
+        backgroundOverlayOpacity: 0.16,
+        panelFillOpacity: 0.64,
+        rowDefaultBackgroundOpacity: 0.38,
+        rowHoverBackgroundOpacity: 0.46,
+        rowSelectedBackgroundOpacity: 0.62,
+        separatorPrimaryOpacity: 0.16,
+        separatorSecondaryOpacity: 0.10,
+        separatorBorderOpacity: 0.09,
+        rowSelectedBorderOpacity: 0.26,
+        quickAddBackgroundOpacity: 0.64,
+        quickAddFocusBorderOpacity: 0.48,
         primaryTextOpacity: 0.92,
         secondaryTextOpacity: 0.68,
         subtitleTextOpacity: 0.74,
-        toolbarHoverFillOpacity: 0.10
+        toolbarHoverFillOpacity: 0.10,
+        sidebarBackgroundOpacity: 0.98,
+        sidebarRowBackgroundOpacity: 0.02,
+        sidebarSearchBackgroundOpacity: 0.94,
+        sidebarSelectionBackgroundOpacity: 0.20,
+        sidebarTextPrimaryOpacity: 0.88,
+        sidebarTextSecondaryOpacity: 0.56
     )
 
     static func palette(for colorScheme: ColorScheme) -> Palette {

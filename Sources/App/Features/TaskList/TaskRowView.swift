@@ -81,7 +81,7 @@ struct TaskRowView: View {
         }
         .padding(.horizontal, ToDoWebMetrics.taskRowHorizontalPadding)
         .padding(.vertical, ToDoWebMetrics.taskRowVerticalPadding)
-        .frame(minHeight: ToDoWebMetrics.taskRowMinHeight)
+        .frame(maxWidth: .infinity, minHeight: ToDoWebMetrics.taskRowMinHeight, alignment: .leading)
         .background(rowBackgroundColor)
         .clipShape(RoundedRectangle(cornerRadius: ToDoWebMetrics.taskRowCornerRadius, style: .continuous))
         .overlay(

@@ -62,6 +62,8 @@ struct Phase2RegressionMain {
         try testQuickAddParser()
         try testAppAppearancePreferenceMapping()
         try testToDoWebColorPalettes()
+        try testAdaptiveScaleFactor()
+        try testQuickAddActionWidthToken()
         try await testTaskStoreCompletionAndPersistence()
         try await testCreateTaskReturnsIDAndMyDayDate()
         try await testMyDaySuggestionsAndStats()
@@ -214,6 +216,35 @@ struct Phase2RegressionMain {
         try expect(light.separatorBorderOpacity > 0, "light palette border opacity should be non-zero")
         try expect(dark.primaryTextOpacity > dark.secondaryTextOpacity, "dark palette primary text should be stronger than secondary")
         try expect(light.primaryTextOpacity > light.secondaryTextOpacity, "light palette primary text should be stronger than secondary")
+        try expect(
+            light.separatorPrimaryOpacity > light.separatorSecondaryOpacity &&
+            light.separatorSecondaryOpacity > light.separatorBorderOpacity,
+            "light palette separator hierarchy should be primary > secondary > border"
+        )
+        try expect(
+            light.rowSelectedBackgroundOpacity > light.rowHoverBackgroundOpacity &&
+            light.rowHoverBackgroundOpacity > light.rowDefaultBackgroundOpacity,
+            "light palette row hierarchy should be selected > hover > default"
+        )
+        try expect(
+            light.sidebarTextPrimaryOpacity > light.sidebarTextSecondaryOpacity,
+            "light palette sidebar text should be primary > secondary"
+        )
+    }
+
+    static func testAdaptiveScaleFactor() throws {
+        let low = ToDoWebMetrics.scaleFactor(for: 600)
+        let mid = ToDoWebMetrics.scaleFactor(for: 1000)
+        let high = ToDoWebMetrics.scaleFactor(for: 1600)
+
+        try expect(low == 0.86, "scale factor should clamp to minimum at very narrow widths")
+        try expect(high == 1.0, "scale factor should clamp to 1.0 at wide widths")
+        try expect(mid > low && mid < high, "scale factor should interpolate between bounds")
+    }
+
+    static func testQuickAddActionWidthToken() throws {
+        let width = ToDoWebMetrics.quickAddActionMinWidth
+        try expect(width >= 72 && width <= 88, "quick add action min width should stay in expected visual range")
     }
 
     @MainActor

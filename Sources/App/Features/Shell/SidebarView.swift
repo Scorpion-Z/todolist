@@ -42,11 +42,13 @@ struct SidebarView: View {
                         } header: {
                             HStack {
                                 Text(group.title)
+                                    .foregroundStyle(palette.sidebarTextSecondary)
                                 Spacer()
                                 Button {
                                     store.toggleGroupCollapsed(id: group.id)
                                 } label: {
                                     Image(systemName: group.isCollapsed ? "chevron.right" : "chevron.down")
+                                        .foregroundStyle(palette.sidebarTextSecondary)
                                 }
                                 .buttonStyle(.plain)
                                 .accessibilityLabel(Text(group.isCollapsed ? "sidebar.expandGroup" : "sidebar.collapseGroup"))
@@ -63,10 +65,10 @@ struct SidebarView: View {
             }
             .listStyle(.sidebar)
             .scrollContentBackground(.hidden)
-            .background(AppTheme.sidebarBackground)
+            .background(palette.sidebarBackground)
 
             Rectangle()
-                .fill(palette.separatorPrimary)
+                .fill(palette.separatorSecondary)
                 .frame(height: 1)
 
             HStack(spacing: 8) {
@@ -78,12 +80,13 @@ struct SidebarView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(.plain)
+                .foregroundStyle(palette.sidebarTextPrimary)
             }
             .padding(.horizontal, 12)
             .frame(height: ToDoWebMetrics.sidebarFooterHeight)
-            .background(AppTheme.sidebarBackground)
+            .background(palette.sidebarBackground)
         }
-        .background(AppTheme.sidebarBackground)
+        .background(palette.sidebarBackground)
         .onAppear {
             uiSelection = shell.selection
             pendingSelection = nil
@@ -124,10 +127,11 @@ struct SidebarView: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(store.profile.displayName.isEmpty ? String(localized: "profile.defaultName") : store.profile.displayName)
                     .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(palette.sidebarTextPrimary)
                     .lineLimit(1)
                 Text(store.profile.email)
                     .font(.system(size: 12, weight: .regular))
-                    .foregroundStyle(AppTheme.secondaryText)
+                    .foregroundStyle(palette.sidebarTextSecondary)
                     .lineLimit(1)
             }
 
@@ -139,14 +143,15 @@ struct SidebarView: View {
     private var sidebarSearch: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
-                .foregroundStyle(AppTheme.secondaryText)
+                .foregroundStyle(palette.sidebarTextSecondary)
             TextField(String(localized: "search.placeholder"), text: $shell.sidebarSearchText)
                 .textFieldStyle(.plain)
+                .foregroundStyle(palette.sidebarTextPrimary)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
         .frame(height: ToDoWebMetrics.sidebarSearchHeight)
-        .background(AppTheme.surface1)
+        .background(palette.sidebarSearchBackground)
         .clipShape(RoundedRectangle(cornerRadius: ToDoWebMetrics.sidebarSearchCornerRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: ToDoWebMetrics.sidebarSearchCornerRadius, style: .continuous)
@@ -159,14 +164,16 @@ struct SidebarView: View {
         icon: String,
         selection: AppShellViewModel.SidebarSelection,
         count: Int,
-        tint: Color = .primary
+        tint: Color? = nil
     ) -> some View {
-        HStack(spacing: 8) {
+        let isSelected = uiSelection == selection
+        return HStack(spacing: 8) {
             Label {
                 Text(title)
+                    .foregroundStyle(palette.sidebarTextPrimary)
             } icon: {
                 Image(systemName: icon)
-                    .foregroundStyle(tint)
+                    .foregroundStyle(tint ?? palette.sidebarTextPrimary)
             }
 
             Spacer(minLength: 8)
@@ -175,18 +182,31 @@ struct SidebarView: View {
                 Text("\(count)")
                     .font(.system(size: 12, weight: .medium, design: .rounded))
                     .monospacedDigit()
-                    .foregroundStyle(AppTheme.secondaryText)
+                    .foregroundStyle(palette.sidebarTextSecondary)
             }
         }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(isSelected ? palette.sidebarSelectionBackground : palette.sidebarRowBackground)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(isSelected ? palette.sidebarSelectionBorder : Color.clear, lineWidth: 1)
+        )
         .contentShape(Rectangle())
         .frame(minHeight: ToDoWebMetrics.sidebarRowHeight)
         .tag(selection)
     }
 
     private func customListRow(_ list: TodoListEntity) -> some View {
-        HStack(spacing: 8) {
+        let selection = AppShellViewModel.SidebarSelection.customList(list.id)
+        let isSelected = uiSelection == selection
+        return HStack(spacing: 8) {
             Label {
                 Text(list.title)
+                    .foregroundStyle(palette.sidebarTextPrimary)
             } icon: {
                 Image(systemName: list.icon)
                     .foregroundStyle(AppTheme.color(for: list.theme))
@@ -199,12 +219,22 @@ struct SidebarView: View {
                 Text("\(count)")
                     .font(.system(size: 12, weight: .medium, design: .rounded))
                     .monospacedDigit()
-                    .foregroundStyle(AppTheme.secondaryText)
+                    .foregroundStyle(palette.sidebarTextSecondary)
             }
         }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(isSelected ? palette.sidebarSelectionBackground : palette.sidebarRowBackground)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(isSelected ? palette.sidebarSelectionBorder : Color.clear, lineWidth: 1)
+        )
         .contentShape(Rectangle())
         .frame(minHeight: ToDoWebMetrics.sidebarRowHeight)
-        .tag(AppShellViewModel.SidebarSelection.customList(list.id))
+        .tag(selection)
         .contextMenu {
             Section {
                 Menu("theme.picker.title") {

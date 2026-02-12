@@ -114,15 +114,12 @@ struct AppShellView: View {
         GeometryReader { proxy in
             let width = proxy.size.width
             let mode = shell.detailPresentationMode(for: width, inlineThreshold: inlineDetailThreshold)
+            let adaptiveMetrics = ToDoWebAdaptiveMetrics(contentWidth: width)
 
             ZStack {
                 backgroundLayer
-                ViewThatFits(in: .horizontal) {
-                    contentLayout(for: mode, compactHeader: false)
-                        .padding(ToDoWebMetrics.contentPadding)
-                    contentLayout(for: mode, compactHeader: true)
-                        .padding(ToDoWebMetrics.contentPadding)
-                }
+                contentLayout(for: mode, adaptive: adaptiveMetrics)
+                    .padding(adaptiveMetrics.contentPadding)
             }
             .onAppear {
                 updateContentWidth(width)
@@ -166,28 +163,28 @@ struct AppShellView: View {
     }
 
     @ViewBuilder
-    private func contentLayout(for mode: AppShellViewModel.DetailPresentationMode, compactHeader: Bool) -> some View {
+    private func contentLayout(for mode: AppShellViewModel.DetailPresentationMode, adaptive: ToDoWebAdaptiveMetrics) -> some View {
         switch mode {
         case .inline:
             HStack(spacing: 0) {
-                taskPanel(compactHeader: compactHeader)
+                taskPanel(adaptive: adaptive)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 detailResizeHandle
                 detailPanel
                     .frame(width: detailWidth)
             }
         case .modal, .hidden:
-            taskPanel(compactHeader: compactHeader)
+            taskPanel(adaptive: adaptive)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 
-    private func taskPanel(compactHeader: Bool) -> some View {
+    private func taskPanel(adaptive: ToDoWebAdaptiveMetrics) -> some View {
         VStack(spacing: 0) {
-            taskListHeader(compact: compactHeader)
-                .padding(.horizontal, compactHeader ? 16 : ToDoWebMetrics.titleHorizontalPadding)
-                .padding(.top, compactHeader ? 14 : ToDoWebMetrics.titleTopPadding)
-                .padding(.bottom, compactHeader ? 8 : ToDoWebMetrics.titleBottomPadding)
+            taskListHeader(adaptive: adaptive)
+                .padding(.horizontal, adaptive.titleHorizontalPadding)
+                .padding(.top, adaptive.titleTopPadding)
+                .padding(.bottom, adaptive.titleBottomPadding)
 
             if visibleTasks.isEmpty {
                 ContentUnavailableView("task.empty.title", systemImage: "checklist")
@@ -212,14 +209,14 @@ struct AppShellView: View {
                 selectedTaskID: selectedTaskBinding,
                 focusRequestID: shell.quickAddFocusToken
             )
-            .padding(.horizontal, ToDoWebMetrics.contentPadding)
-            .padding(.top, 10)
-            .padding(.bottom, 14)
+            .padding(.horizontal, adaptive.contentPadding)
+            .padding(.top, adaptive.quickAddTopPadding)
+            .padding(.bottom, adaptive.quickAddBottomPadding)
         }
         .background(palette.panelFill, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(palette.separatorBorder, lineWidth: 1)
+                .stroke(palette.panelBorder, lineWidth: 1)
         )
     }
 
@@ -234,7 +231,7 @@ struct AppShellView: View {
         .background(palette.panelFill, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(palette.separatorBorder, lineWidth: 1)
+                .stroke(palette.panelBorder, lineWidth: 1)
         )
     }
 
@@ -256,15 +253,15 @@ struct AppShellView: View {
         }
     }
 
-    private func taskListHeader(compact: Bool) -> some View {
+    private func taskListHeader(adaptive: ToDoWebAdaptiveMetrics) -> some View {
         VStack(alignment: .leading, spacing: ToDoWebMetrics.titleSpacing) {
             Text(currentSectionTitle)
-                .font(.system(size: compact ? 34 : ToDoWebMetrics.titleFontSize, weight: .semibold))
+                .font(.system(size: adaptive.titleFontSize, weight: .semibold))
                 .foregroundStyle(palette.primaryText)
 
             if case .smartList(.myDay) = shell.selection {
                 Text(Date(), format: .dateTime.month(.defaultDigits).day(.defaultDigits).weekday(.wide))
-                    .font(.system(size: compact ? 18 : ToDoWebMetrics.subtitleFontSize, weight: .semibold))
+                    .font(.system(size: adaptive.subtitleFontSize, weight: .semibold))
                     .foregroundStyle(palette.subtitleText)
             }
         }
