@@ -75,7 +75,7 @@ struct TaskRowView: View {
             }
             .opacity(actionControlsVisible ? 1 : 0)
             .allowsHitTesting(actionControlsVisible)
-            .animation(ToDoWebMotion.hoverFade, value: actionControlsVisible)
+            .animation(ToDoWebMotion.hoverBezier, value: actionControlsVisible)
         }
         .padding(.horizontal, ToDoWebMetrics.taskRowHorizontalPadding)
         .padding(.vertical, ToDoWebMetrics.taskRowVerticalPadding)
@@ -90,9 +90,12 @@ struct TaskRowView: View {
         .onTapGesture(perform: onSelect)
 #if os(macOS)
         .onHover { hovering in
-            isHovered = hovering
+            withAnimation(ToDoWebMotion.hoverBezier) {
+                isHovered = hovering
+            }
         }
 #endif
+        .animation(ToDoWebMotion.hoverBezier, value: isSelected)
     }
 
     private var actionControlsVisible: Bool {
@@ -107,7 +110,7 @@ struct TaskRowView: View {
     }
 
     private var rowBorderColor: Color {
-        isSelected ? ToDoWebColors.rowSelectedBorder : ToDoWebColors.rowDefaultBorder
+        isSelected ? ToDoWebColors.rowSelectedBorder : ToDoWebColors.separatorBorder
     }
 
     private func dueTint(dueDate: Date, isCompleted: Bool) -> Color {

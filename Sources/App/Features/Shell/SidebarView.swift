@@ -64,7 +64,9 @@ struct SidebarView: View {
             .scrollContentBackground(.hidden)
             .background(AppTheme.sidebarBackground)
 
-            Divider()
+            Rectangle()
+                .fill(ToDoWebColors.separatorPrimary)
+                .frame(height: 1)
 
             HStack(spacing: 8) {
                 Button {
@@ -147,7 +149,7 @@ struct SidebarView: View {
         .clipShape(RoundedRectangle(cornerRadius: ToDoWebMetrics.sidebarSearchCornerRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: ToDoWebMetrics.sidebarSearchCornerRadius, style: .continuous)
-                .stroke(AppTheme.strokeSubtle, lineWidth: 1)
+                .stroke(ToDoWebColors.separatorBorder, lineWidth: 1)
         )
     }
 
@@ -203,20 +205,22 @@ struct SidebarView: View {
         .frame(minHeight: ToDoWebMetrics.sidebarRowHeight)
         .tag(AppShellViewModel.SidebarSelection.customList(list.id))
         .contextMenu {
-            Menu("theme.picker.title") {
-                ForEach(ListThemeStyle.allCases) { style in
-                    Button {
-                        store.setListTheme(id: list.id, theme: style)
-                    } label: {
-                        Text(style.titleKey)
+            Section {
+                Menu("theme.picker.title") {
+                    ForEach(ListThemeStyle.allCases) { style in
+                        Button {
+                            store.setListTheme(id: list.id, theme: style)
+                        } label: {
+                            Text(style.titleKey)
+                        }
                     }
                 }
             }
 
-            Divider()
-
-            Button("delete.button", role: .destructive) {
-                store.deleteList(id: list.id)
+            Section {
+                Button("delete.button", role: .destructive) {
+                    store.deleteList(id: list.id)
+                }
             }
         }
     }

@@ -138,3 +138,23 @@ for file in \
     exit 1
   fi
 done
+
+if ! rg -n 'hoverBezier\s*:.*timingCurve\(' Sources/App/Resources/ToDoWebStyle.swift >/dev/null; then
+  echo "ToDoWebStyle should define hoverBezier using timingCurve."
+  exit 1
+fi
+
+if ! rg -n 'toolbarIconHitArea' Sources/App/Features/Shell/AppShellView.swift >/dev/null; then
+  echo "AppShellView should use toolbarIconHitArea token for toolbar icon hit targets."
+  exit 1
+fi
+
+if rg -n 'Divider\(' Sources/App/Features/Shell/AppShellView.swift Sources/App/Features/Shell/SidebarView.swift >/dev/null; then
+  echo "AppShellView/SidebarView should avoid direct Divider() and use explicit separator tokens."
+  exit 1
+fi
+
+if rg -n '\.easeOut\(' Sources/App/Features/TaskList/TaskRowView.swift >/dev/null; then
+  echo "TaskRowView hover behavior should use ToDoWebMotion.hoverBezier, not direct easeOut."
+  exit 1
+fi

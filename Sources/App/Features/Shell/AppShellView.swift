@@ -202,7 +202,7 @@ struct AppShellView: View {
         .background(AppTheme.panelFill, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(AppTheme.strokeSubtle, lineWidth: 1)
+                .stroke(ToDoWebColors.separatorBorder, lineWidth: 1)
         )
     }
 
@@ -217,7 +217,7 @@ struct AppShellView: View {
         .background(AppTheme.panelFill, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(AppTheme.strokeSubtle, lineWidth: 1)
+                .stroke(ToDoWebColors.separatorBorder, lineWidth: 1)
         )
     }
 
@@ -318,48 +318,44 @@ struct AppShellView: View {
     @ToolbarContentBuilder
     private var taskToolbar: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
-            HStack(spacing: ToDoWebMetrics.toolbarButtonSpacing) {
+            HStack(spacing: ToDoWebMetrics.toolbarIconSpacing) {
                 if activeSmartList == .myDay {
-                    Button {
+                    ToolbarIconButton(systemName: "lightbulb", accessibilityKey: "myday.suggestions.button", isEnabled: !myDaySuggestions.isEmpty) {
                         showingMyDaySuggestions = true
-                    } label: {
-                        Image(systemName: "lightbulb")
-                            .frame(width: ToDoWebMetrics.toolbarButtonSize, height: ToDoWebMetrics.toolbarButtonSize)
                     }
-                    .buttonStyle(.plain)
-                    .disabled(myDaySuggestions.isEmpty)
-                    .accessibilityLabel(Text("myday.suggestions.button"))
                 }
 
                 Menu {
                     if shell.selectedTaskID != nil {
-                        Button("command.toggleComplete") {
-                            shell.toggleSelectedTaskCompletion(using: store)
+                        Section {
+                            Button("command.toggleComplete") {
+                                shell.toggleSelectedTaskCompletion(using: store)
+                            }
+                            Button("command.toggleImportant") {
+                                shell.toggleSelectedTaskImportant(using: store)
+                            }
+                            Button("delete.button", role: .destructive) {
+                                shell.deleteSelectedTask(from: store)
+                            }
                         }
-                        Button("command.toggleImportant") {
-                            shell.toggleSelectedTaskImportant(using: store)
-                        }
-                        Button("delete.button", role: .destructive) {
-                            shell.deleteSelectedTask(from: store)
-                        }
-                        Divider()
                     }
 
-                    Toggle("task.filter.showcompleted", isOn: Binding(
-                        get: { store.appPrefs.showCompletedSection },
-                        set: { value in
-                            store.setShowCompletedSection(value)
+                    Section {
+                        Toggle("task.filter.showcompleted", isOn: Binding(
+                            get: { store.appPrefs.showCompletedSection },
+                            set: { value in
+                                store.setShowCompletedSection(value)
+                            }
+                        ))
+                    }
+
+                    Section {
+                        Button("settings.title") {
+                            showingSettings = true
                         }
-                    ))
-
-                    Divider()
-
-                    Button("settings.title") {
-                        showingSettings = true
                     }
                 } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .frame(width: ToDoWebMetrics.toolbarButtonSize, height: ToDoWebMetrics.toolbarButtonSize)
+                    ToolbarIconMenuLabel(systemName: "ellipsis.circle")
                 }
                 .menuStyle(.borderlessButton)
                 .accessibilityLabel(Text("toolbar.more"))
@@ -497,6 +493,60 @@ struct AppShellView: View {
                 return .graphite
             }
         }
+    }
+}
+
+private struct ToolbarIconButton: View {
+    let systemName: String
+    let accessibilityKey: LocalizedStringKey
+    let isEnabled: Bool
+    let action: () -> Void
+
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            ToolbarIconLabel(systemName: systemName, isHovered: isHovered)
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .accessibilityLabel(Text(accessibilityKey))
+        .onHover { hovering in
+            withAnimation(ToDoWebMotion.hoverBezier) {
+                isHovered = hovering
+            }
+        }
+    }
+}
+
+private struct ToolbarIconLabel: View {
+    let systemName: String
+    var isHovered: Bool = false
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(isHovered ? Color.white.opacity(0.08) : Color.clear)
+                .frame(width: ToDoWebMetrics.toolbarIconVisualSize, height: ToDoWebMetrics.toolbarIconVisualSize)
+            Image(systemName: systemName)
+                .font(.system(size: ToDoWebMetrics.toolbarIconGlyphSize, weight: .medium))
+        }
+        .frame(width: ToDoWebMetrics.toolbarIconHitArea, height: ToDoWebMetrics.toolbarIconHitArea)
+    }
+}
+
+private struct ToolbarIconMenuLabel: View {
+    let systemName: String
+
+    @State private var isHovered = false
+
+    var body: some View {
+        ToolbarIconLabel(systemName: systemName, isHovered: isHovered)
+            .onHover { hovering in
+                withAnimation(ToDoWebMotion.hoverBezier) {
+                    isHovered = hovering
+                }
+            }
     }
 }
 

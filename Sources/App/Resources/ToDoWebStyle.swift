@@ -31,8 +31,10 @@ enum ToDoWebMetrics {
     static let detailResizeHandleWidth: CGFloat = 10
     static let detailResizeLineWidth: CGFloat = 1
 
-    static let toolbarButtonSize: CGFloat = 32
-    static let toolbarButtonSpacing: CGFloat = 8
+    static let toolbarIconHitArea: CGFloat = 36
+    static let toolbarIconVisualSize: CGFloat = 32
+    static let toolbarIconGlyphSize: CGFloat = 16
+    static let toolbarIconSpacing: CGFloat = 8
 
     static let sidebarSearchHeight: CGFloat = 36
     static let sidebarSearchCornerRadius: CGFloat = 8
@@ -50,22 +52,24 @@ enum ToDoWebColors {
     static let rowDefaultBackground = Color.black.opacity(0.22)
     static let rowHoverBackground = Color.black.opacity(0.28)
     static let rowSelectedBackground = Color.white.opacity(0.18)
-    static let rowDefaultBorder = Color.white.opacity(0.12)
+    static let separatorPrimary = Color.white.opacity(0.22)
+    static let separatorSecondary = Color.white.opacity(0.14)
+    static let separatorBorder = Color.white.opacity(0.12)
     static let rowSelectedBorder = Color.white.opacity(0.38)
 
     static let quickAddBackground = Color.black.opacity(0.30)
-    static let quickAddBorder = Color.white.opacity(0.12)
+    static let quickAddBorder = separatorBorder
     static let quickAddFocusBorder = Color.white.opacity(0.28)
 
     static let secondaryText = Color.white.opacity(0.75)
     static let subtitleText = Color.white.opacity(0.82)
-    static let handleLine = Color.white.opacity(0.20)
+    static let handleLine = separatorPrimary
 }
 
 enum ToDoWebMotion {
     static let hoverFadeDuration: Double = 0.12
     static let standardDuration: Double = 0.16
 
-    static let hoverFade: Animation = .easeOut(duration: hoverFadeDuration)
+    static let hoverBezier: Animation = .timingCurve(0.2, 0.0, 0.0, 1.0, duration: hoverFadeDuration)
     static let standard: Animation = .easeOut(duration: standardDuration)
 }
