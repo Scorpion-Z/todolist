@@ -63,6 +63,7 @@ struct Phase2RegressionMain {
         try await testMyDaySuggestionsAndStats()
         try await testListDeletionReordersManualOrderAndSelectionFallback()
         try await testAppShellActionDispatch()
+        try await testDeferredDetailAutosaveDispatch()
         try await testConflictAwareDualStorageMerge()
     }
 
@@ -318,6 +319,47 @@ struct Phase2RegressionMain {
         shell.deleteSelectedTask(from: store)
         try expect(store.item(withID: item.id) == nil, "shell action should delete selected task")
         try expect(shell.selectedTaskID == nil, "shell should clear selected task after deletion")
+    }
+
+    @MainActor
+    static func testDeferredDetailAutosaveDispatch() async throws {
+        @MainActor
+        final class AutosaveProbe {
+            private(set) var updateCount = 0
+            private(set) var committedTitles: [String] = []
+            private var pendingTask: Task<Void, Never>?
+            private var draftTitle = ""
+
+            func editTitle(_ title: String, delay: UInt64 = 40_000_000) {
+                draftTitle = title
+                pendingTask?.cancel()
+                pendingTask = Task {
+                    try? await Task.sleep(nanoseconds: delay)
+                    guard !Task.isCancelled else { return }
+                    await MainActor.run {
+                        Task { @MainActor in
+                            self.updateCount += 1
+                            self.committedTitles.append(self.draftTitle)
+                        }
+                        return ()
+                    }
+                }
+            }
+        }
+
+        let probe = AutosaveProbe()
+
+        probe.editTitle("a")
+        probe.editTitle("ab")
+        probe.editTitle("abc")
+
+        try expect(probe.updateCount == 0, "detail autosave should not synchronously publish updates inside edit call stack")
+
+        try await Task.sleep(nanoseconds: 120_000_000)
+        for _ in 0..<3 { await Task.yield() }
+
+        try expect(probe.updateCount == 1, "detail autosave debounce should collapse rapid edits into one update")
+        try expect(probe.committedTitles.last == "abc", "detail autosave should commit the latest draft value")
     }
 
     static func testConflictAwareDualStorageMerge() async throws {

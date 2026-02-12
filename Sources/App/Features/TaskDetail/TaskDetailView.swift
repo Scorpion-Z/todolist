@@ -8,6 +8,11 @@ struct TaskDetailView: View {
     @State private var loadedItemID: UUID?
     @State private var newSubtaskTitle = ""
     @State private var newTagTitle = ""
+    @State private var isDraftDirty = false
+    @State private var autosaveTask: Task<Void, Never>?
+    @State private var isApplyingStoreUpdate = false
+
+    private static let autosaveDelayNanoseconds: UInt64 = 350_000_000
 
     var body: some View {
         Group {
@@ -20,18 +25,24 @@ struct TaskDetailView: View {
         .background(AppTheme.surface0)
         .onAppear(perform: syncDraftFromSelection)
         .onChange(of: selectedTaskID) { _, _ in
+            flushDraftIfNeeded(reason: "selectionChanged")
             syncDraftFromSelection()
+        }
+        .onDisappear {
+            flushDraftIfNeeded(reason: "disappear")
+            cancelAutosave()
         }
     }
 
     private func detailEditor(for item: TodoItem) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+        Form {
+            Section {
                 HStack {
                     Text("detail.title")
                         .font(AppTypography.sectionTitle)
                     Spacer()
                     Button("detail.revert") {
+                        flushDraftIfNeeded(reason: "revert")
                         loadDraft(from: item)
                     }
                     .buttonStyle(.bordered)
@@ -65,7 +76,7 @@ struct TaskDetailView: View {
                             } else {
                                 draft.dueDate = nil
                             }
-                            saveDraft()
+                            scheduleAutosave()
                         }
                     )
                 )
@@ -77,7 +88,7 @@ struct TaskDetailView: View {
                             get: { draft.dueDate ?? Date() },
                             set: {
                                 draft.dueDate = $0
-                                saveDraft()
+                                scheduleAutosave()
                             }
                         ),
                         displayedComponents: [.date]
@@ -91,26 +102,14 @@ struct TaskDetailView: View {
                     }
                 }
                 .pickerStyle(.menu)
+            }
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("markdown.description")
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppTheme.secondaryText)
+            Section("markdown.description") {
                     TextEditor(text: binding(\.descriptionMarkdown))
                         .frame(minHeight: 140)
-                        .padding(8)
-                        .background(AppTheme.surface1)
-                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .stroke(AppTheme.strokeSubtle, lineWidth: 1)
-                        )
-                }
+            }
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("subtasks.title")
-                        .font(AppTypography.sectionTitle)
-
+            Section("subtasks.title") {
                     if draft.subtasks.isEmpty {
                         Text("subtasks.empty")
                             .font(AppTypography.caption)
@@ -120,12 +119,12 @@ struct TaskDetailView: View {
                             HStack {
                                 Toggle(subtask.title, isOn: $subtask.isCompleted)
                                     .onChange(of: subtask.isCompleted) { _, _ in
-                                        saveDraft()
+                                        scheduleAutosave()
                                     }
                                 Spacer()
                                 Button(role: .destructive) {
                                     draft.subtasks.removeAll { $0.id == subtask.id }
-                                    saveDraft()
+                                    scheduleAutosave()
                                 } label: {
                                     Image(systemName: "trash")
                                 }
@@ -142,16 +141,13 @@ struct TaskDetailView: View {
                             guard !trimmed.isEmpty else { return }
                             draft.subtasks.append(Subtask(title: trimmed))
                             newSubtaskTitle = ""
-                            saveDraft()
+                            scheduleAutosave()
                         }
                         .disabled(newSubtaskTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
-                }
+            }
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("tags.title")
-                        .font(AppTypography.sectionTitle)
-
+            Section("tags.title") {
                     if draft.availableTags.isEmpty {
                         Text("filter.tags.empty")
                             .font(AppTypography.caption)
@@ -179,13 +175,11 @@ struct TaskDetailView: View {
                             }
 
                             newTagTitle = ""
-                            saveDraft()
+                            scheduleAutosave()
                         }
                         .disabled(newTagTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
-                }
             }
-            .padding(16)
         }
         .onAppear {
             if loadedItemID != item.id {
@@ -205,15 +199,17 @@ struct TaskDetailView: View {
             get: { draft[keyPath: keyPath] },
             set: { newValue in
                 draft[keyPath: keyPath] = newValue
-                saveDraft()
+                scheduleAutosave()
             }
         )
     }
 
     private func syncDraftFromSelection() {
         guard let item = store.item(withID: selectedTaskID) else {
+            cancelAutosave()
             loadedItemID = nil
             draft = .empty
+            isDraftDirty = false
             return
         }
 
@@ -223,6 +219,7 @@ struct TaskDetailView: View {
     }
 
     private func loadDraft(from item: TodoItem) {
+        cancelAutosave()
         loadedItemID = item.id
         draft = Draft(
             title: item.title,
@@ -236,24 +233,59 @@ struct TaskDetailView: View {
             tags: item.tags,
             availableTags: mergeTags(store.tags, item.tags)
         )
+        isDraftDirty = false
     }
 
-    private func saveDraft() {
-        guard let id = loadedItemID else { return }
+    private func markDraftDirty() {
+        guard loadedItemID != nil else { return }
+        isDraftDirty = true
+    }
 
-        let title = draft.title.trimmingCharacters(in: .whitespacesAndNewlines)
+    private func scheduleAutosave(delayNanoseconds: UInt64 = Self.autosaveDelayNanoseconds) {
+        guard loadedItemID != nil else { return }
+        markDraftDirty()
+        autosaveTask?.cancel()
+        autosaveTask = Task {
+            try? await Task.sleep(nanoseconds: delayNanoseconds)
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                flushDraftIfNeeded(reason: "debounce")
+            }
+        }
+    }
+
+    private func cancelAutosave() {
+        autosaveTask?.cancel()
+        autosaveTask = nil
+    }
+
+    private func flushDraftIfNeeded(reason _: String) {
+        cancelAutosave()
+        guard !isApplyingStoreUpdate else { return }
+        guard let id = loadedItemID, isDraftDirty else { return }
+
+        let pendingDraft = draft
+        let title = pendingDraft.title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty else { return }
 
-        store.updateTask(id: id) { item in
-            item.title = title
-            item.descriptionMarkdown = draft.descriptionMarkdown
-            item.priority = draft.priority
-            item.dueDate = draft.dueDate
-            item.repeatRule = draft.repeatRule
-            item.isImportant = draft.isImportant
-            item.myDayDate = draft.isInMyDay ? Calendar.current.startOfDay(for: Date()) : nil
-            item.subtasks = draft.subtasks
-            item.tags = draft.tags
+        isApplyingStoreUpdate = true
+        Task { @MainActor in
+            store.updateTask(id: id) { item in
+                item.title = title
+                item.descriptionMarkdown = pendingDraft.descriptionMarkdown
+                item.priority = pendingDraft.priority
+                item.dueDate = pendingDraft.dueDate
+                item.repeatRule = pendingDraft.repeatRule
+                item.isImportant = pendingDraft.isImportant
+                item.myDayDate = pendingDraft.isInMyDay ? Calendar.current.startOfDay(for: Date()) : nil
+                item.subtasks = pendingDraft.subtasks
+                item.tags = pendingDraft.tags
+            }
+
+            if loadedItemID == id {
+                isDraftDirty = false
+            }
+            isApplyingStoreUpdate = false
         }
     }
 
@@ -265,7 +297,7 @@ struct TaskDetailView: View {
         } else {
             draft.tags.removeAll { $0.id == tag.id }
         }
-        saveDraft()
+        scheduleAutosave()
     }
 
     private func mergeTags(_ first: [Tag], _ second: [Tag]) -> [Tag] {

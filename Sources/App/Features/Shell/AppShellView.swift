@@ -30,7 +30,9 @@ struct AppShellView: View {
         .environment(\.locale, selectedLocale)
         .onChange(of: store.lists) { _, lists in
             let validCustomListIDs = Set(lists.filter { !$0.isSystem }.map(\.id))
-            shell.reconcileSelection(validCustomListIDs: validCustomListIDs)
+            Task { @MainActor in
+                shell.reconcileSelection(validCustomListIDs: validCustomListIDs)
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .todoCommandNewTask)) { _ in
             handleNewTaskCommand()

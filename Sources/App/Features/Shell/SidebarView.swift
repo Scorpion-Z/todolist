@@ -208,7 +208,10 @@ struct SidebarView: View {
             get: { shell.selection },
             set: { newValue in
                 guard let newValue else { return }
-                shell.select(newValue)
+                guard shell.selection != newValue else { return }
+                Task { @MainActor in
+                    shell.select(newValue)
+                }
             }
         )
     }
