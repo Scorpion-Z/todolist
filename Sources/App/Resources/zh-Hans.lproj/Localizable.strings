@@ -246,3 +246,38 @@
 "theme.sunrise" = "朝霞";
 "theme.violet" = "紫雾";
 "overview.weekly.overdue" = "逾期已处理";
+
+"command.menu.task" = "任务";
+"command.newTask" = "新建任务";
+"command.focusSearch" = "聚焦搜索";
+"command.toggleComplete" = "切换完成状态";
+"command.toggleImportant" = "切换重要状态";
+"command.deleteTask" = "删除任务";
+"toolbar.more" = "更多操作";
+
+"overview.detail.empty" = "请选择一个列表开始处理任务。";
+"theme.picker.title" = "选择主题";
+"settings.account.section" = "账号";
+
+"list.section.myLists" = "我的列表";
+"list.create" = "新建列表";
+"list.manage" = "管理列表";
+
+"profile.defaultName" = "默认用户";
+"profile.name" = "昵称";
+"profile.email" = "邮箱";
+"profile.avatar" = "头像";
+
+"list.management.title" = "列表与分组管理";
+"list.management.newList.section" = "新建列表";
+"list.management.newList.name" = "列表名称";
+"list.management.newList.group" = "所属分组";
+"list.management.newList.none" = "无分组";
+"list.management.newList.create" = "创建列表";
+"list.management.newGroup.section" = "新建分组";
+"list.management.newGroup.name" = "分组名称";
+"list.management.newGroup.create" = "创建分组";
+"list.management.existing.section" = "已有列表";
+
+"sidebar.expandGroup" = "展开分组";
+"sidebar.collapseGroup" = "折叠分组";

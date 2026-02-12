@@ -18,6 +18,7 @@ struct TaskRowView: View {
                     .foregroundStyle(item.isCompleted ? AppTheme.accentStrong : AppTheme.secondaryText)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(Text(item.isCompleted ? "mark.open" : "mark.done"))
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(item.title)
@@ -54,6 +55,7 @@ struct TaskRowView: View {
                     .foregroundStyle(item.isImportant ? .yellow : AppTheme.secondaryText)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(Text(item.isImportant ? "important.remove" : "important.add"))
 
             Menu {
                 Button(item.isCompleted ? "mark.open" : "mark.done", action: onToggleCompletion)
@@ -67,6 +69,7 @@ struct TaskRowView: View {
                     .frame(width: 22)
             }
             .menuStyle(.borderlessButton)
+            .accessibilityLabel(Text("toolbar.more"))
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)

@@ -246,3 +246,38 @@
 "theme.sunrise" = "Sunrise";
 "theme.violet" = "Violet";
 "overview.weekly.overdue" = "Overdue Resolved";
+
+"command.menu.task" = "Tasks";
+"command.newTask" = "New Task";
+"command.focusSearch" = "Focus Search";
+"command.toggleComplete" = "Toggle Completion";
+"command.toggleImportant" = "Toggle Important";
+"command.deleteTask" = "Delete Task";
+"toolbar.more" = "More";
+
+"overview.detail.empty" = "Select a list to start.";
+"theme.picker.title" = "Choose Theme";
+"settings.account.section" = "Account";
+
+"list.section.myLists" = "My Lists";
+"list.create" = "New List";
+"list.manage" = "Manage Lists";
+
+"profile.defaultName" = "Super KaKa";
+"profile.name" = "Display Name";
+"profile.email" = "Email";
+"profile.avatar" = "Avatar";
+
+"list.management.title" = "Lists and Groups";
+"list.management.newList.section" = "Create List";
+"list.management.newList.name" = "List Name";
+"list.management.newList.group" = "Group";
+"list.management.newList.none" = "No Group";
+"list.management.newList.create" = "Create List";
+"list.management.newGroup.section" = "Create Group";
+"list.management.newGroup.name" = "Group Name";
+"list.management.newGroup.create" = "Create Group";
+"list.management.existing.section" = "Existing Lists";
+
+"sidebar.expandGroup" = "Expand Group";
+"sidebar.collapseGroup" = "Collapse Group";

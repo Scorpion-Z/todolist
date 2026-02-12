@@ -21,10 +21,21 @@ struct SidebarView: View {
                 .padding(.bottom, 10)
 
             List(selection: selectionBinding) {
-                Section {
+                Section("list.section.insights") {
+                    Label {
+                        Text("overview.title")
+                    } icon: {
+                        Image(systemName: "chart.bar")
+                            .foregroundStyle(AppTheme.secondaryText)
+                    }
+                    .contentShape(Rectangle())
+                    .tag(AppShellViewModel.SidebarSelection.overview)
+                }
+
+                Section("list.section.smart") {
                     smartRow(title: String(localized: "smart.myDay"), icon: "sun.max", selection: .smartList(.myDay), count: store.taskCount(for: .myDay))
                     smartRow(title: String(localized: "smart.planned"), icon: "calendar", selection: .smartList(.planned), count: store.taskCount(for: .planned))
-                    smartRow(title: String(localized: "smart.flaggedmail"), icon: "flag", selection: .smartList(.important), count: store.taskCount(for: .important), tint: .red)
+                    smartRow(title: String(localized: "smart.important"), icon: "flag", selection: .smartList(.important), count: store.taskCount(for: .important), tint: .red)
                     smartRow(title: String(localized: "smart.tasks"), icon: "house", selection: .smartList(.all), count: store.taskCount(for: .all))
                 }
 
@@ -44,13 +55,14 @@ struct SidebarView: View {
                                 Button {
                                     store.toggleGroupCollapsed(id: group.id)
                                 } label: {
-                                    Image(systemName: group.isCollapsed ? "chevron.down" : "chevron.up")
+                                    Image(systemName: group.isCollapsed ? "chevron.right" : "chevron.down")
                                 }
                                 .buttonStyle(.plain)
+                                .accessibilityLabel(Text(group.isCollapsed ? "sidebar.expandGroup" : "sidebar.collapseGroup"))
                             }
                         }
                     } else {
-                        Section("我的列表") {
+                        Section("list.section.myLists") {
                             ForEach(section.lists) { list in
                                 customListRow(list)
                             }
@@ -68,7 +80,7 @@ struct SidebarView: View {
                 Button {
                     showingListManagement = true
                 } label: {
-                    Label("新建列表", systemImage: "plus")
+                    Label("list.create", systemImage: "plus")
                 }
                 .buttonStyle(.plain)
 
@@ -80,6 +92,7 @@ struct SidebarView: View {
                     Image(systemName: "square.and.pencil")
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(Text("list.manage"))
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
@@ -107,7 +120,7 @@ struct SidebarView: View {
                     .frame(width: 36, height: 36)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(store.profile.displayName.isEmpty ? "Super KaKa" : store.profile.displayName)
+                    Text(store.profile.displayName.isEmpty ? String(localized: "profile.defaultName") : store.profile.displayName)
                         .font(.system(size: 20, weight: .semibold))
                         .lineLimit(1)
                     Text(store.profile.email)
@@ -213,15 +226,15 @@ private struct ProfileEditorSheet: View {
         "person.crop.circle.fill",
         "person.fill",
         "person.2.fill",
-        "star.circle.fill"
+        "star.circle.fill",
     ]
 
     var body: some View {
         Form {
-            TextField("昵称", text: $name)
-            TextField("邮箱", text: $email)
+            TextField("profile.name", text: $name)
+            TextField("profile.email", text: $email)
 
-            Picker("头像", selection: $avatar) {
+            Picker("profile.avatar", selection: $avatar) {
                 ForEach(avatars, id: \.self) { icon in
                     Label(icon, systemImage: icon).tag(icon)
                 }
@@ -235,10 +248,10 @@ private struct ProfileEditorSheet: View {
         }
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("取消") { dismiss() }
+                Button("edit.cancel") { dismiss() }
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("保存") {
+                Button("edit.save") {
                     store.updateProfile(displayName: name, email: email, avatarSystemImage: avatar)
                     dismiss()
                 }
@@ -258,36 +271,36 @@ private struct ListManagementSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("列表与分组管理")
+            Text("list.management.title")
                 .font(AppTypography.sectionTitle)
 
             Form {
-                Section("新建列表") {
-                    TextField("列表名称", text: $listTitle)
-                    Picker("所属分组", selection: $selectedGroupID) {
-                        Text("无分组").tag(Optional<UUID>.none)
+                Section("list.management.newList.section") {
+                    TextField("list.management.newList.name", text: $listTitle)
+                    Picker("list.management.newList.group", selection: $selectedGroupID) {
+                        Text("list.management.newList.none").tag(Optional<UUID>.none)
                         ForEach(store.groups) { group in
                             Text(group.title).tag(Optional(group.id))
                         }
                     }
 
-                    Button("创建列表") {
+                    Button("list.management.newList.create") {
                         store.createList(title: listTitle, groupID: selectedGroupID)
                         listTitle = ""
                     }
                     .disabled(listTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
 
-                Section("新建分组") {
-                    TextField("分组名称", text: $groupTitle)
-                    Button("创建分组") {
+                Section("list.management.newGroup.section") {
+                    TextField("list.management.newGroup.name", text: $groupTitle)
+                    Button("list.management.newGroup.create") {
                         store.createGroup(title: groupTitle)
                         groupTitle = ""
                     }
                     .disabled(groupTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
 
-                Section("已有列表") {
+                Section("list.management.existing.section") {
                     ForEach(store.customLists) { list in
                         HStack {
                             Image(systemName: list.icon)
@@ -295,7 +308,7 @@ private struct ListManagementSheet: View {
                             Text(list.title)
                             Spacer()
                             Menu {
-                                Menu("主题") {
+                                Menu("theme.picker.title") {
                                     ForEach(ListThemeStyle.allCases) { style in
                                         Button {
                                             store.setListTheme(id: list.id, theme: style)
@@ -305,7 +318,7 @@ private struct ListManagementSheet: View {
                                     }
                                 }
 
-                                Button("删除", role: .destructive) {
+                                Button("delete.button", role: .destructive) {
                                     store.deleteList(id: list.id)
                                 }
                             } label: {
@@ -319,7 +332,7 @@ private struct ListManagementSheet: View {
 
             HStack {
                 Spacer()
-                Button("完成") { dismiss() }
+                Button("template.manager.done") { dismiss() }
             }
         }
         .padding(16)

@@ -5,6 +5,7 @@ struct QuickAddBarView: View {
     let activeSelection: AppShellViewModel.SidebarSelection
 
     @Binding var selectedTaskID: TodoItem.ID?
+    let focusRequestID: Int
 
     @State private var quickInput = ""
     @State private var hintText = ""
@@ -16,6 +17,7 @@ struct QuickAddBarView: View {
             HStack(spacing: 8) {
                 Image(systemName: "plus")
                     .foregroundStyle(AppTheme.accentStrong)
+                    .accessibilityHidden(true)
 
                 TextField("quickadd.placeholder", text: $quickInput)
                     .textFieldStyle(.plain)
@@ -36,6 +38,7 @@ struct QuickAddBarView: View {
                     Image(systemName: "plus.square.on.square")
                 }
                 .menuStyle(.borderlessButton)
+                .accessibilityLabel(Text("template.manager.title"))
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
@@ -54,6 +57,9 @@ struct QuickAddBarView: View {
         }
         .onAppear {
             hintText = String(localized: "quickadd.hint.example")
+        }
+        .onChange(of: focusRequestID) { _, _ in
+            quickInputFocused = true
         }
         .sheet(isPresented: $showingTemplatePicker) {
             TemplatePickerView { titles in
@@ -78,7 +84,7 @@ struct QuickAddBarView: View {
         switch activeSelection {
         case .customList(let id):
             return id
-        case .smartList:
+        case .overview, .smartList:
             return TodoListEntity.defaultTasksListID
         }
     }

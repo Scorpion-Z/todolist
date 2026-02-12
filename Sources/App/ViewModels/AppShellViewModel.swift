@@ -4,6 +4,7 @@ import Combine
 @MainActor
 final class AppShellViewModel: ObservableObject {
     enum SidebarSelection: Hashable {
+        case overview
         case smartList(SmartListID)
         case customList(UUID)
     }
@@ -15,7 +16,6 @@ final class AppShellViewModel: ObservableObject {
     @Published var searchInput: String
     @Published var sidebarSearchText: String
     @Published var plannedFilter: PlannedFilter
-    @Published var isDetailDrawerPresented: Bool
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -32,13 +32,14 @@ final class AppShellViewModel: ObservableObject {
         self.searchInput = query.searchText
         self.sidebarSearchText = ""
         self.plannedFilter = .all
-        self.isDetailDrawerPresented = selectedTaskID != nil
 
         bindSearchDebounce()
     }
 
     var activeList: SmartListID {
         switch selection {
+        case .overview:
+            return .myDay
         case .smartList(let list):
             return list
         case .customList:
@@ -50,29 +51,26 @@ final class AppShellViewModel: ObservableObject {
         switch selection {
         case .customList(let id):
             return id
-        case .smartList:
+        case .overview, .smartList:
             return nil
         }
     }
 
     var showingTaskArea: Bool {
-        true
+        if case .overview = selection {
+            return false
+        }
+        return true
     }
 
     func select(_ selection: SidebarSelection) {
         self.selection = selection
         plannedFilter = .all
         selectedTaskID = nil
-        isDetailDrawerPresented = false
     }
 
     func selectTask(_ id: TodoItem.ID?) {
         selectedTaskID = id
-        isDetailDrawerPresented = id != nil
-    }
-
-    func closeDrawer() {
-        isDetailDrawerPresented = false
     }
 
     func clearSearch() {
@@ -84,7 +82,6 @@ final class AppShellViewModel: ObservableObject {
         guard let selectedTaskID else { return }
         store.deleteTasks(ids: [selectedTaskID])
         self.selectedTaskID = nil
-        self.isDetailDrawerPresented = false
     }
 
     func toggleSelectedTaskCompletion(using store: TaskStore) {
@@ -95,6 +92,13 @@ final class AppShellViewModel: ObservableObject {
     func toggleSelectedTaskImportant(using store: TaskStore) {
         guard let selectedTaskID else { return }
         store.toggleImportant(id: selectedTaskID)
+    }
+
+    func reconcileSelection(validCustomListIDs: Set<UUID>) {
+        guard case .customList(let id) = selection else { return }
+        guard !validCustomListIDs.contains(id) else { return }
+        selection = .smartList(.myDay)
+        selectedTaskID = nil
     }
 
     private func bindSearchDebounce() {

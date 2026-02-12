@@ -15,9 +15,36 @@ xcrun swiftc -emit-executable \
   Sources/App/Models/TodoItem.swift \
   Sources/App/Parsing/QuickAddParser.swift \
   Sources/App/ViewModels/ListQueryEngine.swift \
+  Sources/App/ViewModels/AppShellViewModel.swift \
+  Sources/App/ViewModels/TodoStorage.swift \
   Sources/App/ViewModels/TaskStore.swift \
-  Sources/App/ViewModels/TodoListViewModel.swift \
   Scripts/phase2_regression.swift \
   -o /tmp/phase2_regression_bin
 
 /tmp/phase2_regression_bin
+
+extract_keys() {
+  sed -n 's/^"\\([^"]\\+\\)".*/\\1/p' "$1" | sort -u
+}
+
+EN_KEYS="$(mktemp)"
+ZH_KEYS="$(mktemp)"
+trap 'rm -f "$EN_KEYS" "$ZH_KEYS"' EXIT
+
+extract_keys Sources/App/Resources/en.lproj/Localizable.strings > "$EN_KEYS"
+extract_keys Sources/App/Resources/zh-Hans.lproj/Localizable.strings > "$ZH_KEYS"
+
+MISSING_IN_ZH="$(comm -23 "$EN_KEYS" "$ZH_KEYS" || true)"
+MISSING_IN_EN="$(comm -13 "$EN_KEYS" "$ZH_KEYS" || true)"
+
+if [[ -n "$MISSING_IN_ZH" || -n "$MISSING_IN_EN" ]]; then
+  if [[ -n "$MISSING_IN_ZH" ]]; then
+    echo "Missing keys in zh-Hans:"
+    echo "$MISSING_IN_ZH"
+  fi
+  if [[ -n "$MISSING_IN_EN" ]]; then
+    echo "Missing keys in en:"
+    echo "$MISSING_IN_EN"
+  fi
+  exit 1
+fi

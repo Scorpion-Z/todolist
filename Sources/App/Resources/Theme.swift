@@ -61,7 +61,7 @@ enum AppTheme {
     static let accentStrong: Color = Color.accentColor
     static let accentSoft: Color = Color.accentColor.opacity(0.15)
     static let selectionBackground: Color = accentSoft
-    static let glassSurface: Color = Color.black.opacity(0.18)
+    static let glassSurface: Color = surface1.opacity(0.92)
 
     static func color(for style: ListThemeStyle) -> Color {
         switch style {

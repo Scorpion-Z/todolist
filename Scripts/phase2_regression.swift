@@ -61,6 +61,8 @@ struct Phase2RegressionMain {
         try testQuickAddParser()
         try await testTaskStoreCompletionAndPersistence()
         try await testMyDaySuggestionsAndStats()
+        try await testListDeletionReordersManualOrderAndSelectionFallback()
+        try await testAppShellActionDispatch()
         try await testConflictAwareDualStorageMerge()
     }
 
@@ -257,6 +259,65 @@ struct Phase2RegressionMain {
 
         let review = store.weeklyReview(referenceDate: now, calendar: calendar)
         try expect(review.completedCount >= 1, "weekly review should count completed tasks")
+    }
+
+    @MainActor
+    static func testListDeletionReordersManualOrderAndSelectionFallback() async throws {
+        let storage = MemoryStorage()
+        let store = TaskStore(items: [], storage: storage)
+
+        store.createTask(TaskDraft(title: "default 1"))
+        store.createTask(TaskDraft(title: "default 2"))
+        store.createList(title: "Project")
+        guard let customListID = store.customLists.first?.id else {
+            throw RegressionError.failed("custom list should be created")
+        }
+
+        store.createTask(TaskDraft(title: "custom 1"), inListID: customListID)
+        store.createTask(TaskDraft(title: "custom 2"), inListID: customListID)
+        let movedTaskID = store.items.first(where: { $0.listID == customListID })?.id
+
+        let shell = AppShellViewModel(selection: .customList(customListID))
+        shell.selectTask(movedTaskID)
+
+        store.deleteList(id: customListID)
+        shell.reconcileSelection(validCustomListIDs: Set(store.customLists.map(\.id)))
+
+        try expect(shell.selection == .smartList(.myDay), "selection should fallback to My Day after deleting active custom list")
+        try expect(shell.selectedTaskID == nil, "selected task should clear after fallback")
+
+        let defaultListTasks = store.items
+            .filter { $0.listID == TodoListEntity.defaultTasksListID }
+            .sorted { $0.manualOrder < $1.manualOrder }
+        let orders = defaultListTasks.map(\.manualOrder)
+        try expect(Set(orders).count == orders.count, "default list manualOrder should remain unique after migration")
+        for (offset, order) in orders.enumerated() {
+            try expect(order == Double(offset + 1), "default list manualOrder should be compact and continuous after migration")
+        }
+    }
+
+    @MainActor
+    static func testAppShellActionDispatch() async throws {
+        let storage = MemoryStorage()
+        let item = TodoItem(id: UUID(uuidString: "00000000-0000-0000-0000-000000000401")!, title: "selected")
+        let store = TaskStore(items: [item], storage: storage)
+        let shell = AppShellViewModel(selection: .smartList(.myDay), selectedTaskID: item.id)
+
+        shell.toggleSelectedTaskImportant(using: store)
+        guard let afterImportant = store.item(withID: item.id) else {
+            throw RegressionError.failed("item missing after important toggle")
+        }
+        try expect(afterImportant.isImportant, "shell action should toggle important state")
+
+        shell.toggleSelectedTaskCompletion(using: store)
+        guard let afterCompletion = store.item(withID: item.id) else {
+            throw RegressionError.failed("item missing after completion toggle")
+        }
+        try expect(afterCompletion.isCompleted, "shell action should toggle completion state")
+
+        shell.deleteSelectedTask(from: store)
+        try expect(store.item(withID: item.id) == nil, "shell action should delete selected task")
+        try expect(shell.selectedTaskID == nil, "shell should clear selected task after deletion")
     }
 
     static func testConflictAwareDualStorageMerge() async throws {

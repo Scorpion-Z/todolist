@@ -271,10 +271,12 @@ final class TaskStore: ObservableObject {
         guard let index = lists.firstIndex(where: { $0.id == id }) else { return }
         guard !lists[index].isSystem else { return }
 
+        let now = Date()
         for taskIndex in items.indices where items[taskIndex].listID == id {
             items[taskIndex].listID = TodoListEntity.defaultTasksListID
-            items[taskIndex].updatedAt = Date()
+            items[taskIndex].updatedAt = now
         }
+        reorderListTasksAfterMigration(inListID: TodoListEntity.defaultTasksListID, updatedAt: now)
 
         lists.remove(at: index)
         schedulePersist()
@@ -733,6 +735,33 @@ final class TaskStore: ObservableObject {
 
     private func nextTaskOrder(inListID listID: UUID) -> Double {
         (items.filter { $0.listID == listID }.map(\.manualOrder).max() ?? 0) + 1
+    }
+
+    private func reorderListTasksAfterMigration(inListID listID: UUID, updatedAt: Date) {
+        let sortedIndices = items.indices
+            .filter { items[$0].listID == listID }
+            .sorted { lhs, rhs in
+                let left = items[lhs]
+                let right = items[rhs]
+                if left.manualOrder != right.manualOrder {
+                    return left.manualOrder < right.manualOrder
+                }
+                if left.updatedAt != right.updatedAt {
+                    return left.updatedAt < right.updatedAt
+                }
+                if left.createdAt != right.createdAt {
+                    return left.createdAt < right.createdAt
+                }
+                return left.id.uuidString < right.id.uuidString
+            }
+
+        for (offset, index) in sortedIndices.enumerated() {
+            let newOrder = Double(offset + 1)
+            if items[index].manualOrder != newOrder {
+                items[index].manualOrder = newOrder
+                items[index].updatedAt = updatedAt
+            }
+        }
     }
 
     private func validatedListID(_ candidate: UUID) -> UUID {

@@ -6,5 +6,8 @@ struct TodolistApp: App {
         WindowGroup {
             RootView()
         }
+        .commands {
+            TodolistCommands()
+        }
     }
 }
