@@ -75,6 +75,10 @@
 "filter.time" = "时间";
 "filter.priority" = "优先级";
 "sort.label" = "排序";
+"repeat.none" = "不重复";
+"repeat.daily" = "每天";
+"repeat.weekly" = "每周";
+"repeat.monthly" = "每月";
 "view.title" = "视图";
 "view.list" = "列表";
 "view.card" = "卡片";

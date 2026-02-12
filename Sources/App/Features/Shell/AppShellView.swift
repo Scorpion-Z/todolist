@@ -7,6 +7,7 @@ struct AppShellView: View {
 
     @StateObject private var shell = AppShellViewModel()
     @State private var detailFocusRequestID = 0
+    @State private var columnVisibility: NavigationSplitViewVisibility = .doubleColumn
 
     @AppStorage("appLanguagePreference") private var appLanguagePreference = "system"
     @AppStorage("cloudSyncEnabled") private var cloudSyncEnabled = false
@@ -17,10 +18,11 @@ struct AppShellView: View {
     private var cloudSyncSupported: Bool { RootView.cloudKitSupported }
 
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
             SidebarView(store: store, shell: shell)
                 .frame(minWidth: 260)
-        } detail: {
+                .navigationSplitViewColumnWidth(min: 240, ideal: 260, max: 320)
+        } content: {
             taskContentColumn
                 .navigationTitle(currentSectionTitle)
                 .searchable(text: $shell.searchInput, placement: .toolbar, prompt: Text("search.placeholder"))
@@ -29,18 +31,24 @@ struct AppShellView: View {
                 .onExitCommand {
                     shell.closeDetail()
                 }
+        } detail: {
+            detailColumn
+                .navigationSplitViewColumnWidth(min: 320, ideal: 380, max: 620)
         }
         .navigationSplitViewStyle(.balanced)
         .frame(minWidth: 1080, minHeight: 760)
         .environment(\.locale, selectedLocale)
-        .inspector(isPresented: inspectorBinding) {
-            detailInspector
+        .onAppear {
+            syncColumnVisibility(force: true)
         }
         .onChange(of: store.lists) { _, lists in
             let validCustomListIDs = Set(lists.filter { !$0.isSystem }.map(\.id))
             Task { @MainActor in
                 shell.reconcileSelection(validCustomListIDs: validCustomListIDs)
             }
+        }
+        .onChange(of: shell.selectedTaskID) { _, _ in
+            syncColumnVisibility()
         }
         .onChange(of: store.items) { _, items in
             guard let selectedTaskID = shell.selectedTaskID else { return }
@@ -83,25 +91,19 @@ struct AppShellView: View {
     }
 
     @ViewBuilder
-    private var detailInspector: some View {
-        TaskDetailView(
-            store: store,
-            selectedTaskID: selectedTaskBinding,
-            focusRequestID: detailFocusRequestID
-        )
-        .navigationTitle(String(localized: "detail.title"))
-        .frame(minWidth: 320)
-    }
-
-    private var inspectorBinding: Binding<Bool> {
-        Binding(
-            get: { shell.isDetailPresented && shell.selectedTaskID != nil },
-            set: { presented in
-                if !presented {
-                    shell.closeDetail()
-                }
-            }
-        )
+    private var detailColumn: some View {
+        if shell.selectedTaskID != nil {
+            TaskDetailView(
+                store: store,
+                selectedTaskID: selectedTaskBinding,
+                focusRequestID: detailFocusRequestID
+            )
+            .navigationTitle(String(localized: "detail.title"))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            Color.clear
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
     }
 
     private var taskContentColumn: some View {
@@ -351,6 +353,16 @@ struct AppShellView: View {
             return String(localized: "settings.sync.unavailable")
         }
         return cloudSyncEnabled ? String(localized: "settings.sync.state.on") : String(localized: "settings.sync.state.off")
+    }
+
+    private func syncColumnVisibility(force: Bool = false) {
+        let target: NavigationSplitViewVisibility = shell.selectedTaskID == nil ? .doubleColumn : .all
+        guard force || columnVisibility != target else { return }
+        Task { @MainActor in
+            withAnimation(.easeInOut(duration: 0.18)) {
+                columnVisibility = target
+            }
+        }
     }
 
     private func handleNewTaskCommand() {

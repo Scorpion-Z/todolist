@@ -6,6 +6,8 @@ struct SidebarView: View {
 
     @State private var showingListManagement = false
     @State private var showingProfileEditor = false
+    @State private var uiSelection: AppShellViewModel.SidebarSelection?
+    @State private var pendingSelection: AppShellViewModel.SidebarSelection?
 
     var body: some View {
         let groupedLists = Array(store.groupedCustomLists(searchText: shell.sidebarSearchText).enumerated())
@@ -20,7 +22,7 @@ struct SidebarView: View {
                 .padding(.horizontal, 12)
                 .padding(.bottom, 10)
 
-            List(selection: selectionBinding) {
+            List(selection: $uiSelection) {
                 Section("list.section.smart") {
                     smartRow(title: String(localized: "smart.myDay"), icon: "sun.max", selection: .smartList(.myDay), count: store.taskCount(for: .myDay))
                     smartRow(title: String(localized: "smart.planned"), icon: "calendar", selection: .smartList(.planned), count: store.taskCount(for: .planned))
@@ -88,6 +90,30 @@ struct SidebarView: View {
             .background(AppTheme.sidebarBackground)
         }
         .background(AppTheme.sidebarBackground)
+        .onAppear {
+            uiSelection = shell.selection
+            pendingSelection = nil
+        }
+        .onChange(of: uiSelection) { _, newValue in
+            guard let requested = newValue else { return }
+            guard requested != shell.selection else {
+                pendingSelection = nil
+                return
+            }
+
+            pendingSelection = requested
+            Task { @MainActor in
+                guard pendingSelection == requested else { return }
+                shell.select(requested)
+                pendingSelection = nil
+            }
+        }
+        .onChange(of: shell.selection) { _, newValue in
+            pendingSelection = nil
+            if uiSelection != newValue {
+                uiSelection = newValue
+            }
+        }
         .sheet(isPresented: $showingListManagement) {
             ListManagementSheet(store: store)
                 .frame(minWidth: 460, minHeight: 420)
@@ -209,18 +235,6 @@ struct SidebarView: View {
         }
     }
 
-    private var selectionBinding: Binding<AppShellViewModel.SidebarSelection?> {
-        Binding(
-            get: { shell.selection },
-            set: { newValue in
-                guard let newValue else { return }
-                guard shell.selection != newValue else { return }
-                Task { @MainActor in
-                    shell.select(newValue)
-                }
-            }
-        )
-    }
 }
 
 private struct ProfileEditorSheet: View {

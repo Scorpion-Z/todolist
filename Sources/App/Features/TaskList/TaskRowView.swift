@@ -28,7 +28,7 @@ struct TaskRowView: View {
 
                 HStack(spacing: 6) {
                     if item.isImportant {
-                        pillLabel("smart.important", tint: .yellow)
+                        pillLabel(LocalizedStringKey("smart.important"), tint: .yellow)
                     }
 
                     if let dueDate = item.dueDate {
@@ -38,7 +38,7 @@ struct TaskRowView: View {
                     pillLabel(item.priority.displayNameKey, tint: priorityTint(item.priority))
 
                     if isInMyDay {
-                        pillLabel("smart.myDay", tint: AppTheme.accentStrong)
+                        pillLabel(LocalizedStringKey("smart.myDay"), tint: AppTheme.accentStrong)
                     }
 
                     if !item.subtasks.isEmpty {

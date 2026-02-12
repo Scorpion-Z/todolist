@@ -48,3 +48,35 @@ if [[ -n "$MISSING_IN_ZH" || -n "$MISSING_IN_EN" ]]; then
   fi
   exit 1
 fi
+
+REQUIRED_LOCALIZATION_KEYS=(
+  "repeat.none"
+  "repeat.daily"
+  "repeat.weekly"
+  "repeat.monthly"
+)
+
+check_required_keys() {
+  local file="$1"
+  local locale="$2"
+  local missing=()
+  for key in "${REQUIRED_LOCALIZATION_KEYS[@]}"; do
+    if ! rg -q "^\"${key}\"\\s*=" "$file"; then
+      missing+=("$key")
+    fi
+  done
+
+  if (( ${#missing[@]} > 0 )); then
+    echo "Missing required localization keys in ${locale}:"
+    printf '%s\n' "${missing[@]}"
+    exit 1
+  fi
+}
+
+check_required_keys Sources/App/Resources/en.lproj/Localizable.strings "en"
+check_required_keys Sources/App/Resources/zh-Hans.lproj/Localizable.strings "zh-Hans"
+
+if rg -n 'pillLabel\("smart\.(myDay|important)"' Sources/App/Features/TaskList/TaskRowView.swift >/dev/null; then
+  echo "TaskRowView should use LocalizedStringKey for smart.* pills, not String literals."
+  exit 1
+fi

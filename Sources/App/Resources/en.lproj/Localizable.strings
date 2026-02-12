@@ -75,6 +75,10 @@
 "filter.time" = "Time";
 "filter.priority" = "Priority";
 "sort.label" = "Sort";
+"repeat.none" = "None";
+"repeat.daily" = "Daily";
+"repeat.weekly" = "Weekly";
+"repeat.monthly" = "Monthly";
 "view.title" = "View";
 "view.list" = "List";
 "view.card" = "Cards";
